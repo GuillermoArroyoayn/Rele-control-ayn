@@ -1,11 +1,9 @@
-const {setRelay}=require("../lib/tuya");
-const {authorize}=require("../lib/devices");
+const {setRelay,checkPin}=require("../lib/tuya");
 
 module.exports=async function handler(req,res){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
   try{
-    const auth=await authorize(req);
-    if(!auth.ok) return res.status(auth.status).json({error:auth.error});
+    if(!checkPin(req)) return res.status(401).json({error:"PIN incorrecto"});
     const relay=Number(req.body?.relay);
     const state=req.body?.state;
     if(![1,2,3].includes(relay) || typeof state!=="boolean"){

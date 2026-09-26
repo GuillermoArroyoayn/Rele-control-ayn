@@ -35,8 +35,13 @@ async function loadStatus(){
   refresh.disabled = true;
   try{
     const data = await api("/api/status");
-    for(const item of data.relays) paint(item.relay,item.state);
-    show("Estado actualizado.");
+    const errors = [];
+    for(const item of data.relays){
+      paint(item.relay,item.state);
+      if(item.error) errors.push(`Relé ${item.relay}: ${item.error}`);
+    }
+    if(errors.length) show(errors.join(" · "),true);
+    else show("Estado actualizado.");
   }catch(e){ show(e.message,true); }
   finally{ refresh.disabled=false; }
 }

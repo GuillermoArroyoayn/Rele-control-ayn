@@ -1,0 +1,71 @@
+const pinInput = document.getElementById("pin");
+const savePin = document.getElementById("savePin");
+const refresh = document.getElementById("refresh");
+const message = document.getElementById("message");
+const buttons = [...document.querySelectorAll(".power")];
+const states = {1:null,2:null,3:null};
+
+pinInput.value = localStorage.getItem("relayPin") || "";
+
+function pin(){ return pinInput.value.trim(); }
+
+function show(text, error=false){
+  message.textContent = text;
+  message.style.color = error ? "#fecaca" : "#bfd3e2";
+}
+
+function paint(relay, value){
+  states[relay] = value;
+  const card = document.querySelector(`.relay-card[data-relay="${relay}"]`);
+  const label = document.getElementById(`state${relay}`);
+  card.classList.toggle("on", value === true);
+  label.textContent = value === true ? "ENCENDIDO" : value === false ? "APAGADO" : "Sin conexión";
+}
+
+async function api(url, options={}){
+  const headers = {...(options.headers||{}), "x-app-pin": pin()};
+  const res = await fetch(url,{...options,headers});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || "No se pudo completar la operación");
+  return data;
+}
+
+async function loadStatus(){
+  if(!pin()){ show("Ingresa tu PIN de acceso.",true); return; }
+  refresh.disabled = true;
+  try{
+    const data = await api("/api/status");
+    for(const item of data.relays) paint(item.relay,item.state);
+    show("Estado actualizado.");
+  }catch(e){ show(e.message,true); }
+  finally{ refresh.disabled=false; }
+}
+
+savePin.addEventListener("click",()=>{
+  localStorage.setItem("relayPin",pin());
+  show("PIN guardado en este teléfono.");
+  loadStatus();
+});
+
+refresh.addEventListener("click",loadStatus);
+
+buttons.forEach(btn=>btn.addEventListener("click",async()=>{
+  const relay = Number(btn.dataset.relay);
+  if(!pin()){ show("Ingresa tu PIN de acceso.",true); return; }
+  const desired = states[relay] !== true;
+  btn.disabled = true;
+  show(`${desired ? "Encendiendo" : "Apagando"} relé ${relay}…`);
+  try{
+    const data = await api("/api/control",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({relay,state:desired})
+    });
+    paint(relay,Boolean(data.state));
+    show(`Relé ${relay}: ${data.state ? "encendido" : "apagado"}.`);
+  }catch(e){ show(e.message,true); }
+  finally{ btn.disabled=false; }
+}));
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+if(pin()) loadStatus();

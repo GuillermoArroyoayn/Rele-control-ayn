@@ -1,4 +1,4 @@
-const {getRelay,checkPin}=require("../lib/tuya");
+const {getRelay,checkPin,credentialDebug}=require("../lib/tuya");
 
 module.exports=async function handler(req,res){
   if(req.method!=="GET") return res.status(405).json({error:"Método no permitido"});
@@ -9,7 +9,7 @@ module.exports=async function handler(req,res){
       try{ relays.push({relay,state:await getRelay(relay)}); }
       catch(e){ relays.push({relay,state:null,error:e.message}); }
     }
-    return res.status(200).json({relays});
+    return res.status(200).json({relays,debug:credentialDebug()});
   }catch(e){
     console.error(e);
     return res.status(500).json({error:e.message||"Error interno"});

@@ -1,5 +1,5 @@
-const CACHE="reles-ayn-v3";
-const ASSETS=["/","/index.html","/styles.css?v=20260927-1517","/app.js?v=20260927-1517","/share.css","/app-icon-192.png","/app-icon-512.png","/manifest.webmanifest"];
+const CACHE="reles-ayn-v4";
+const ASSETS=["/","/index.html","/styles.css?v=20260927-1524","/app.js?v=20260927-1524","/share.css","/app-icon-192.png","/app-icon-512.png","/manifest.webmanifest"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",e=>{

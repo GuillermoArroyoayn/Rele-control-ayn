@@ -10,7 +10,7 @@ const states = {1:null,2:null,3:null};
 const toggleShare=document.getElementById("toggleShare"),sharePanel=document.getElementById("sharePanel"),sharePhone=document.getElementById("sharePhone"),shareNumber=document.getElementById("shareNumber"),shareContacts=document.getElementById("shareContacts");
 const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
-const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocked:"Bloqueado"};
+const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocked:"Bloqueado",removed:"Eliminado"};
 
 function getDeviceId(){let id=localStorage.getItem("relayDeviceId");if(!id){id=(crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`).replace(/[^a-zA-Z0-9-]/g,"");localStorage.setItem("relayDeviceId",id);}return id;}
 function getDeviceName(){let name=localStorage.getItem("relayDeviceName");if(!name){name=`Celular ${navigator.platform||"Android"}`;localStorage.setItem("relayDeviceName",name);}return name;}
@@ -73,11 +73,33 @@ async function loadDevices(){
       const detail=document.createElement("small");
       if(device.role==="master") detail.textContent="Este equipo · Acceso total";
       else if(device.status==="pending") detail.textContent="Esperando autorización";
+      else if(device.status==="removed") detail.textContent="Acceso eliminado · Puedes reincorporar este equipo";
       else detail.textContent=`Permisos guardados: ${(device.relays||[]).map(n=>`Relé ${n}`).join(", ")||"ninguno"}`;
       info.append(titleLine,detail);
       row.append(info);
 
       if(device.role!=="master"){
+        if(device.status==="removed"){
+          const actions=document.createElement("div");
+          actions.className="device-actions";
+          const restore=document.createElement("button");
+          restore.className="restore-device";
+          restore.textContent="Reincorporar";
+          restore.addEventListener("click",async()=>{
+            if(!confirm(`¿Reincorporar a ${device.name}?`))return;
+            restore.disabled=true;
+            try{
+              const result=await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,action:"restore"})});
+              show(result.status==="active"?`${device.name} fue reincorporado con sus permisos anteriores.`:`${device.name} fue reincorporado. Ahora selecciona sus relés y presiona Autorizar.`);
+              await loadDevices();
+            }catch(e){show(e.message,true);restore.disabled=false;}
+          });
+          actions.append(restore);
+          row.append(actions);
+          deviceList.append(row);
+          continue;
+        }
+
         const permissions=document.createElement("div");
         permissions.className="device-permissions";
         for(const relay of [1,2,3]){

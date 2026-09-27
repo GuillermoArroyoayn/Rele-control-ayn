@@ -14,7 +14,7 @@ module.exports=async function handler(req,res){
         id,name:item.adminName||item.name||"Equipo eliminado",deviceName:item.name||"Equipo eliminado",adminName:item.adminName||"",phone:item.phone||"",role:"user",status:"removed",relays:item.relays||[],createdAt:item.createdAt,revokedAt:item.revokedAt
       }));
       const devices=[...activeDevices,...removedDevices]
-        .sort((a,b)=>a.role==="master"?-1:b.role==="master"?1:a.status==="removed"&&b.status!=="removed"?1:b.status==="removed"&&a.status!=="removed"?-1:a.name.localeCompare(b.name));
+        .sort((a,b)=>a.role==="master"?-1:b.role==="master"?1:a.status==="removed"&&b.status!=="removed"?1:b.status==="removed"&&a.status!=="removed"?-1:String(a.createdAt||"").localeCompare(String(b.createdAt||""))||a.id.localeCompare(b.id));
       return res.status(200).json({devices});
     }
 

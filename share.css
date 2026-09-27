@@ -1,0 +1,8 @@
+.share-section{margin-top:16px}
+.share-main,.share-contacts,#shareNumber{width:100%;min-height:48px;border-radius:14px;background:#22d3ee;color:#05232e}
+.share-panel{display:grid;gap:10px;margin-top:10px;padding:14px;border:1px solid #ffffff1a;border-radius:14px;background:#071522}
+.share-panel label{font-weight:800}
+.share-panel small{color:#9fb8c8;line-height:1.35}
+.share-row{display:flex;gap:8px}
+.share-row input{width:100%;font-size:16px}
+.share-row #shareNumber{width:auto;padding:0 16px;white-space:nowrap}

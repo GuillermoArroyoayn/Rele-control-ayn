@@ -72,9 +72,9 @@ async function loadDevices(){
       titleLine.append(title,badge);
       const detail=document.createElement("small");
       if(device.role==="master") detail.textContent="Este equipo · Acceso total";
-      else if(device.status==="pending") detail.textContent="Esperando autorización";
-      else if(device.status==="removed") detail.textContent="Acceso eliminado · Puedes reincorporar este equipo";
-      else detail.textContent=`Permisos guardados: ${(device.relays||[]).map(n=>`Relé ${n}`).join(", ")||"ninguno"}`;
+      else if(device.status==="pending") detail.textContent=device.phone?`Esperando autorización · ${device.phone}`:"Esperando autorización";
+      else if(device.status==="removed") detail.textContent=device.phone?`Acceso eliminado · ${device.phone}`:"Acceso eliminado · Puedes reincorporar este equipo";
+      else detail.textContent=`${device.phone?device.phone+" · ":""}Permisos guardados: ${(device.relays||[]).map(n=>`Relé ${n}`).join(", ")||"ninguno"}`;
       info.append(titleLine,detail);
       row.append(info);
 
@@ -100,6 +100,23 @@ async function loadDevices(){
           continue;
         }
 
+        const identity=document.createElement("div");
+        identity.className="device-identity";
+        const nameInput=document.createElement("input");
+        nameInput.type="text";
+        nameInput.maxLength=60;
+        nameInput.placeholder="Nombre del usuario";
+        nameInput.value=device.adminName||"";
+        nameInput.setAttribute("aria-label","Nombre del usuario");
+        const phoneInput=document.createElement("input");
+        phoneInput.type="tel";
+        phoneInput.inputMode="tel";
+        phoneInput.maxLength=30;
+        phoneInput.placeholder="Número de celular";
+        phoneInput.value=device.phone||"";
+        phoneInput.setAttribute("aria-label","Número de celular");
+        identity.append(nameInput,phoneInput);
+
         const permissions=document.createElement("div");
         permissions.className="device-permissions";
         for(const relay of [1,2,3]){
@@ -120,8 +137,11 @@ async function loadDevices(){
           if(!relays.length){show("Selecciona por lo menos un relé.",true);return;}
           save.disabled=true;
           try{
-            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays})});
-            show(`Permisos guardados para ${device.name}. El usuario quedó activo.`);
+            const adminName=nameInput.value.trim();
+            const phone=phoneInput.value.trim();
+            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays,adminName,phone})});
+            const identification=adminName||phone||device.name;
+            show(`Datos y permisos guardados para ${identification}. El usuario quedó activo.`);
             await loadDevices();
           }catch(e){show(e.message,true);save.disabled=false;}
         });
@@ -168,7 +188,7 @@ async function loadDevices(){
         });
 
         actions.append(remove);
-        row.append(permissions,actions);
+        row.append(identity,permissions,actions);
       }
       deviceList.append(row);
     }

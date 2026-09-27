@@ -8,10 +8,10 @@ module.exports=async function handler(req,res){
 
     if(req.method==="GET"){
       const activeDevices=Object.entries(registry.devices).map(([id,item])=>({
-        id,name:item.name,role:id===registry.masterId?"master":"user",status:item.status,relays:item.relays,createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
+        id,name:item.adminName||item.name,deviceName:item.name,adminName:item.adminName||"",phone:item.phone||"",role:id===registry.masterId?"master":"user",status:item.status,relays:item.relays,createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
       }));
       const removedDevices=Object.entries(registry.revoked||{}).map(([id,item])=>({
-        id,name:item.name||"Equipo eliminado",role:"user",status:"removed",relays:item.relays||[],createdAt:item.createdAt,revokedAt:item.revokedAt
+        id,name:item.adminName||item.name||"Equipo eliminado",deviceName:item.name||"Equipo eliminado",adminName:item.adminName||"",phone:item.phone||"",role:"user",status:"removed",relays:item.relays||[],createdAt:item.createdAt,revokedAt:item.revokedAt
       }));
       const devices=[...activeDevices,...removedDevices]
         .sort((a,b)=>a.role==="master"?-1:b.role==="master"?1:a.status==="removed"&&b.status!=="removed"?1:b.status==="removed"&&a.status!=="removed"?-1:a.name.localeCompare(b.name));
@@ -27,6 +27,8 @@ module.exports=async function handler(req,res){
         const savedRelays=[...new Set((removed.relays||[]).map(Number).filter(relay=>[1,2,3].includes(relay)))].sort();
         registry.devices[id]={
           name:removed.name||"Equipo reincorporado",
+          adminName:removed.adminName||"",
+          phone:removed.phone||"",
           role:"user",
           status:savedRelays.length?"active":"pending",
           relays:savedRelays,
@@ -60,6 +62,10 @@ module.exports=async function handler(req,res){
       const relays=[...new Set((Array.isArray(req.body?.relays)?req.body.relays:[]).map(Number))]
         .filter(relay=>[1,2,3].includes(relay)).sort();
       if(!relays.length) return res.status(400).json({error:"Selecciona por lo menos un relé."});
+      const adminName=String(req.body?.adminName||"").trim().slice(0,60);
+      const phone=String(req.body?.phone||"").trim().slice(0,30);
+      registry.devices[id].adminName=adminName;
+      registry.devices[id].phone=phone;
       registry.devices[id].relays=relays;
       registry.devices[id].status="active";
       registry.devices[id].approvedAt=new Date().toISOString();
@@ -76,6 +82,8 @@ module.exports=async function handler(req,res){
       delete registry.devices[id];
       registry.revoked[id]={
         name:removed.name,
+        adminName:removed.adminName||"",
+        phone:removed.phone||"",
         relays:Array.isArray(removed.relays)?removed.relays:[],
         createdAt:removed.createdAt,
         lastSeen:removed.lastSeen,

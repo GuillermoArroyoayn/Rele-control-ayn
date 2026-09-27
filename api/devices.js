@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
 
     if(req.method==="GET"){
       const devices=Object.entries(registry.devices).map(([id,item])=>({
-        id,name:item.name,role:id===registry.masterId?"master":"user",status:item.status,relays:item.relays,createdAt:item.createdAt,lastSeen:item.lastSeen
+        id,name:item.name,role:id===registry.masterId?"master":"user",status:item.status,relays:item.relays,createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
       })).sort((a,b)=>a.role==="master"?-1:b.role==="master"?1:a.name.localeCompare(b.name));
       return res.status(200).json({devices});
     }
@@ -16,7 +16,22 @@ module.exports=async function handler(req,res){
     if(req.method==="PUT"){
       const id=String(req.body?.deviceId||"");
       if(!id || !registry.devices[id]) return res.status(404).json({error:"Equipo no encontrado."});
-      if(id===registry.masterId) return res.status(400).json({error:"Los permisos del Master no se pueden modificar."});
+      if(id===registry.masterId) return res.status(400).json({error:"El estado y los permisos del Master no se pueden modificar."});
+
+      if(req.body?.status!==undefined){
+        const status=String(req.body.status);
+        if(!["active","paused","blocked"].includes(status)) return res.status(400).json({error:"Estado de acceso inválido."});
+        if(status==="active" && !(registry.devices[id].relays||[]).length){
+          return res.status(400).json({error:"Asigna por lo menos un relé antes de reactivar este usuario."});
+        }
+        registry.devices[id].status=status;
+        registry.devices[id].statusChangedAt=new Date().toISOString();
+        registry.devices[id].statusChangedBy=auth.device.id;
+        if(status==="active") registry.devices[id].reactivatedAt=new Date().toISOString();
+        await writeRegistry(registry);
+        return res.status(200).json({ok:true,deviceId:id,status,relays:registry.devices[id].relays});
+      }
+
       const relays=[...new Set((Array.isArray(req.body?.relays)?req.body.relays:[]).map(Number))]
         .filter(relay=>[1,2,3].includes(relay)).sort();
       if(!relays.length) return res.status(400).json({error:"Selecciona por lo menos un relé."});
@@ -25,7 +40,7 @@ module.exports=async function handler(req,res){
       registry.devices[id].approvedAt=new Date().toISOString();
       registry.devices[id].approvedBy=auth.device.id;
       await writeRegistry(registry);
-      return res.status(200).json({ok:true,deviceId:id,relays});
+      return res.status(200).json({ok:true,deviceId:id,relays,status:"active"});
     }
 
     if(req.method==="DELETE"){

@@ -198,7 +198,29 @@ async function loadDevices(){
 refreshDevices.addEventListener("click",loadDevices);
 toggleShare.addEventListener("click",()=>{sharePanel.hidden=!sharePanel.hidden;if(!sharePanel.hidden)sharePhone.focus();});
 shareNumber.addEventListener("click",()=>{let number=sharePhone.value.replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const text=encodeURIComponent(`${shareText} ${shareUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
-shareContacts.addEventListener("click",async()=>{try{if(navigator.share){await navigator.share({title:"A&N Control",text:shareText,url:shareUrl});}else{await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);show("Enlace copiado. Ya puedes pegarlo en WhatsApp o Mensajes.");}}catch(e){if(e.name!=="AbortError")show("No se pudo abrir el menú para compartir.",true);}});
+shareContacts.addEventListener("click",async()=>{
+  try{
+    if(navigator.contacts?.select){
+      const contacts=await navigator.contacts.select(["name","tel"],{multiple:false});
+      const contact=contacts?.[0];
+      const selectedNumber=contact?.tel?.[0]||"";
+      if(!selectedNumber)return;
+      sharePhone.value=selectedNumber;
+      const selectedName=contact.name?.[0]||"el contacto";
+      show(`Seleccionaste a ${selectedName}. Presiona Compartir para enviarle el enlace.`);
+      sharePhone.focus();
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({title:"Sistema de Control AYN",text:shareText,url:shareUrl});
+      return;
+    }
+    await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+    show("Enlace copiado. Ya puedes pegarlo en WhatsApp o Mensajes.");
+  }catch(e){
+    if(e.name!=="AbortError")show("No se pudo abrir la agenda de contactos. Puedes escribir el número manualmente.",true);
+  }
+});
 if("serviceWorker" in navigator){
   let reloading=false;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{

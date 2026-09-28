@@ -199,5 +199,26 @@ refreshDevices.addEventListener("click",loadDevices);
 toggleShare.addEventListener("click",()=>{sharePanel.hidden=!sharePanel.hidden;if(!sharePanel.hidden)sharePhone.focus();});
 shareNumber.addEventListener("click",()=>{let number=sharePhone.value.replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const text=encodeURIComponent(`${shareText} ${shareUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
 shareContacts.addEventListener("click",async()=>{try{if(navigator.share){await navigator.share({title:"A&N Control",text:shareText,url:shareUrl});}else{await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);show("Enlace copiado. Ya puedes pegarlo en WhatsApp o Mensajes.");}}catch(e){if(e.name!=="AbortError")show("No se pudo abrir el menú para compartir.",true);}});
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+if("serviceWorker" in navigator){
+  let reloading=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(reloading)return;
+    reloading=true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("/sw.js").then(registration=>{
+    const activate=worker=>worker?.postMessage({type:"SKIP_WAITING"});
+    if(registration.waiting)activate(registration.waiting);
+    registration.addEventListener("updatefound",()=>{
+      const worker=registration.installing;
+      worker?.addEventListener("statechange",()=>{
+        if(worker.state==="installed"&&navigator.serviceWorker.controller)activate(worker);
+      });
+    });
+    registration.update().catch(()=>{});
+    document.addEventListener("visibilitychange",()=>{
+      if(document.visibilityState==="visible")registration.update().catch(()=>{});
+    });
+  }).catch(()=>{});
+}
 if(pin())loadStatus();

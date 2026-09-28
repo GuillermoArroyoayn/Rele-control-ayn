@@ -13,6 +13,12 @@ const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
 const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocked:"Bloqueado",removed:"Eliminado"};
 const roleLabels={super_master:"MÁSTER GENERAL",admin:"ADMINISTRADOR",user:"USUARIO"};
+const historySection=document.createElement("section");
+historySection.className="history-section";
+historySection.innerHTML='<div class="history-title"><h2>Historial de accesos</h2><button id="refreshHistory" class="small-button">Actualizar historial</button></div><p class="history-help">Muestra las activaciones realizadas desde AYN Control.</p><div id="historyList" class="history-list"></div>';
+adminPanel.append(historySection);
+const historyList=document.getElementById("historyList"),refreshHistory=document.getElementById("refreshHistory");
+const localDateTime=value=>{if(!value)return "";const date=new Date(value);if(Number.isNaN(date.getTime()))return "";const offset=date.getTimezoneOffset();return new Date(date.getTime()-offset*60000).toISOString().slice(0,16);};
 const normalizePhone=value=>{let number=String(value||"").replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;return number;};
 const inviteParams=new URLSearchParams(location.search);
 const invitePhone=inviteParams.get("phone"),inviteGroup=inviteParams.get("group");
@@ -41,7 +47,7 @@ async function loadStatus(){
     if(currentRole==="admin"&&currentGroupId)localStorage.setItem("relayGroupId",currentGroupId);
     adminPanel.hidden=!["super_master","admin"].includes(currentRole);
     const adminTitle=adminPanel.querySelector("h2");if(adminTitle)adminTitle.textContent=currentRole==="super_master"?"Administradores y usuarios":"Mis usuarios";
-    if(!adminPanel.hidden)loadDevices();
+    if(!adminPanel.hidden){loadDevices();loadHistory();}
     if(errors.length)show(errors.join(" · "),true);else show(currentRole==="super_master"?"Este equipo es el Máster general.":currentRole==="admin"?"Panel de administrador activo.":"Estado actualizado.");
   }catch(e){
     setRelayAccess([]);
@@ -162,6 +168,23 @@ async function loadDevices(){
           permissions.append(label);
         }
 
+        const temporary=document.createElement("div");
+        temporary.className="temporary-permissions";
+        const temporaryTitle=document.createElement("strong");
+        temporaryTitle.textContent="Permiso temporal (opcional)";
+        const startLabel=document.createElement("label");
+        startLabel.textContent="Desde";
+        const startInput=document.createElement("input");
+        startInput.type="datetime-local";startInput.value=localDateTime(device.accessStartsAt);
+        const endLabel=document.createElement("label");
+        endLabel.textContent="Hasta";
+        const endInput=document.createElement("input");
+        endInput.type="datetime-local";endInput.value=localDateTime(device.accessEndsAt);
+        const clearTemporary=document.createElement("button");
+        clearTemporary.type="button";clearTemporary.className="clear-temporary";clearTemporary.textContent="Dejar permanente";
+        clearTemporary.addEventListener("click",()=>{startInput.value="";endInput.value="";show("Permiso configurado como permanente. Presiona Guardar permisos.");});
+        temporary.append(temporaryTitle,startLabel,startInput,endLabel,endInput,clearTemporary);
+
         const save=document.createElement("button");
         save.className="save-permissions";
         save.textContent=device.status==="pending"?"Autorizar":"Guardar permisos";
@@ -172,7 +195,9 @@ async function loadDevices(){
           try{
             const adminName=nameInput.value.trim();
             const phone=phoneInput.value.trim();
-            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays,adminName,phone,role:roleSelect?.value||"user",groupId:groupSelect?.value||currentGroupId||""})});
+            const accessStartsAt=startInput.value?new Date(startInput.value).toISOString():"";
+            const accessEndsAt=endInput.value?new Date(endInput.value).toISOString():"";
+            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays,adminName,phone,role:roleSelect?.value||"user",groupId:groupSelect?.value||currentGroupId||"",accessStartsAt,accessEndsAt})});
             const identification=adminName||phone||device.name;
             show(`${roleSelect?.value==="admin"?"Administrador":"Usuario"} ${identification} guardado correctamente.`);
             await loadDevices();
@@ -221,14 +246,34 @@ async function loadDevices(){
         });
 
         actions.append(remove);
-        row.append(identity,permissions,actions);
+        row.append(identity,permissions,temporary,actions);
       }
       destination.append(row);
     }
   }catch(e){show(e.message,true);}
 }
 
+async function loadHistory(){
+  if(!historyList)return;
+  historyList.innerHTML='<div class="history-empty">Cargando historial…</div>';
+  try{
+    const data=await api("/api/history?limit=200");
+    historyList.innerHTML="";
+    if(!(data.history||[]).length){historyList.innerHTML='<div class="history-empty">Todavía no hay aperturas registradas.</div>';return;}
+    for(const item of data.history){
+      const row=document.createElement("article");row.className=`history-row history-${item.result||"success"}`;
+      const info=document.createElement("div");
+      const title=document.createElement("strong");title.textContent=item.userName||"Usuario";
+      const detail=document.createElement("small");detail.textContent=`Actuador ${item.relay} · ${item.state?"ENCENDIDO":"APAGADO"}${item.phone?` · ${item.phone}`:""}`;
+      info.append(title,detail);
+      const time=document.createElement("time");time.dateTime=item.createdAt;time.textContent=new Date(item.createdAt).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
+      row.append(info,time);historyList.append(row);
+    }
+  }catch(e){historyList.innerHTML="";show(e.message,true);}
+}
+
 refreshDevices.addEventListener("click",loadDevices);
+refreshHistory.addEventListener("click",loadHistory);
 toggleShare.addEventListener("click",()=>{sharePanel.hidden=!sharePanel.hidden;if(!sharePanel.hidden)sharePhone.focus();});
 shareNumber.addEventListener("click",()=>{const number=normalizePhone(sharePhone.value);if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const params=new URLSearchParams({phone:number});if(currentRole==="admin"&&currentGroupId)params.set("group",currentGroupId);const personalizedUrl=`${shareUrl}?${params}`;const text=encodeURIComponent(`${shareText} ${personalizedUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
 shareContacts.addEventListener("click",async()=>{

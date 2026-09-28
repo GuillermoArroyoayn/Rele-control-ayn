@@ -1,6 +1,6 @@
 {
-  "name":"Control de Relés A&N",
-  "short_name":"A&N Control",
+  "name":"Sistema de Control AYN",
+  "short_name":"Control AYN",
   "start_url":"/",
   "scope":"/",
   "display":"standalone",

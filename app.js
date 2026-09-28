@@ -11,6 +11,9 @@ const toggleShare=document.getElementById("toggleShare"),sharePanel=document.get
 const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
 const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocked:"Bloqueado",removed:"Eliminado"};
+const normalizePhone=value=>{let number=String(value||"").replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;return number;};
+const invitePhone=new URLSearchParams(location.search).get("phone");
+if(invitePhone){const normalizedInvitePhone=normalizePhone(invitePhone);if(normalizedInvitePhone.length>=10)localStorage.setItem("relayDevicePhone",normalizedInvitePhone);history.replaceState({},document.title,location.pathname+location.hash);}
 
 function getDeviceId(){let id=localStorage.getItem("relayDeviceId");if(!id){id=(crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`).replace(/[^a-zA-Z0-9-]/g,"");localStorage.setItem("relayDeviceId",id);}return id;}
 function getDeviceName(){let name=localStorage.getItem("relayDeviceName");if(!name){name=`Celular ${navigator.platform||"Android"}`;localStorage.setItem("relayDeviceName",name);}return name;}
@@ -19,7 +22,7 @@ function pin(){return pinInput.value.trim();}
 function show(text,error=false){message.textContent=text;message.style.color=error?"#fecaca":"#bfd3e2";}
 function paint(relay,value){states[relay]=value;const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const label=document.getElementById(`state${relay}`);const button=card.querySelector(".power");card.classList.toggle("on",value===true);label.textContent=value===true?"ENCENDIDO":value===false?"APAGADO":"Sin conexión";button.dataset.state=value===true?"ON":value===false?"OFF":"";button.setAttribute("aria-label",value===true?`Apagar actuador ${relay}`:value===false?`Encender actuador ${relay}`:`Controlar actuador ${relay}`);}
 function setRelayAccess(allowed){for(const relay of [1,2,3]){const permitted=allowed.includes(relay);const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const button=card.querySelector(".power");card.classList.toggle("denied",!permitted);button.disabled=!permitted;if(!permitted){states[relay]=null;button.dataset.state="";button.setAttribute("aria-label",`Sin permiso para controlar actuador ${relay}`);document.getElementById(`state${relay}`).textContent="Sin permiso";}}}
-async function api(url,options={}){const headers={...(options.headers||{}),"x-app-pin":pin(),"x-device-id":getDeviceId(),"x-device-name":getDeviceName()};const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));if(!res.ok){const error=new Error(data.error||"No se pudo completar la operación");error.accessStatus=data.accessStatus;throw error;}return data;}
+async function api(url,options={}){const headers={...(options.headers||{}),"x-app-pin":pin(),"x-device-id":getDeviceId(),"x-device-name":getDeviceName(),"x-device-phone":localStorage.getItem("relayDevicePhone")||""};const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));if(!res.ok){const error=new Error(data.error||"No se pudo completar la operación");error.accessStatus=data.accessStatus;throw error;}return data;}
 
 async function loadStatus(){
   if(!pin()){show("Ingresa tu PIN de acceso.",true);return;}
@@ -197,7 +200,7 @@ async function loadDevices(){
 
 refreshDevices.addEventListener("click",loadDevices);
 toggleShare.addEventListener("click",()=>{sharePanel.hidden=!sharePanel.hidden;if(!sharePanel.hidden)sharePhone.focus();});
-shareNumber.addEventListener("click",()=>{let number=sharePhone.value.replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const text=encodeURIComponent(`${shareText} ${shareUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
+shareNumber.addEventListener("click",()=>{const number=normalizePhone(sharePhone.value);if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const personalizedUrl=`${shareUrl}?phone=${encodeURIComponent(number)}`;const text=encodeURIComponent(`${shareText} ${personalizedUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
 shareContacts.addEventListener("click",async()=>{
   try{
     if(navigator.contacts?.select){

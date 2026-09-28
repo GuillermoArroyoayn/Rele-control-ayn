@@ -17,8 +17,8 @@ function getDeviceName(){let name=localStorage.getItem("relayDeviceName");if(!na
 pinInput.value=localStorage.getItem("relayPin")||"";
 function pin(){return pinInput.value.trim();}
 function show(text,error=false){message.textContent=text;message.style.color=error?"#fecaca":"#bfd3e2";}
-function paint(relay,value){states[relay]=value;const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const label=document.getElementById(`state${relay}`);const button=card.querySelector(".power");card.classList.toggle("on",value===true);label.textContent=value===true?"ENCENDIDO":value===false?"APAGADO":"Sin conexión";button.dataset.state=value===true?"ON":value===false?"OFF":"";button.setAttribute("aria-label",value===true?`Apagar relé ${relay}`:value===false?`Encender relé ${relay}`:`Controlar relé ${relay}`);}
-function setRelayAccess(allowed){for(const relay of [1,2,3]){const permitted=allowed.includes(relay);const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const button=card.querySelector(".power");card.classList.toggle("denied",!permitted);button.disabled=!permitted;if(!permitted){states[relay]=null;button.dataset.state="";button.setAttribute("aria-label",`Sin permiso para controlar relé ${relay}`);document.getElementById(`state${relay}`).textContent="Sin permiso";}}}
+function paint(relay,value){states[relay]=value;const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const label=document.getElementById(`state${relay}`);const button=card.querySelector(".power");card.classList.toggle("on",value===true);label.textContent=value===true?"ENCENDIDO":value===false?"APAGADO":"Sin conexión";button.dataset.state=value===true?"ON":value===false?"OFF":"";button.setAttribute("aria-label",value===true?`Apagar actuador ${relay}`:value===false?`Encender actuador ${relay}`:`Controlar actuador ${relay}`);}
+function setRelayAccess(allowed){for(const relay of [1,2,3]){const permitted=allowed.includes(relay);const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const button=card.querySelector(".power");card.classList.toggle("denied",!permitted);button.disabled=!permitted;if(!permitted){states[relay]=null;button.dataset.state="";button.setAttribute("aria-label",`Sin permiso para controlar actuador ${relay}`);document.getElementById(`state${relay}`).textContent="Sin permiso";}}}
 async function api(url,options={}){const headers={...(options.headers||{}),"x-app-pin":pin(),"x-device-id":getDeviceId(),"x-device-name":getDeviceName()};const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));if(!res.ok){const error=new Error(data.error||"No se pudo completar la operación");error.accessStatus=data.accessStatus;throw error;}return data;}
 
 async function loadStatus(){
@@ -28,7 +28,7 @@ async function loadStatus(){
     const data=await api("/api/status");
     setRelayAccess(data.allowedRelays||[]);
     const errors=[];
-    for(const item of data.relays){paint(item.relay,item.state);if(item.error)errors.push(`Relé ${item.relay}: ${item.error}`);}
+    for(const item of data.relays){paint(item.relay,item.state);if(item.error)errors.push(`Actuador ${item.relay}: ${item.error}`);}
     adminPanel.hidden=data.role!=="master";
     if(data.role==="master")loadDevices();
     if(errors.length)show(errors.join(" · "),true);else show(data.role==="master"?"Este equipo es Master.":"Estado actualizado.");
@@ -40,7 +40,7 @@ async function loadStatus(){
 
 savePin.addEventListener("click",()=>{localStorage.setItem("relayPin",pin());show("PIN guardado en este teléfono.");loadStatus();});
 refresh.addEventListener("click",loadStatus);
-buttons.forEach(btn=>btn.addEventListener("click",async()=>{const relay=Number(btn.dataset.relay);if(!pin()){show("Ingresa tu PIN de acceso.",true);return;}const desired=states[relay]!==true;btn.disabled=true;show(`${desired?"Encendiendo":"Apagando"} relé ${relay}…`);try{const data=await api("/api/control",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({relay,state:desired})});paint(relay,Boolean(data.state));show(`Relé ${relay}: ${data.state?"encendido":"apagado"}.`);}catch(e){show(e.message,true);}finally{btn.disabled=false;}}));
+buttons.forEach(btn=>btn.addEventListener("click",async()=>{const relay=Number(btn.dataset.relay);if(!pin()){show("Ingresa tu PIN de acceso.",true);return;}const desired=states[relay]!==true;btn.disabled=true;show(`${desired?"Encendiendo":"Apagando"} actuador ${relay}…`);try{const data=await api("/api/control",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({relay,state:desired})});paint(relay,Boolean(data.state));show(`Actuador ${relay}: ${data.state?"encendido":"apagado"}.`);}catch(e){show(e.message,true);}finally{btn.disabled=false;}}));
 
 async function changeDeviceStatus(device,status){
   const action=status==="active"?"reactivar":status==="paused"?"pausar":"bloquear";
@@ -74,7 +74,7 @@ async function loadDevices(){
       if(device.role==="master") detail.textContent="Este equipo · Acceso total";
       else if(device.status==="pending") detail.textContent=device.phone?`Esperando autorización · ${device.phone}`:"Esperando autorización";
       else if(device.status==="removed") detail.textContent=device.phone?`Acceso eliminado · ${device.phone}`:"Acceso eliminado · Puedes reincorporar este equipo";
-      else detail.textContent=`${device.phone?device.phone+" · ":""}Permisos guardados: ${(device.relays||[]).map(n=>`Relé ${n}`).join(", ")||"ninguno"}`;
+      else detail.textContent=`${device.phone?device.phone+" · ":""}Permisos guardados: ${(device.relays||[]).map(n=>`Actuador ${n}`).join(", ")||"ninguno"}`;
       info.append(titleLine,detail);
       row.append(info);
 
@@ -90,7 +90,7 @@ async function loadDevices(){
             restore.disabled=true;
             try{
               const result=await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,action:"restore"})});
-              show(result.status==="active"?`${device.name} fue reincorporado con sus permisos anteriores.`:`${device.name} fue reincorporado. Ahora selecciona sus relés y presiona Autorizar.`);
+              show(result.status==="active"?`${device.name} fue reincorporado con sus permisos anteriores.`:`${device.name} fue reincorporado. Ahora selecciona sus actuadores y presiona Autorizar.`);
               await loadDevices();
             }catch(e){show(e.message,true);restore.disabled=false;}
           });
@@ -125,7 +125,7 @@ async function loadDevices(){
           checkbox.type="checkbox";
           checkbox.value=relay;
           checkbox.checked=(device.relays||[]).includes(relay);
-          label.append(checkbox,document.createTextNode(` Relé ${relay}`));
+          label.append(checkbox,document.createTextNode(` Actuador ${relay}`));
           permissions.append(label);
         }
 
@@ -134,7 +134,7 @@ async function loadDevices(){
         save.textContent=device.status==="pending"?"Autorizar":"Guardar permisos";
         save.addEventListener("click",async()=>{
           const relays=[...permissions.querySelectorAll('input:checked')].map(input=>Number(input.value));
-          if(!relays.length){show("Selecciona por lo menos un relé.",true);return;}
+          if(!relays.length){show("Selecciona por lo menos un actuador.",true);return;}
           save.disabled=true;
           try{
             const adminName=nameInput.value.trim();

@@ -7,13 +7,18 @@ const adminPanel = document.getElementById("adminPanel");
 const deviceList = document.getElementById("deviceList");
 const refreshDevices = document.getElementById("refreshDevices");
 const states = {1:null,2:null,3:null};
+let currentRole="user",currentGroupId="";
 const toggleShare=document.getElementById("toggleShare"),sharePanel=document.getElementById("sharePanel"),sharePhone=document.getElementById("sharePhone"),shareNumber=document.getElementById("shareNumber"),shareContacts=document.getElementById("shareContacts");
 const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
 const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocked:"Bloqueado",removed:"Eliminado"};
+const roleLabels={super_master:"MÁSTER GENERAL",admin:"ADMINISTRADOR",user:"USUARIO"};
 const normalizePhone=value=>{let number=String(value||"").replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;return number;};
-const invitePhone=new URLSearchParams(location.search).get("phone");
-if(invitePhone){const normalizedInvitePhone=normalizePhone(invitePhone);if(normalizedInvitePhone.length>=10)localStorage.setItem("relayDevicePhone",normalizedInvitePhone);history.replaceState({},document.title,location.pathname+location.hash);}
+const inviteParams=new URLSearchParams(location.search);
+const invitePhone=inviteParams.get("phone"),inviteGroup=inviteParams.get("group");
+if(invitePhone){const normalizedInvitePhone=normalizePhone(invitePhone);if(normalizedInvitePhone.length>=10)localStorage.setItem("relayDevicePhone",normalizedInvitePhone);}
+if(inviteGroup&&/^[a-zA-Z0-9-]{16,80}$/.test(inviteGroup))localStorage.setItem("relayGroupId",inviteGroup);
+if(invitePhone||inviteGroup)history.replaceState({},document.title,location.pathname+location.hash);
 
 function getDeviceId(){let id=localStorage.getItem("relayDeviceId");if(!id){id=(crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`).replace(/[^a-zA-Z0-9-]/g,"");localStorage.setItem("relayDeviceId",id);}return id;}
 function getDeviceName(){let name=localStorage.getItem("relayDeviceName");if(!name){name=`Celular ${navigator.platform||"Android"}`;localStorage.setItem("relayDeviceName",name);}return name;}
@@ -22,7 +27,7 @@ function pin(){return pinInput.value.trim();}
 function show(text,error=false){message.textContent=text;message.style.color=error?"#fecaca":"#bfd3e2";}
 function paint(relay,value){states[relay]=value;const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const label=document.getElementById(`state${relay}`);const button=card.querySelector(".power");card.classList.toggle("on",value===true);label.textContent=value===true?"ENCENDIDO":value===false?"APAGADO":"Sin conexión";button.dataset.state=value===true?"ON":value===false?"OFF":"";button.setAttribute("aria-label",value===true?`Apagar actuador ${relay}`:value===false?`Encender actuador ${relay}`:`Controlar actuador ${relay}`);}
 function setRelayAccess(allowed){for(const relay of [1,2,3]){const permitted=allowed.includes(relay);const card=document.querySelector(`.relay-card[data-relay="${relay}"]`);const button=card.querySelector(".power");card.classList.toggle("denied",!permitted);button.disabled=!permitted;if(!permitted){states[relay]=null;button.dataset.state="";button.setAttribute("aria-label",`Sin permiso para controlar actuador ${relay}`);document.getElementById(`state${relay}`).textContent="Sin permiso";}}}
-async function api(url,options={}){const headers={...(options.headers||{}),"x-app-pin":pin(),"x-device-id":getDeviceId(),"x-device-name":getDeviceName(),"x-device-phone":localStorage.getItem("relayDevicePhone")||""};const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));if(!res.ok){const error=new Error(data.error||"No se pudo completar la operación");error.accessStatus=data.accessStatus;throw error;}return data;}
+async function api(url,options={}){const headers={...(options.headers||{}),"x-app-pin":pin(),"x-device-id":getDeviceId(),"x-device-name":getDeviceName(),"x-device-phone":localStorage.getItem("relayDevicePhone")||"","x-device-group":localStorage.getItem("relayGroupId")||""};const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));if(!res.ok){const error=new Error(data.error||"No se pudo completar la operación");error.accessStatus=data.accessStatus;throw error;}return data;}
 
 async function loadStatus(){
   if(!pin()){show("Ingresa tu PIN de acceso.",true);return;}
@@ -32,9 +37,12 @@ async function loadStatus(){
     setRelayAccess(data.allowedRelays||[]);
     const errors=[];
     for(const item of data.relays){paint(item.relay,item.state);if(item.error)errors.push(`Actuador ${item.relay}: ${item.error}`);}
-    adminPanel.hidden=data.role!=="master";
-    if(data.role==="master")loadDevices();
-    if(errors.length)show(errors.join(" · "),true);else show(data.role==="master"?"Este equipo es Master.":"Estado actualizado.");
+    currentRole=data.role||"user";currentGroupId=data.groupId||"";
+    if(currentRole==="admin"&&currentGroupId)localStorage.setItem("relayGroupId",currentGroupId);
+    adminPanel.hidden=!["super_master","admin"].includes(currentRole);
+    const adminTitle=adminPanel.querySelector("h2");if(adminTitle)adminTitle.textContent=currentRole==="super_master"?"Administradores y usuarios":"Mis usuarios";
+    if(!adminPanel.hidden)loadDevices();
+    if(errors.length)show(errors.join(" · "),true);else show(currentRole==="super_master"?"Este equipo es el Máster general.":currentRole==="admin"?"Panel de administrador activo.":"Estado actualizado.");
   }catch(e){
     setRelayAccess([]);
     show(e.message,true);
@@ -60,7 +68,18 @@ async function loadDevices(){
   try{
     const data=await api("/api/devices");
     deviceList.innerHTML="";
-    for(const device of data.devices){
+    const groupContainers=new Map(),groupCounters=new Map();
+    if(currentRole==="super_master"){
+      for(const administrator of data.devices.filter(item=>item.role==="admin")){
+        const details=document.createElement("details");details.className="admin-folder";
+        const members=data.devices.filter(item=>item.role==="user"&&item.groupId===administrator.groupId).length;
+        const summary=document.createElement("summary");summary.textContent=`📁 ${administrator.adminName||administrator.name} · ${members} usuario${members===1?"":"s"}`;
+        const content=document.createElement("div");content.className="admin-folder-content";details.append(summary,content);deviceList.append(details);groupContainers.set(administrator.groupId,content);
+      }
+    }
+    const orderedDevices=[...data.devices].sort((a,b)=>{if(a.role==="super_master")return -1;if(b.role==="super_master")return 1;const ga=a.groupId||"zz",gb=b.groupId||"zz";if(ga!==gb)return ga.localeCompare(gb);return String(a.phone||a.name||"").localeCompare(String(b.phone||b.name||""),"es",{numeric:true});});
+    for(const device of orderedDevices){
+      const destination=currentRole==="super_master"&&device.role!=="super_master"&&groupContainers.get(device.groupId)?groupContainers.get(device.groupId):deviceList;
       const row=document.createElement("div");
       row.className=`device-row status-${device.status||"pending"}`;
       const info=document.createElement("div");
@@ -68,20 +87,22 @@ async function loadDevices(){
       const titleLine=document.createElement("div");
       titleLine.className="device-title-line";
       const title=document.createElement("strong");
-      title.textContent=device.name;
+      const countKey=device.groupId||"general";const nextNumber=(groupCounters.get(countKey)||0)+1;groupCounters.set(countKey,nextNumber);
+      title.textContent=device.role==="user"?`${nextNumber}. ${device.name}`:device.name;
       const badge=document.createElement("span");
       badge.className=`status-badge status-${device.status||"pending"}`;
-      badge.textContent=device.role==="master"?"MASTER":statusLabels[device.status]||"Pendiente";
+      badge.textContent=roleLabels[device.role]||statusLabels[device.status]||"Pendiente";
       titleLine.append(title,badge);
       const detail=document.createElement("small");
-      if(device.role==="master") detail.textContent="Este equipo · Acceso total";
+      if(device.role==="super_master") detail.textContent="Este equipo · Control total";
+      else if(device.role==="admin") detail.textContent=`Administrador independiente · ${device.phone||"Sin teléfono"}`;
       else if(device.status==="pending") detail.textContent=device.phone?`Esperando autorización · ${device.phone}`:"Esperando autorización";
       else if(device.status==="removed") detail.textContent=device.phone?`Acceso eliminado · ${device.phone}`:"Acceso eliminado · Puedes reincorporar este equipo";
       else detail.textContent=`${device.phone?device.phone+" · ":""}Permisos guardados: ${(device.relays||[]).map(n=>`Actuador ${n}`).join(", ")||"ninguno"}`;
       info.append(titleLine,detail);
       row.append(info);
 
-      if(device.role!=="master"){
+      if(device.role!=="super_master"){
         if(device.status==="removed"){
           const actions=document.createElement("div");
           actions.className="device-actions";
@@ -99,7 +120,7 @@ async function loadDevices(){
           });
           actions.append(restore);
           row.append(actions);
-          deviceList.append(row);
+          destination.append(row);
           continue;
         }
 
@@ -119,6 +140,15 @@ async function loadDevices(){
         phoneInput.value=device.phone||"";
         phoneInput.setAttribute("aria-label","Número de celular");
         identity.append(nameInput,phoneInput);
+        let roleSelect=null,groupSelect=null;
+        if(currentRole==="super_master"){
+          roleSelect=document.createElement("select");roleSelect.setAttribute("aria-label","Tipo de acceso");
+          roleSelect.innerHTML=`<option value="user">Usuario</option><option value="admin">Administrador</option>`;roleSelect.value=device.role==="admin"?"admin":"user";
+          groupSelect=document.createElement("select");groupSelect.setAttribute("aria-label","Administrador responsable");
+          groupSelect.innerHTML=`<option value="">${roleSelect.value==="admin"?"Crear carpeta nueva":"Sin administrador asignado"}</option>`;
+          for(const candidate of data.devices.filter(item=>item.role==="admin")){const option=document.createElement("option");option.value=candidate.groupId;option.textContent=candidate.adminName||candidate.name;groupSelect.append(option);}
+          groupSelect.value=device.groupId||"";roleSelect.addEventListener("change",()=>{groupSelect.options[0].textContent=roleSelect.value==="admin"?"Crear carpeta nueva":"Sin administrador asignado";});identity.append(roleSelect,groupSelect);
+        }
 
         const permissions=document.createElement("div");
         permissions.className="device-permissions";
@@ -142,9 +172,9 @@ async function loadDevices(){
           try{
             const adminName=nameInput.value.trim();
             const phone=phoneInput.value.trim();
-            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays,adminName,phone})});
+            await api("/api/devices",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({deviceId:device.id,relays,adminName,phone,role:roleSelect?.value||"user",groupId:groupSelect?.value||currentGroupId||""})});
             const identification=adminName||phone||device.name;
-            show(`Datos y permisos guardados para ${identification}. El usuario quedó activo.`);
+            show(`${roleSelect?.value==="admin"?"Administrador":"Usuario"} ${identification} guardado correctamente.`);
             await loadDevices();
           }catch(e){show(e.message,true);save.disabled=false;}
         });
@@ -193,14 +223,14 @@ async function loadDevices(){
         actions.append(remove);
         row.append(identity,permissions,actions);
       }
-      deviceList.append(row);
+      destination.append(row);
     }
   }catch(e){show(e.message,true);}
 }
 
 refreshDevices.addEventListener("click",loadDevices);
 toggleShare.addEventListener("click",()=>{sharePanel.hidden=!sharePanel.hidden;if(!sharePanel.hidden)sharePhone.focus();});
-shareNumber.addEventListener("click",()=>{const number=normalizePhone(sharePhone.value);if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const personalizedUrl=`${shareUrl}?phone=${encodeURIComponent(number)}`;const text=encodeURIComponent(`${shareText} ${personalizedUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
+shareNumber.addEventListener("click",()=>{const number=normalizePhone(sharePhone.value);if(number.length<10){show("Ingresa un número de teléfono válido.",true);return;}const params=new URLSearchParams({phone:number});if(currentRole==="admin"&&currentGroupId)params.set("group",currentGroupId);const personalizedUrl=`${shareUrl}?${params}`;const text=encodeURIComponent(`${shareText} ${personalizedUrl}`);window.open(`https://wa.me/${number}?text=${text}`,"_blank","noopener");});
 shareContacts.addEventListener("click",async()=>{
   try{
     if(navigator.contacts?.select){
@@ -215,10 +245,12 @@ shareContacts.addEventListener("click",async()=>{
       return;
     }
     if(navigator.share){
-      await navigator.share({title:"Sistema de Control AYN",text:shareText,url:shareUrl});
+      const groupUrl=currentRole==="admin"&&currentGroupId?`${shareUrl}?group=${encodeURIComponent(currentGroupId)}`:shareUrl;
+      await navigator.share({title:"Sistema de Control AYN",text:shareText,url:groupUrl});
       return;
     }
-    await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+    const groupUrl=currentRole==="admin"&&currentGroupId?`${shareUrl}?group=${encodeURIComponent(currentGroupId)}`:shareUrl;
+    await navigator.clipboard.writeText(`${shareText} ${groupUrl}`);
     show("Enlace copiado. Ya puedes pegarlo en WhatsApp o Mensajes.");
   }catch(e){
     if(e.name!=="AbortError")show("No se pudo abrir la agenda de contactos. Puedes escribir el número manualmente.",true);

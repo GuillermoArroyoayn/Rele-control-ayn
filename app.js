@@ -554,9 +554,9 @@ if (!SpeechRecognition) {
 } else {
   recognition = new SpeechRecognition();
   recognition.lang = "es-CL";
-  // Una frase por sesión es más estable en Chrome/Android. onend reinicia la
-  // escucha automáticamente mientras el modo de voz siga activado.
-  recognition.continuous = false;
+  // Mantener una sola sesión evita que Android active y desactive el
+  // micrófono cada pocos segundos (sonido "tic tic").
+  recognition.continuous = true;
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
   recognition.onstart = () => {
@@ -579,7 +579,9 @@ if (!SpeechRecognition) {
   };
   recognition.onend = () => {
     voiceListening = false;
-    scheduleVoiceListening();
+    // Si Android finaliza la sesión inesperadamente, esperar antes de
+    // reintentar para impedir ciclos rápidos y sonidos repetidos.
+    scheduleVoiceListening(1500);
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {

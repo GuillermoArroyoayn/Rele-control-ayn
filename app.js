@@ -370,8 +370,17 @@ let pendingVoiceRelay = 0;
 let lastVoiceCommand = "";
 let lastVoiceCommandAt = 0;
 let recognition;
+let voiceRestartTimer = 0;
+let voiceSpeechTimer = 0;
+
+const scheduleVoiceListening = (delay = 350) => {
+  clearTimeout(voiceRestartTimer);
+  if (!voiceEnabled || voiceSpeaking) return;
+  voiceRestartTimer = window.setTimeout(startVoiceListening, delay);
+};
 const speak = (text) => {
   if (!("speechSynthesis" in window)) return false;
+  clearTimeout(voiceSpeechTimer);
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
@@ -379,11 +388,16 @@ const speak = (text) => {
     voiceSpeaking = true;
     if (voiceListening) recognition?.stop();
   };
-  utterance.onend = utterance.onerror = () => {
+  const finishSpeaking = () => {
+    clearTimeout(voiceSpeechTimer);
     voiceSpeaking = false;
-    startVoiceListening();
+    scheduleVoiceListening();
   };
+  utterance.onend = utterance.onerror = finishSpeaking;
   speechSynthesis.speak(utterance);
+  // Android a veces no informa el fin de la síntesis. Este respaldo evita
+  // que el micrófono quede detenido después de una respuesta hablada.
+  voiceSpeechTimer = window.setTimeout(finishSpeaking, Math.max(3500, text.length * 95));
   return true;
 };
 const normalizeVoice = (text) =>
@@ -401,22 +415,25 @@ const setVoiceStatus = (text, error = false, say = false) => {
   if (say && !speak(text)) startVoiceListening();
 };
 
-const hasWakeWord = (command) => /(^| )(ain|ayn)( |$)/.test(command);
+const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|hay en)( |$)/;
+const hasWakeWord = (command) => wakeWordPattern.test(command);
 const removeWakeWord = (command) =>
-  command.replace(/(^| )(ain|ayn)( |$)/, " ").replace(/\s+/g, " ").trim();
+  command.replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
 
 function startVoiceListening() {
   if (!voiceEnabled || voiceListening || voiceSpeaking || !recognition) return;
   try {
     recognition.start();
   } catch (_) {
-    // Algunos navegadores tardan un instante en cerrar la escucha anterior.
+    scheduleVoiceListening(600);
   }
 }
 
 function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceEnabled = false;
   pendingVoiceRelay = 0;
+  clearTimeout(voiceRestartTimer);
+  clearTimeout(voiceSpeechTimer);
   window.speechSynthesis?.cancel();
   if (voiceListening) recognition?.stop();
   voiceCommand.classList.remove("listening");
@@ -427,8 +444,11 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
 
 async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
-  if (!hasWakeWord(normalized)) return;
-  const command = removeWakeWord(normalized);
+  // Después de preguntar por una confirmación se acepta también "confirmar",
+  // "sí", "cancelar" o "no" sin repetir AIN.
+  const pendingReply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(normalized);
+  if (!hasWakeWord(normalized) && !pendingReply) return;
+  const command = pendingReply ? normalized : removeWakeWord(normalized);
   const now = Date.now();
   if (command === lastVoiceCommand && now - lastVoiceCommandAt < 2500) return;
   lastVoiceCommand = command;
@@ -442,7 +462,7 @@ async function runVoiceCommand(transcript) {
   }
 
   if (pendingVoiceRelay) {
-    if (command.includes("confirmar") || command === "si") {
+    if (command.includes("confirmar") || command.includes("confirma") || command === "si") {
       const relayToOpen = pendingVoiceRelay;
       pendingVoiceRelay = 0;
       setVoiceStatus(`Abriendo ${voiceRelayNames[relayToOpen]}…`, false, true);
@@ -456,7 +476,7 @@ async function runVoiceCommand(transcript) {
       );
       return;
     }
-    if (command.includes("cancelar") || command === "no") {
+    if (command.includes("cancelar") || command.includes("cancela") || command === "no") {
       pendingVoiceRelay = 0;
       setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
       return;
@@ -534,7 +554,9 @@ if (!SpeechRecognition) {
 } else {
   recognition = new SpeechRecognition();
   recognition.lang = "es-CL";
-  recognition.continuous = true;
+  // Una frase por sesión es más estable en Chrome/Android. onend reinicia la
+  // escucha automáticamente mientras el modo de voz siga activado.
+  recognition.continuous = false;
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
   recognition.onstart = () => {
@@ -550,11 +572,14 @@ if (!SpeechRecognition) {
     if (denied) {
       stopVoiceMode("Debes permitir el micrófono para usar AIN por voz.");
       voiceStatus.classList.add("error");
+      return;
     }
+    if (event.error === "audio-capture")
+      setVoiceStatus("No se pudo acceder al micrófono. Revisa que ninguna otra aplicación lo esté usando.", true);
   };
   recognition.onend = () => {
     voiceListening = false;
-    if (voiceEnabled && !voiceSpeaking) setTimeout(startVoiceListening, 250);
+    scheduleVoiceListening();
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {
@@ -565,6 +590,7 @@ if (!SpeechRecognition) {
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
     setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.", false, true);
+    scheduleVoiceListening();
   });
 }
 

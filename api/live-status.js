@@ -6,6 +6,7 @@ module.exports=async function handler(req,res){
   try{
     const auth=await authorize(req,{allowRegistration:false});
     if(!auth.ok)return res.status(auth.status).json({error:auth.error});
+    if(!["super_master","admin"].includes(auth.role))return res.status(403).json({error:"La sincronizacion automatica es exclusiva para administradores."});
     const relays=await readRelayStates(auth.allowedRelays);
     return res.status(200).json({relays,serverTime:new Date().toISOString()});
   }catch(e){console.error(e);return res.status(500).json({error:e.message||"Error interno"});}

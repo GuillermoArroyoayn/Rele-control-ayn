@@ -95,7 +95,7 @@ async function loadStatus(){
 }
 
 async function syncLiveStatus(){
-  if(!statusReady||liveSyncInFlight||!pin()||document.hidden)return;
+  if(!statusReady||liveSyncInFlight||!pin()||document.hidden||!["super_master","admin"].includes(currentRole))return;
   liveSyncInFlight=true;
   try{
     const data=await api("/api/live-status");

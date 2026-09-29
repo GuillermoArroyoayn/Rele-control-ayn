@@ -2,7 +2,7 @@ const {setRelay}=require("../lib/tuya");
 const {authorize}=require("../lib/devices");
 const {addHistory}=require("../lib/history");
 
-module.exports=async function handler(req,re){
+module.exports=async function handler(req,res){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
   try{
     const auth=await authorize(req);

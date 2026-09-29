@@ -577,6 +577,7 @@ if (!SpeechRecognition) {
   recognition.onstart = () => {
     voiceListening = true;
     voiceCommand.classList.add("listening");
+    setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.");
   };
   recognition.onresult = (event) => {
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
@@ -611,8 +612,10 @@ if (!SpeechRecognition) {
     voiceEnabled = true;
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
-    setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.", false, true);
-    scheduleVoiceListening();
+    // Iniciar el micrófono sin reproducir una bienvenida: en Android la voz
+    // sintética detenía la escucha y hacía perder la primera orden.
+    setVoiceStatus("Activando micrófono…");
+    scheduleVoiceListening(100);
   });
 }
 

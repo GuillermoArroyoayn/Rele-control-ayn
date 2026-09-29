@@ -346,8 +346,8 @@ async function loadHistory(){
     for(const item of data.history){
       const row=document.createElement("article");row.className=`history-row history-${item.result||"success"}`;
       const info=document.createElement("div");
-      const title=document.createElement("strong");title.textContent=`Actuador ${item.relay} activado`;
-      const detail=document.createElement("small");detail.textContent="Activacion confirmada";
+      const title=document.createElement("strong");title.textContent=item.userName||"Usuario";
+      const detail=document.createElement("small");detail.textContent=`Actuador ${item.relay} activado`;
       info.append(title,detail);
       const time=document.createElement("time");time.dateTime=item.createdAt;time.textContent=new Date(item.createdAt).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
       row.append(info,time);historyList.append(row);

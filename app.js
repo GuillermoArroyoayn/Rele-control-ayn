@@ -8,6 +8,7 @@ const deviceList = document.getElementById("deviceList");
 const refreshDevices = document.getElementById("refreshDevices");
 const states = {1:null,2:null,3:null};
 let currentRole="user",currentGroupId="";
+let currentView="control";
 const toggleShare=document.getElementById("toggleShare"),sharePanel=document.getElementById("sharePanel"),sharePhone=document.getElementById("sharePhone"),shareNumber=document.getElementById("shareNumber"),shareContacts=document.getElementById("shareContacts");
 const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
@@ -19,6 +20,41 @@ historySection.innerHTML='<div class="history-title"><h2>Historial de accesos</h
 adminPanel.append(historySection);
 const historyList=document.getElementById("historyList"),refreshHistory=document.getElementById("refreshHistory");
 const localDateTime=value=>{if(!value)return "";const date=new Date(value);if(Number.isNaN(date.getTime()))return "";const offset=date.getTimezoneOffset();return new Date(date.getTime()-offset*60000).toISOString().slice(0,16);};
+const relayGrid=document.querySelector(".relay-grid"),shareSection=document.querySelector(".share-section");
+const mainMenu=document.createElement("nav");
+mainMenu.className="main-menu";mainMenu.hidden=true;
+message.after(mainMenu);
+const databasePanel=document.createElement("section");databasePanel.className="menu-panel database-panel";databasePanel.hidden=true;
+const systemPanel=document.createElement("section");systemPanel.className="menu-panel system-panel";systemPanel.hidden=true;
+adminPanel.after(databasePanel,systemPanel);
+const menuDefinitions=[
+  ["control","Inicio","⌂"],["admins","Administradores","▣"],["users","Usuarios","👥"],["temporary","Permisos temporales","◷"],["history","Historial","≡"],["database","Base de datos","▤"],["system","Estado del sistema","●"]
+];
+
+function buildMenu(){
+  mainMenu.innerHTML="";
+  const allowed=currentRole==="super_master"?menuDefinitions:currentRole==="admin"?menuDefinitions.filter(([id])=>!["admins","database"].includes(id)):menuDefinitions.filter(([id])=>id==="control");
+  for(const [id,label,icon] of allowed){const button=document.createElement("button");button.type="button";button.dataset.view=id;button.innerHTML=`<span>${icon}</span>${label}`;button.addEventListener("click",()=>showView(id));mainMenu.append(button);}
+  mainMenu.hidden=false;showView(allowed.some(([id])=>id===currentView)?currentView:"control");
+}
+
+function showView(view){
+  currentView=view;
+  for(const button of mainMenu.querySelectorAll("button"))button.classList.toggle("active",button.dataset.view===view);
+  const control=view==="control";
+  relayGrid.hidden=!control;refresh.hidden=!control;shareSection.hidden=!control;
+  adminPanel.hidden=!(["admins","users","temporary","history"].includes(view)&&["super_master","admin"].includes(currentRole));
+  historySection.hidden=view!=="history";
+  databasePanel.hidden=view!=="database";systemPanel.hidden=view!=="system";
+  const deviceArea=["admins","users","temporary"].includes(view);
+  adminPanel.querySelector(".admin-title").hidden=!deviceArea;
+  const intro=adminPanel.querySelector(":scope > p");if(intro)intro.hidden=!deviceArea;
+  deviceList.hidden=!deviceArea;
+  if(deviceArea)loadDevices();
+  if(view==="history")loadHistory();
+  if(view==="database")loadDatabaseSummary();
+  if(view==="system")loadSystemSummary();
+}
 const normalizePhone=value=>{let number=String(value||"").replace(/\D/g,"");if(number.startsWith("0"))number=number.slice(1);if(number.length===9)number=`56${number}`;return number;};
 const inviteParams=new URLSearchParams(location.search);
 const invitePhone=inviteParams.get("phone"),inviteGroup=inviteParams.get("group");
@@ -47,7 +83,7 @@ async function loadStatus(){
     if(currentRole==="admin"&&currentGroupId)localStorage.setItem("relayGroupId",currentGroupId);
     adminPanel.hidden=!["super_master","admin"].includes(currentRole);
     const adminTitle=adminPanel.querySelector("h2");if(adminTitle)adminTitle.textContent=currentRole==="super_master"?"Administradores y usuarios":"Mis usuarios";
-    if(!adminPanel.hidden){loadDevices();loadHistory();}
+    buildMenu();
     if(errors.length)show(errors.join(" · "),true);else show(currentRole==="super_master"?"Este equipo es el Máster general.":currentRole==="admin"?"Panel de administrador activo.":"Estado actualizado.");
   }catch(e){
     setRelayAccess([]);
@@ -75,7 +111,8 @@ async function loadDevices(){
     const data=await api("/api/devices");
     deviceList.innerHTML="";
     const groupContainers=new Map(),groupCounters=new Map();
-    if(currentRole==="super_master"){
+    const visibleDevices=currentView==="admins"?data.devices.filter(item=>item.role==="admin"):data.devices.filter(item=>currentView==="users"||currentView==="temporary"?item.role==="user":true);
+    if(currentRole==="super_master"&&currentView!=="admins"){
       for(const administrator of data.devices.filter(item=>item.role==="admin")){
         const details=document.createElement("details");details.className="admin-folder";
         const members=data.devices.filter(item=>item.role==="user"&&item.groupId===administrator.groupId).length;
@@ -83,7 +120,7 @@ async function loadDevices(){
         const content=document.createElement("div");content.className="admin-folder-content";details.append(summary,content);deviceList.append(details);groupContainers.set(administrator.groupId,content);
       }
     }
-    const orderedDevices=[...data.devices].sort((a,b)=>{if(a.role==="super_master")return -1;if(b.role==="super_master")return 1;const ga=a.groupId||"zz",gb=b.groupId||"zz";if(ga!==gb)return ga.localeCompare(gb);return String(a.phone||a.name||"").localeCompare(String(b.phone||b.name||""),"es",{numeric:true});});
+    const orderedDevices=[...visibleDevices].sort((a,b)=>{if(a.role==="super_master")return -1;if(b.role==="super_master")return 1;const ga=a.groupId||"zz",gb=b.groupId||"zz";if(ga!==gb)return ga.localeCompare(gb);return String(a.phone||a.name||"").localeCompare(String(b.phone||b.name||""),"es",{numeric:true});});
     for(const device of orderedDevices){
       const destination=currentRole==="super_master"&&device.role!=="super_master"&&groupContainers.get(device.groupId)?groupContainers.get(device.groupId):deviceList;
       const row=document.createElement("div");
@@ -170,6 +207,7 @@ async function loadDevices(){
 
         const temporary=document.createElement("div");
         temporary.className="temporary-permissions";
+        temporary.hidden=currentView!=="temporary";
         const temporaryTitle=document.createElement("strong");
         temporaryTitle.textContent="Permiso temporal (opcional)";
         const startLabel=document.createElement("label");
@@ -251,6 +289,34 @@ async function loadDevices(){
       destination.append(row);
     }
   }catch(e){show(e.message,true);}
+}
+
+async function loadDatabaseSummary(){
+  databasePanel.innerHTML='<div class="history-empty">Calculando datos…</div>';
+  try{
+    const [devices,history]=await Promise.all([api("/api/devices"),api("/api/history?limit=500")]);
+    const active=devices.devices.filter(item=>item.status!=="removed");
+    const cards=[
+      ["Administradores",active.filter(item=>item.role==="admin").length],
+      ["Usuarios",active.filter(item=>item.role==="user").length],
+      ["Pendientes",active.filter(item=>item.status==="pending").length],
+      ["Bloqueados o pausados",active.filter(item=>["blocked","paused"].includes(item.status)).length],
+      ["Registros consultados",history.history.length]
+    ];
+    databasePanel.innerHTML='<div class="menu-panel-title"><h2>Base de datos</h2><button class="small-button" id="refreshDatabase">Actualizar</button></div><p>Resumen seguro. Las claves privadas nunca se muestran.</p><div class="metric-grid"></div>';
+    const grid=databasePanel.querySelector(".metric-grid");for(const [label,value] of cards){const card=document.createElement("article");card.innerHTML=`<strong>${value}</strong><span>${label}</span>`;grid.append(card);}
+    databasePanel.querySelector("#refreshDatabase").addEventListener("click",loadDatabaseSummary);
+  }catch(e){databasePanel.innerHTML=`<div class="history-empty">${e.message}</div>`;}
+}
+
+async function loadSystemSummary(){
+  systemPanel.innerHTML='<div class="history-empty">Comprobando servicios…</div>';
+  try{
+    const started=performance.now();const data=await api("/api/status");const elapsed=Math.round(performance.now()-started);
+    const connected=data.relays.filter(item=>item.state!==null).length;
+    systemPanel.innerHTML=`<div class="menu-panel-title"><h2>Estado del sistema</h2><button class="small-button" id="refreshSystem">Comprobar</button></div><div class="health-list"><div><span class="health-ok"></span><strong>Servidor AYN operativo</strong><small>${elapsed} ms de respuesta</small></div><div><span class="${connected===data.allowedRelays.length?"health-ok":"health-warning"}"></span><strong>${connected} de ${data.allowedRelays.length} actuadores respondiendo</strong><small>Verificación en tiempo real</small></div><div><span class="health-ok"></span><strong>Base de datos operativa</strong><small>Autorización validada correctamente</small></div></div>`;
+    systemPanel.querySelector("#refreshSystem").addEventListener("click",loadSystemSummary);
+  }catch(e){systemPanel.innerHTML=`<div class="history-empty">Falla detectada: ${e.message}</div>`;}
 }
 
 async function loadHistory(){

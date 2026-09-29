@@ -27,14 +27,15 @@ mainMenu.className="main-menu";mainMenu.hidden=true;
 message.after(mainMenu);
 const databasePanel=document.createElement("section");databasePanel.className="menu-panel database-panel";databasePanel.hidden=true;
 const systemPanel=document.createElement("section");systemPanel.className="menu-panel system-panel";systemPanel.hidden=true;
-adminPanel.after(databasePanel,systemPanel);
+const bookingsPanel=document.createElement("section");bookingsPanel.className="menu-panel bookings-panel";bookingsPanel.hidden=true;
+adminPanel.after(bookingsPanel,databasePanel,systemPanel);
 const menuDefinitions=[
-  ["control","Inicio","⌂"],["admins","Administradores","▣"],["users","Usuarios","👥"],["temporary","Permisos temporales","◷"],["history","Historial","≡"],["database","Base de datos","▤"],["system","Estado del sistema","●"]
+  ["control","Inicio","⌂"],["bookings","Agenda","▦"],["admins","Administradores","▣"],["users","Usuarios","👥"],["temporary","Permisos temporales","◷"],["history","Historial","≡"],["database","Base de datos","▤"],["system","Estado del sistema","●"]
 ];
 
 function buildMenu(){
   mainMenu.innerHTML="";
-  const allowed=currentRole==="super_master"?menuDefinitions:currentRole==="admin"?menuDefinitions.filter(([id])=>!["admins","database"].includes(id)):menuDefinitions.filter(([id])=>id==="control");
+  const allowed=currentRole==="super_master"?menuDefinitions:currentRole==="admin"?menuDefinitions.filter(([id])=>!["admins","database"].includes(id)):menuDefinitions.filter(([id])=>["control","bookings"].includes(id));
   for(const [id,label,icon] of allowed){const button=document.createElement("button");button.type="button";button.dataset.view=id;button.innerHTML=`<span>${icon}</span>${label}`;button.addEventListener("click",()=>showView(id));mainMenu.append(button);}
   mainMenu.hidden=false;showView(allowed.some(([id])=>id===currentView)?currentView:"control");
 }
@@ -46,13 +47,14 @@ function showView(view){
   relayGrid.hidden=!control;refresh.hidden=!control;shareSection.hidden=!control;
   adminPanel.hidden=!(["admins","users","temporary","history"].includes(view)&&["super_master","admin"].includes(currentRole));
   historySection.hidden=view!=="history";
-  databasePanel.hidden=view!=="database";systemPanel.hidden=view!=="system";
+  bookingsPanel.hidden=view!=="bookings";databasePanel.hidden=view!=="database";systemPanel.hidden=view!=="system";
   const deviceArea=["admins","users","temporary"].includes(view);
   adminPanel.querySelector(".admin-title").hidden=!deviceArea;
   const intro=adminPanel.querySelector(":scope > p");if(intro)intro.hidden=!deviceArea;
   deviceList.hidden=!deviceArea;
   if(deviceArea)loadDevices();
   if(view==="history")loadHistory();
+  if(view==="bookings")loadBookings();
   if(view==="database")loadDatabaseSummary();
   if(view==="system")loadSystemSummary();
 }
@@ -107,6 +109,7 @@ async function syncLiveStatus(){
 
 setInterval(syncLiveStatus,5000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncLiveStatus();});
+setInterval(()=>{if(currentView==="bookings"&&!document.hidden&&!bookingsPanel.querySelector(".booking-settings[open]")&&!bookingsPanel.contains(document.activeElement))loadBookings();},15000);
 
 savePin.addEventListener("click",()=>{localStorage.setItem("relayPin",pin());show("PIN guardado en este teléfono.");loadStatus();});
 refresh.addEventListener("click",loadStatus);
@@ -306,6 +309,69 @@ async function loadDevices(){
       destination.append(row);
     }
   }catch(e){show(e.message,true);}
+}
+
+const bookingToday=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+const bookingMinutes=value=>{const [hour,minute]=String(value).split(":").map(Number);return hour*60+minute;};
+const bookingTime=value=>`${String(Math.floor(value/60)).padStart(2,"0")}:${String(value%60).padStart(2,"0")}`;
+
+function bookingSettingsEditor(spaces,date){
+  const manager=["super_master","admin"].includes(currentRole);if(!manager)return null;
+  const details=document.createElement("details");details.className="booking-settings";
+  const summary=document.createElement("summary");summary.textContent="Configurar espacios y horarios";details.append(summary);
+  const list=document.createElement("div");list.className="booking-settings-list";
+  const dayNames=["D","L","M","M","J","V","S"];
+  for(const space of spaces){
+    const row=document.createElement("article");row.className="booking-setting-row";row.dataset.spaceId=space.id;
+    const heading=document.createElement("div");heading.className="booking-setting-heading";
+    const enabled=document.createElement("input");enabled.type="checkbox";enabled.className="booking-enabled";enabled.checked=space.enabled;
+    const name=document.createElement("input");name.className="booking-name";name.value=space.name;name.maxLength=50;heading.append(enabled,name);
+    const hours=document.createElement("div");hours.className="booking-setting-hours";
+    const open=document.createElement("input");open.type="time";open.className="booking-open";open.value=space.open;
+    const close=document.createElement("input");close.type="time";close.className="booking-close";close.value=space.close;
+    const duration=document.createElement("select");duration.className="booking-duration";for(const minutes of [30,60,90,120,180,240]){const option=document.createElement("option");option.value=minutes;option.textContent=`${minutes} min`;option.selected=minutes===space.slotMinutes;duration.append(option);}hours.append("Desde",open,"Hasta",close,"Turno",duration);
+    const days=document.createElement("div");days.className="booking-days";dayNames.forEach((label,index)=>{const day=document.createElement("label");const input=document.createElement("input");input.type="checkbox";input.value=index;input.checked=space.weekdays.includes(index);day.append(input,document.createTextNode(label));days.append(day);});
+    row.append(heading,hours,days);list.append(row);
+  }
+  const save=document.createElement("button");save.className="small-button booking-save-settings";save.textContent="Guardar configuración";save.addEventListener("click",async()=>{
+    const updated=[...list.querySelectorAll(".booking-setting-row")].map(row=>({id:row.dataset.spaceId,name:row.querySelector(".booking-name").value,enabled:row.querySelector(".booking-enabled").checked,open:row.querySelector(".booking-open").value,close:row.querySelector(".booking-close").value,slotMinutes:Number(row.querySelector(".booking-duration").value),weekdays:[...row.querySelectorAll('.booking-days input:checked')].map(input=>Number(input.value))}));
+    save.disabled=true;try{await api("/api/bookings",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify({spaces:updated})});show("Configuración de espacios guardada.");await loadBookings(date);}catch(e){show(e.message,true);}finally{save.disabled=false;}
+  });
+  details.append(list,save);return details;
+}
+
+function renderBookingSpace(space,bookings,date){
+  const card=document.createElement("article");card.className="booking-space";
+  const title=document.createElement("h3");title.textContent=space.name;card.append(title);
+  const weekday=new Date(`${date}T12:00:00Z`).getUTCDay();
+  if(!space.enabled||!space.weekdays.includes(weekday)){const closed=document.createElement("p");closed.className="booking-closed";closed.textContent="No disponible este día";card.append(closed);return card;}
+  const slots=document.createElement("div");slots.className="booking-slots";const open=bookingMinutes(space.open),close=bookingMinutes(space.close);
+  for(let start=open;start+space.slotMinutes<=close;start+=space.slotMinutes){
+    const end=start+space.slotMinutes;const existing=bookings.find(item=>item.spaceId===space.id&&item.startMinute<end&&item.endMinute>start);const now=new Date(),past=date===bookingToday()&&start<=now.getHours()*60+now.getMinutes();
+    const slot=document.createElement("div");slot.className=`booking-slot ${existing||past?"occupied":"available"}`;
+    const label=document.createElement("strong");label.textContent=`${bookingTime(start)}–${bookingTime(end)}`;slot.append(label);
+    if(existing){
+      const owner=document.createElement("span");owner.textContent=existing.userName||"Reservado";slot.append(owner);
+      if(existing.own||["super_master","admin"].includes(currentRole)){const cancel=document.createElement("button");cancel.className="booking-cancel";cancel.textContent="Cancelar";cancel.addEventListener("click",async()=>{if(!confirm(`¿Cancelar la reserva de ${space.name} a las ${bookingTime(start)}?`))return;cancel.disabled=true;try{await api("/api/bookings",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({id:existing.id,date})});show("Reserva cancelada.");await loadBookings(date);}catch(e){show(e.message,true);}finally{cancel.disabled=false;}});slot.append(cancel);}
+    }else if(past){const finished=document.createElement("span");finished.textContent="Horario finalizado";slot.append(finished);
+    }else{
+      const reserve=document.createElement("button");reserve.className="booking-reserve";reserve.textContent="Reservar";reserve.addEventListener("click",async()=>{if(!confirm(`¿Reservar ${space.name} el ${date} de ${bookingTime(start)} a ${bookingTime(end)}?`))return;reserve.disabled=true;try{await api("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({spaceId:space.id,date,start:bookingTime(start)})});show("Reserva confirmada.");await loadBookings(date);}catch(e){show(e.message,true);}finally{reserve.disabled=false;}});slot.append(reserve);
+    }
+    slots.append(slot);
+  }
+  card.append(slots);return card;
+}
+
+async function loadBookings(selectedDate){
+  const date=selectedDate||bookingsPanel.querySelector("#bookingDate")?.value||bookingToday();bookingsPanel.innerHTML='<div class="history-empty">Cargando agenda…</div>';
+  try{
+    const data=await api(`/api/bookings?date=${encodeURIComponent(date)}`);bookingsPanel.innerHTML="";
+    const header=document.createElement("div");header.className="menu-panel-title";const title=document.createElement("h2");title.textContent="Agenda de espacios comunes";
+    const picker=document.createElement("input");picker.type="date";picker.id="bookingDate";picker.value=date;picker.min=bookingToday();const maximum=new Date(Date.now()+180*86400000);picker.max=maximum.toISOString().slice(0,10);picker.addEventListener("change",()=>loadBookings(picker.value));header.append(title,picker);bookingsPanel.append(header);
+    const help=document.createElement("p");help.textContent="Selecciona un día para ver los horarios disponibles y reservar.";bookingsPanel.append(help);
+    const settings=bookingSettingsEditor(data.spaces,date);if(settings)bookingsPanel.append(settings);
+    const grid=document.createElement("div");grid.className="booking-grid";for(const space of data.spaces)grid.append(renderBookingSpace(space,data.bookings||[],date));bookingsPanel.append(grid);
+  }catch(e){bookingsPanel.innerHTML="";const error=document.createElement("div");error.className="history-empty";error.textContent=e.message;bookingsPanel.append(error);}
 }
 
 async function loadDatabaseSummary(){

@@ -1,7 +1,8 @@
 const {setRelay}=require("../lib/tuya");
 const {authorize}=require("../lib/devices");
+const {addHistory}=require("../lib/history");
 
-module.exports=async function handler(req,res){
+module.exports=async function handler(req,re){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
   try{
     const auth=await authorize(req);
@@ -14,7 +15,14 @@ module.exports=async function handler(req,res){
     if(!auth.allowedRelays.includes(relay)){
       return res.status(403).json({error:`Este equipo no tiene permiso para controlar el relé ${relay}.`});
     }
-    const finalState=await setRelay(relay,state);
+    let finalState;
+    try{
+      finalState=await setRelay(relay,state);
+      await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state:finalState,result:"success"}).catch(error=>console.error("No se pudo guardar el historial:",error));
+    }catch(error){
+      await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"error",error:error.message}).catch(()=>{});
+      throw error;
+    }
     return res.status(200).json({ok:true,relay,state:finalState});
   }catch(e){
     console.error(e);

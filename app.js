@@ -9,6 +9,7 @@ const refreshDevices = document.getElementById("refreshDevices");
 const states = {1:null,2:null,3:null};
 let currentRole="user",currentGroupId="";
 let currentView="control";
+let statusReady=false,liveSyncInFlight=false;
 const toggleShare=document.getElementById("toggleShare"),sharePanel=document.getElementById("sharePanel"),sharePhone=document.getElementById("sharePhone"),shareNumber=document.getElementById("shareNumber"),shareContacts=document.getElementById("shareContacts");
 const shareUrl="https://rele-control-ayn.vercel.app/";
 const shareText="Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
@@ -16,7 +17,7 @@ const statusLabels={pending:"Pendiente",active:"Activo",paused:"En pausa",blocke
 const roleLabels={super_master:"MÁSTER GENERAL",admin:"ADMINISTRADOR",user:"USUARIO"};
 const historySection=document.createElement("section");
 historySection.className="history-section";
-historySection.innerHTML='<div class="history-title"><h2>Historial de accesos</h2><button id="refreshHistory" class="small-button">Actualizar historial</button></div><p class="history-help">Muestra las activaciones realizadas desde AYN Control.</p><div id="historyList" class="history-list"></div>';
+historySection.innerHTML='<div class="history-title"><h2>Historial de activaciones</h2><button id="refreshHistory" class="small-button">Actualizar historial</button></div><p class="history-help">Muestra solamente los encendidos confirmados de los actuadores.</p><div id="historyList" class="history-list"></div>';
 adminPanel.append(historySection);
 const historyList=document.getElementById("historyList"),refreshHistory=document.getElementById("refreshHistory");
 const localDateTime=value=>{if(!value)return "";const date=new Date(value);if(Number.isNaN(date.getTime()))return "";const offset=date.getTimezoneOffset();return new Date(date.getTime()-offset*60000).toISOString().slice(0,16);};
@@ -80,16 +81,32 @@ async function loadStatus(){
     const errors=[];
     for(const item of data.relays){paint(item.relay,item.state);if(item.error)errors.push(`Actuador ${item.relay}: ${item.error}`);}
     currentRole=data.role||"user";currentGroupId=data.groupId||"";
+    statusReady=true;
     if(currentRole==="admin"&&currentGroupId)localStorage.setItem("relayGroupId",currentGroupId);
     adminPanel.hidden=!["super_master","admin"].includes(currentRole);
     const adminTitle=adminPanel.querySelector("h2");if(adminTitle)adminTitle.textContent=currentRole==="super_master"?"Administradores y usuarios":"Mis usuarios";
     buildMenu();
     if(errors.length)show(errors.join(" · "),true);else show(currentRole==="super_master"?"Este equipo es el Máster general.":currentRole==="admin"?"Panel de administrador activo.":"Estado actualizado.");
   }catch(e){
+    statusReady=false;
     setRelayAccess([]);
     show(e.message,true);
   }finally{refresh.disabled=false;}
 }
+
+async function syncLiveStatus(){
+  if(!statusReady||liveSyncInFlight||!pin()||document.hidden)return;
+  liveSyncInFlight=true;
+  try{
+    const data=await api("/api/live-status");
+    for(const item of data.relays||[]){if(typeof item.state==="boolean")paint(item.relay,item.state);}
+  }catch(e){
+    if(e.accessStatus)statusReady=false;
+  }finally{liveSyncInFlight=false;}
+}
+
+setInterval(syncLiveStatus,5000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncLiveStatus();});
 
 savePin.addEventListener("click",()=>{localStorage.setItem("relayPin",pin());show("PIN guardado en este teléfono.");loadStatus();});
 refresh.addEventListener("click",loadStatus);
@@ -329,8 +346,8 @@ async function loadHistory(){
     for(const item of data.history){
       const row=document.createElement("article");row.className=`history-row history-${item.result||"success"}`;
       const info=document.createElement("div");
-      const title=document.createElement("strong");title.textContent=item.userName||"Usuario";
-      const detail=document.createElement("small");detail.textContent=`Actuador ${item.relay} · ${item.state?"ENCENDIDO":"APAGADO"}${item.phone?` · ${item.phone}`:""}`;
+      const title=document.createElement("strong");title.textContent=`Actuador ${item.relay} activado`;
+      const detail=document.createElement("small");detail.textContent="Activacion confirmada";
       info.append(title,detail);
       const time=document.createElement("time");time.dateTime=item.createdAt;time.textContent=new Date(item.createdAt).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"});
       row.append(info,time);historyList.append(row);

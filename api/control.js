@@ -1,6 +1,7 @@
 const {setRelay}=require("../lib/tuya");
 const {authorize}=require("../lib/devices");
 const {addHistory}=require("../lib/history");
+const {setRelayState}=require("../lib/relay-state");
 
 module.exports=async function handler(req,res){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
@@ -18,6 +19,7 @@ module.exports=async function handler(req,res){
     let finalState;
     try{
       finalState=await setRelay(relay,state);
+      await setRelayState(relay,finalState).catch(error=>console.error("No se pudo sincronizar el estado:",error));
       await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state:finalState,result:"success"}).catch(error=>console.error("No se pudo guardar el historial:",error));
     }catch(error){
       await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"error",error:error.message}).catch(()=>{});

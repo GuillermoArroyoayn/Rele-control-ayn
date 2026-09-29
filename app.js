@@ -363,13 +363,28 @@ buttons.forEach((btn) =>
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const voiceRelayNames = { 1: "Acceso QR", 2: "Acceso vehicular", 3: "Acceso peatonal" };
-let voiceBusy = false;
+let voiceEnabled = false;
+let voiceListening = false;
+let voiceSpeaking = false;
+let pendingVoiceRelay = 0;
+let lastVoiceCommand = "";
+let lastVoiceCommandAt = 0;
+let recognition;
 const speak = (text) => {
-  if (!("speechSynthesis" in window)) return;
+  if (!("speechSynthesis" in window)) return false;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
+  utterance.onstart = () => {
+    voiceSpeaking = true;
+    if (voiceListening) recognition?.stop();
+  };
+  utterance.onend = utterance.onerror = () => {
+    voiceSpeaking = false;
+    startVoiceListening();
+  };
   speechSynthesis.speak(utterance);
+  return true;
 };
 const normalizeVoice = (text) =>
   String(text || "")
@@ -380,9 +395,76 @@ const normalizeVoice = (text) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const setVoiceStatus = (text, error = false, say = false) => {
+  voiceStatus.textContent = text;
+  voiceStatus.classList.toggle("error", error);
+  if (say && !speak(text)) startVoiceListening();
+};
+
+const hasWakeWord = (command) => /(^| )(ain|ayn)( |$)/.test(command);
+const removeWakeWord = (command) =>
+  command.replace(/(^| )(ain|ayn)( |$)/, " ").replace(/\s+/g, " ").trim();
+
+function startVoiceListening() {
+  if (!voiceEnabled || voiceListening || voiceSpeaking || !recognition) return;
+  try {
+    recognition.start();
+  } catch (_) {
+    // Algunos navegadores tardan un instante en cerrar la escucha anterior.
+  }
+}
+
+function stopVoiceMode(message = "AIN por voz desactivado.") {
+  voiceEnabled = false;
+  pendingVoiceRelay = 0;
+  window.speechSynthesis?.cancel();
+  if (voiceListening) recognition?.stop();
+  voiceCommand.classList.remove("listening");
+  voiceCommand.setAttribute("aria-pressed", "false");
+  voiceCommand.innerHTML = '<span aria-hidden="true">🎤</span> Activar AIN por voz';
+  setVoiceStatus(message);
+}
+
 async function runVoiceCommand(transcript) {
-  const command = normalizeVoice(transcript);
+  const normalized = normalizeVoice(transcript);
+  if (!hasWakeWord(normalized)) return;
+  const command = removeWakeWord(normalized);
+  const now = Date.now();
+  if (command === lastVoiceCommand && now - lastVoiceCommandAt < 2500) return;
+  lastVoiceCommand = command;
+  lastVoiceCommandAt = now;
   voiceStatus.classList.remove("error");
+
+  if (command.includes("detener voz") || command.includes("desactivar voz")) {
+    stopVoiceMode();
+    speak("AIN por voz desactivado");
+    return;
+  }
+
+  if (pendingVoiceRelay) {
+    if (command.includes("confirmar") || command === "si") {
+      const relayToOpen = pendingVoiceRelay;
+      pendingVoiceRelay = 0;
+      setVoiceStatus(`Abriendo ${voiceRelayNames[relayToOpen]}…`, false, true);
+      const success = await controlRelay(relayToOpen, true, "voice");
+      setVoiceStatus(
+        success
+          ? `${voiceRelayNames[relayToOpen]} activado.`
+          : `No fue posible activar ${voiceRelayNames[relayToOpen]}.`,
+        !success,
+        true,
+      );
+      return;
+    }
+    if (command.includes("cancelar") || command === "no") {
+      pendingVoiceRelay = 0;
+      setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
+      return;
+    }
+    setVoiceStatus("Hay una orden pendiente. Di AIN confirmar o AIN cancelar.", true, true);
+    return;
+  }
+
   const relay = command.includes("peatonal") || command.includes("actuador 3")
     ? 3
     : command.includes("vehicular") || command.includes("actuador 2")
@@ -393,45 +475,56 @@ async function runVoiceCommand(transcript) {
   if (relay) {
     if (!allowedRelays.includes(relay)) {
       const text = `No tienes permiso para abrir ${voiceRelayNames[relay]}.`;
-      voiceStatus.textContent = text;
-      voiceStatus.classList.add("error");
-      speak(text);
+      setVoiceStatus(text, true, true);
       return;
     }
-    const confirmed = window.confirm(`¿Confirmas abrir ${voiceRelayNames[relay]}?`);
-    if (!confirmed) {
-      voiceStatus.textContent = "Orden cancelada. No se activó ningún acceso.";
-      speak("Orden cancelada");
-      return;
-    }
-    voiceStatus.textContent = `Abriendo ${voiceRelayNames[relay]}…`;
-    const success = await controlRelay(relay, true, "voice");
-    const result = success ? `${voiceRelayNames[relay]} activado.` : `No fue posible activar ${voiceRelayNames[relay]}.`;
-    voiceStatus.textContent = result;
-    speak(result);
+    pendingVoiceRelay = relay;
+    setVoiceStatus(
+      `¿Confirmas abrir ${voiceRelayNames[relay]}? Di AIN confirmar o AIN cancelar.`,
+      false,
+      true,
+    );
     return;
   }
-  if (command.includes("agenda")) {
+  if (command.includes("agenda") || command.includes("reservar")) {
     showView("bookings");
-    voiceStatus.textContent = "Agenda abierta.";
-    speak("Agenda abierta");
+    setVoiceStatus("Agenda abierta.", false, true);
+    return;
+  }
+  const requestedView = command.includes("administradores")
+    ? "admins"
+    : command.includes("usuarios")
+      ? "users"
+      : command.includes("permisos temporales")
+        ? "temporary"
+        : command.includes("base de datos")
+          ? "database"
+          : command.includes("estado del sistema")
+            ? "system"
+            : "";
+  if (requestedView) {
+    const allowedView =
+      currentRole === "super_master" ||
+      (currentRole === "admin" && !["admins", "database"].includes(requestedView));
+    if (!allowedView) {
+      setVoiceStatus("No tienes permiso para abrir esa función.", true, true);
+      return;
+    }
+    showView(requestedView);
+    setVoiceStatus("Función abierta.", false, true);
     return;
   }
   if (command.includes("historial") && ["super_master", "admin"].includes(currentRole)) {
     showView("history");
-    voiceStatus.textContent = "Historial abierto.";
-    speak("Historial abierto");
+    setVoiceStatus("Historial abierto.", false, true);
     return;
   }
   if (command.includes("inicio") || command.includes("volver")) {
     showView("control");
-    voiceStatus.textContent = "Pantalla de inicio abierta.";
-    speak("Pantalla de inicio abierta");
+    setVoiceStatus("Pantalla de inicio abierta.", false, true);
     return;
   }
-  voiceStatus.textContent = `No reconocí la orden “${transcript}”. No se activó ningún acceso.`;
-  voiceStatus.classList.add("error");
-  speak("No reconocí la orden. No se activó ningún acceso.");
+  setVoiceStatus(`No reconocí la orden “${transcript}”. No se activó ningún acceso.`, true, true);
 }
 
 if (!SpeechRecognition) {
@@ -439,29 +532,39 @@ if (!SpeechRecognition) {
   voiceStatus.textContent = "El comando por voz no está disponible en este navegador. Los controles manuales siguen funcionando.";
   voiceStatus.classList.add("error");
 } else {
-  voiceCommand.addEventListener("click", () => {
-    if (voiceBusy) return;
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-CL";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    voiceBusy = true;
+  recognition = new SpeechRecognition();
+  recognition.lang = "es-CL";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => {
+    voiceListening = true;
     voiceCommand.classList.add("listening");
-    voiceCommand.setAttribute("aria-pressed", "true");
-    voiceStatus.classList.remove("error");
-    voiceStatus.textContent = "Escuchando… di tu orden ahora.";
-    recognition.onresult = (event) => runVoiceCommand(event.results[0][0].transcript);
-    recognition.onerror = (event) => {
-      const denied = event.error === "not-allowed" || event.error === "service-not-allowed";
-      voiceStatus.textContent = denied ? "Debes permitir el micrófono para usar comandos de voz." : "No pude reconocer la orden. Inténtalo nuevamente.";
+  };
+  recognition.onresult = (event) => {
+    const result = event.results[event.results.length - 1];
+    if (result.isFinal) runVoiceCommand(result[0].transcript);
+  };
+  recognition.onerror = (event) => {
+    const denied = event.error === "not-allowed" || event.error === "service-not-allowed";
+    if (denied) {
+      stopVoiceMode("Debes permitir el micrófono para usar AIN por voz.");
       voiceStatus.classList.add("error");
-    };
-    recognition.onend = () => {
-      voiceBusy = false;
-      voiceCommand.classList.remove("listening");
-      voiceCommand.setAttribute("aria-pressed", "false");
-    };
-    recognition.start();
+    }
+  };
+  recognition.onend = () => {
+    voiceListening = false;
+    if (voiceEnabled && !voiceSpeaking) setTimeout(startVoiceListening, 250);
+  };
+  voiceCommand.addEventListener("click", () => {
+    if (voiceEnabled) {
+      stopVoiceMode();
+      return;
+    }
+    voiceEnabled = true;
+    voiceCommand.setAttribute("aria-pressed", "true");
+    voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
+    setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.", false, true);
   });
 }
 

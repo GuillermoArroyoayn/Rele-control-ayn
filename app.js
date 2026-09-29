@@ -444,6 +444,7 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
 
 async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
+  if (normalized) setVoiceStatus(`Escuché: “${transcript.trim()}”. Procesando…`);
   // Después de preguntar por una confirmación se acepta también "confirmar",
   // "sí", "cancelar" o "no" sin repetir AIN.
   const pendingReply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(normalized);
@@ -485,17 +486,31 @@ async function runVoiceCommand(transcript) {
     return;
   }
 
-  const relay = command.includes("peatonal") || command.includes("actuador 3")
+  const relay = command.includes("peatonal") || command.includes("actuador 3") || command.includes("actuador tres")
     ? 3
-    : command.includes("vehicular") || command.includes("actuador 2")
+    : command.includes("vehicular") || command.includes("actuador 2") || command.includes("actuador dos")
       ? 2
-      : command.includes("qr") || command.includes("actuador 1")
+      : command.includes("qr") || command.includes("actuador 1") || command.includes("actuador uno")
         ? 1
         : 0;
   if (relay) {
     if (!allowedRelays.includes(relay)) {
       const text = `No tienes permiso para abrir ${voiceRelayNames[relay]}.`;
       setVoiceStatus(text, true, true);
+      return;
+    }
+    const directAction = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
+    if (directAction) {
+      pendingVoiceRelay = 0;
+      setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
+      const success = await controlRelay(relay, true, "voice");
+      setVoiceStatus(
+        success
+          ? `${voiceRelayNames[relay]} activado correctamente.`
+          : `No fue posible activar ${voiceRelayNames[relay]}.`,
+        !success,
+        true,
+      );
       return;
     }
     pendingVoiceRelay = relay;
@@ -564,8 +579,13 @@ if (!SpeechRecognition) {
     voiceCommand.classList.add("listening");
   };
   recognition.onresult = (event) => {
-    const result = event.results[event.results.length - 1];
-    if (result.isFinal) runVoiceCommand(result[0].transcript);
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      if (result.isFinal && result[0]?.transcript)
+        runVoiceCommand(result[0].transcript).catch(() => {
+          setVoiceStatus("Ocurrió un error al ejecutar la orden de voz. Inténtalo nuevamente.", true, true);
+        });
+    }
   };
   recognition.onerror = (event) => {
     const denied = event.error === "not-allowed" || event.error === "service-not-allowed";

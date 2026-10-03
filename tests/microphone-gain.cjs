@@ -23,7 +23,7 @@ for(let i=0;i<3;i++){recognizer.handlers.partialresult({result:{partial:"ain act
 assert.equal(emitted,6);assert.equal(captures,1);assert.equal(stops,0);assert.equal(engine.active,true);
 engine.node.port.onmessage({data:new Float32Array([0.1,0.2])});assert.equal(forwarded.length,1);assert.equal(forwarded[0].rate,48000);
 engine.suppressAudio=true;engine.node.port.onmessage({data:new Float32Array([0.4,0.8])});assert(forwarded[1].samples.every(x=>x===0));assert.equal(stops,0);
-engine.suppressAudio=false;engine.context.state="suspended";engine.resume();assert.equal(engine.context.state,"running");assert.equal(captures,1);
+engine.suppressAudio=false;engine.context.state="suspended";engine.context.onstatechange();assert.equal(engine.context.state,"running");assert.equal(captures,1);
 engine.abort();assert.equal(stops,1);assert.equal(engine.active,false);assert.equal(engine.context,null);
 console.log("Correcto: ganancia solicitada, un solo micrófono, continuidad tras frases, audio enviado, eco silenciado, reanudación y cierre explícito");
 })().catch(e=>{console.error(e);process.exitCode=1});

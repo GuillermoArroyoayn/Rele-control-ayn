@@ -622,9 +622,9 @@ function startVoiceListening() {
   }
 }
 
-function stopVoiceMode(message = "AIN por voz desactivado.") {
+function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = true) {
   voiceEnabled = false;
-  localStorage.setItem("aynVoiceSelected", "false");
+  if (persistSelection) localStorage.setItem("aynVoiceSelected", "false");
   voiceCaptureUntil = 0;
   clearTimeout(voiceCaptureTimer);
   voiceSessionGeneration += 1;
@@ -839,9 +839,7 @@ if (!SpeechRecognition) {
       "language-not-supported": "Este navegador no admite reconocimiento en español de Chile.",
     };
     if (messages[event.error]) {
-      const selected = voiceEnabled;
-      stopVoiceMode(messages[event.error] + " La selección queda guardada; toca Activar AIN por voz para reintentar.");
-      localStorage.setItem("aynVoiceSelected", String(selected));
+      stopVoiceMode(messages[event.error] + " La selección queda guardada; toca Activar AIN por voz para reintentar.", false);
       voiceStatus.classList.add("error");
     }
   };
@@ -861,17 +859,18 @@ if (!SpeechRecognition) {
     startVoiceListening();
   });
   window.addEventListener("pagehide", () => {
-    const selected = voiceEnabled;
-    stopVoiceMode();
-    localStorage.setItem("aynVoiceSelected", String(selected));
+    stopVoiceMode("Preferencia de voz guardada.", false);
   });
-  if (localStorage.getItem("aynVoiceSelected") === "true") {
+  const restoreVoiceSelection = () => {
+    if (localStorage.getItem("aynVoiceSelected") !== "true" || voiceEnabled) return;
     voiceEnabled = true;
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
     setVoiceStatus("Voz seleccionada. Recuperando escucha de Ain…");
     startVoiceListening();
-  }
+  };
+  window.addEventListener("pageshow", restoreVoiceSelection);
+  restoreVoiceSelection();
 
 }
 

@@ -12,6 +12,12 @@ function say(text,final){const r=[{transcript:text}];r.isFinal=final;engine.onre
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
 assert(w.testVoice.wake(w.testVoice.normalize('Hey Ain')));
+for(const phrase of [
+ 'ain abre porton entrada','ain abrir porton de entrada','ain abre el porton de salida',
+ 'ain abrime la puerta','ain abreme la puerta','ain puerta','ain porton entrada','ain porton salida',
+ 'ain levanta el porton','ain desbloquea la puerta','ain abre portonentrada','ain abrir puertapeatonal'
+]) assert(w.testVoice.complete(phrase),phrase);
+for(const phrase of ['ain cierra puerta','ain no abras puerta','ain apaga actuador uno','ain esta abierta la puerta','ain abrir puerta y porton'])assert(!w.testVoice.complete(phrase),phrase);
 say('ain',true);await wait(30);
 say('me abres la puerta por favor',false);await wait(450);
 assert.equal(orders.length,1);assert.equal(orders[0].relay,3);assert.equal(captures,1);assert(engine.active);

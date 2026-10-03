@@ -79,7 +79,7 @@
         this.results = [];
         recognizer.on("result", message => this.emit(message.result?.text || "", true, generation));
         recognizer.on("partialresult", message => this.emit(message.result?.partial || "", false, generation));
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261003-voice35");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261003-voice46");
         if (generation !== this.generation) return;
         const node = new AudioWorkletNode(context, "ain-audio-capture");
         this.node = node;

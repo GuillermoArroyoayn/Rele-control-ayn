@@ -488,6 +488,17 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
   setVoiceStatus(message);
 }
 
+const resolveVoiceRelay = (command) => {
+  const candidates = new Set();
+  for (const match of command.matchAll(/\bactuador\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
+    candidates.add(({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[match[1]]);
+  }
+  if (/\b(?:qr|cu erre|codigo qr)\b/.test(command)) candidates.add(1);
+  if (/\bvehicular\b/.test(command)) candidates.add(2);
+  if (/\bpeatonal\b/.test(command)) candidates.add(3);
+  return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
+};
+
 async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
@@ -542,13 +553,11 @@ async function runVoiceCommand(transcript) {
     return;
   }
 
-  const relay = command.includes("peatonal") || command.includes("actuador 3") || command.includes("actuador tres")
-    ? 3
-    : command.includes("vehicular") || command.includes("actuador 2") || command.includes("actuador dos")
-      ? 2
-      : command.includes("qr") || command.includes("actuador 1") || command.includes("actuador uno")
-        ? 1
-        : 0;
+  const relay = resolveVoiceRelay(command);
+  if (relay === -1) {
+    setVoiceStatus("Nombra solamente un actuador por orden.", true, true);
+    return;
+  }
   if (relay) {
     if (!allowedRelays.includes(relay)) {
       const text = `No tienes permiso para abrir ${voiceRelayNames[relay]}.`;

@@ -590,7 +590,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -609,6 +609,7 @@ const voiceWordDistance = (a, b) => {
 const normalizeVoice = text => normalizeVoiceBase(text)
   // Rapid speech can be transcribed without word boundaries.
   .replace(/^(ain|ayn|pain|ein)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
+  .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador)\b/g, "$1 $2")
   .replace(/\b(actuador|porton|puerta)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
   .split(" ").map(word => {
   if (voiceAliases[word]) return voiceAliases[word];
@@ -631,7 +632,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
 const wakeWordPattern = /^(?:oye |hola )?(?:ain|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
-const misheardWakePattern = /^(?:ahi|hay|ay|ai|a)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
+const misheardWakePattern = /^(?:ahi|hay|ay|ai|a|en|in)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
 const hasWakeWord = (command) => wakeWordPattern.test(command) || misheardWakePattern.test(command);
 const removeWakeWord = (command) =>
   command.replace(misheardWakePattern, " ").replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();

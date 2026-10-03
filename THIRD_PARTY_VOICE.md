@@ -1,0 +1,3 @@
+# Local speech engine
+
+AIN uses vosk-browser 0.0.8 by Ciaran O'Reilly, under Apache-2.0: https://github.com/ccoreilly/vosk-browser and https://www.apache.org/licenses/LICENSE-2.0 . Vosk/Kaldi credits and licenses are distributed with that engine. The Spanish vosk-model-small-es-0.3 is downloaded from the upstream browser demo: https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-es-0.3.tar.gz . Model details: https://alphacephei.com/vosk/models . Engine assets are fetched on first activation; microphone audio is processed locally and is not uploaded. The application does not fall back to the system speech service.

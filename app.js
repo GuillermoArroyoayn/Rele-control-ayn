@@ -361,7 +361,7 @@ buttons.forEach((btn) =>
   }),
 );
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechRecognition = window.AinLocalRecognition;
 const voiceRelayNames = { 1: "Acceso QR", 2: "Acceso vehicular", 3: "Acceso peatonal" };
 let voiceEnabled = false;
 let voiceListening = false;
@@ -409,6 +409,7 @@ const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
   const provisional = voiceCaptureProvisional || Boolean(voiceInterimPhrase);
+  recognition?.consumeUtterance?.();
   voiceCaptureUntil = 0;
   voicePhrase = "";
   voiceInterimPhrase = "";
@@ -454,6 +455,7 @@ const speak = (text) => {
   const generation = ++voiceSpeechGeneration;
   clearTimeout(voiceSpeechTimer);
   voiceSpeaking = true;
+  if (recognition) recognition.suppressAudio = true;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
@@ -463,6 +465,7 @@ const speak = (text) => {
     if (generation !== voiceSpeechGeneration) return;
     clearTimeout(voiceSpeechTimer);
     voiceSpeaking = false;
+    if (recognition) recognition.suppressAudio = false;
     voiceEchoUntil = Date.now() + 300;
     scheduleVoiceListening();
   };
@@ -497,7 +500,8 @@ function startVoiceListening() {
   if (!voiceEnabled || voiceListening || voiceStarting || !recognition) return;
   try {
     voiceStarting = true;
-    recognition.start();
+    const started = recognition.start();
+    started?.catch(() => { voiceStarting = false; });
   } catch (_) {
     voiceStarting = false;
     scheduleVoiceListening(600);
@@ -522,7 +526,9 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
   clearTimeout(voiceRestartTimer);
   clearTimeout(voiceSpeechTimer);
   window.speechSynthesis?.cancel();
-  if (voiceListening || voiceStarting) recognition?.abort();
+  recognition?.abort();
+  voiceListening = false;
+  voiceStarting = false;
   voiceCommand.classList.remove("listening");
   voiceCommand.setAttribute("aria-pressed", "false");
   voiceCommand.innerHTML = '<span aria-hidden="true">🎤</span> Activar AIN por voz';
@@ -682,9 +688,10 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
+  recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
+  recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.lang = "es-CL";
-  // Mantener una sola sesión evita que Android active y desactive el
-  // micrófono cada pocos segundos (sonido "tic tic").
+  // Vosk processes the same microphone stream through silence and final results.
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 3;
@@ -697,7 +704,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 34: Ain está escuchando. Di Ain seguido de una orden.");
+      setVoiceStatus("Voz 35: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -728,6 +735,7 @@ if (!SpeechRecognition) {
   recognition.onerror = (event) => {
     voiceLastError = event.error;
     const messages = {
+      "local-engine": event.message || "No se pudo cargar el motor local.",
       "not-allowed": "Permite el micrófono para usar Ain por voz.",
       "service-not-allowed": "El navegador bloqueó el servicio de reconocimiento de voz.",
       "audio-capture": "No se pudo acceder al micrófono. Cierra otras aplicaciones que lo utilicen.",
@@ -741,20 +749,6 @@ if (!SpeechRecognition) {
       voiceStatus.classList.add("error");
     }
   };
-  recognition.onend = () => {
-    voiceStarting = false;
-    voiceListening = false;
-    if (!voiceEnabled) return;
-    // Keep the five-second window and its text across recognition sessions.
-    if (voiceCaptureUntil && voiceInterimPhrase) {
-      voicePhrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
-      voiceInterimPhrase = "";
-      voiceCaptureProvisional = true;
-    }
-    scheduleVoiceListening(350);
-    if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceSpeaking)
-      setVoiceStatus("Voz 34: no se recibió texto del reconocimiento. Recuperando escucha…");
-  };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {
       stopVoiceMode();
@@ -767,8 +761,7 @@ if (!SpeechRecognition) {
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
     setVoiceStatus("Activando reconocimiento de voz…");
-    // SpeechRecognition owns microphone capture. A second getUserMedia
-    // capture can compete with the Android recognition service.
+    // The local adapter owns one persistent getUserMedia capture.
     startVoiceListening();
   });
   window.addEventListener("pagehide", () => {

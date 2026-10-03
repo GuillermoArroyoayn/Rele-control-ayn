@@ -412,10 +412,9 @@ const normalizeVoice = (text) =>
 const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.textContent = text;
   voiceStatus.classList.toggle("error", error);
-  if (say && !speak(text)) startVoiceListening();
-};
+  if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|hay en)( |$)/;
+const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|ein|ey n|hay en|ahi en)( |$)/;
 const hasWakeWord = (command) => wakeWordPattern.test(command);
 const removeWakeWord = (command) =>
   command.replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
@@ -572,7 +571,7 @@ if (!SpeechRecognition) {
   // Mantener una sola sesión evita que Android active y desactive el
   // micrófono cada pocos segundos (sonido "tic tic").
   recognition.continuous = true;
-  recognition.interimResults = false;
+  recognition.interimResults = true;
   recognition.maxAlternatives = 1;
   recognition.onstart = () => {
     voiceListening = true;
@@ -582,7 +581,7 @@ if (!SpeechRecognition) {
   recognition.onresult = (event) => {
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
-      if (result.isFinal && result[0]?.transcript)
+      if (result[0]?.transcript && (result.isFinal || /\b(?:qr|vehicular|peatonal|actuador\s+(?:1|2|3|uno|dos|tres))\b/i.test(result[0].transcript)))
         runVoiceCommand(result[0].transcript).catch(() => {
           setVoiceStatus("Ocurrió un error al ejecutar la orden de voz. Inténtalo nuevamente.", true, true);
         });

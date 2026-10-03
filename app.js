@@ -395,7 +395,7 @@ const deliverVoicePhrase = () => {
   const phrase = voicePhrase;
   voicePhrase = "";
   if (!phrase || !voiceEnabled) return;
-  runVoiceCommand(phrase).catch(() => {
+  return runVoiceCommand(phrase).catch(() => {
     setVoiceStatus("No se pudo ejecutar la orden. Repite Ain y la orden completa.", true, true);
   });
 };
@@ -640,7 +640,7 @@ if (!SpeechRecognition) {
     voiceSessionStartedAt = Date.now();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    setVoiceStatus("Voz 27: Ain está escuchando. Di Ain seguido de una orden.");
+    setVoiceStatus("Voz 28: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -668,55 +668,38 @@ if (!SpeechRecognition) {
       voiceStatus.classList.add("error");
     }
   };
-  recognition.onend = () => {
+  recognition.onend = async () => {
     voiceStarting = false;
     voiceListening = false;
     if (!voiceEnabled) return;
+    const generation = voiceSessionGeneration;
     const elapsed = Math.round((Date.now() - voiceSessionStartedAt) / 1000);
-    // Do not disguise a failed service as continuous listening by reopening
-    // the microphone repeatedly. No automatic restart after disconnection.
-    stopVoiceMode("Voz 27: el servicio de reconocimiento cerró la sesión después de " +
-      elapsed + " segundos. Motivo: " + (voiceLastError || "cierre sin error informado") +
-      ". La escucha está detenida.");
+    const receivedFinalPhrase = Boolean(voicePhrase);
+    // Android can emit its final transcript immediately before onend.
+    // Process it before stopVoiceMode clears the pending phrase.
+    if (receivedFinalPhrase) await deliverVoicePhrase();
+    if (!voiceEnabled || generation !== voiceSessionGeneration) return;
+    const resultMessage = receivedFinalPhrase ? voiceStatus.textContent + " " : "";
+    stopVoiceMode(resultMessage + "Voz 28: reconocimiento cerrado tras " +
+      elapsed + " segundos (" + (voiceLastError || "sin error informado") +
+      "). " + (receivedFinalPhrase ? "" : "No se recibió una frase final. ") +
+      "La escucha está detenida.");
     voiceStatus.classList.add("error");
   };
-  voiceCommand.addEventListener("click", async () => {
+  voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {
       stopVoiceMode();
       return;
     }
     voiceEnabled = true;
-    const generation = ++voiceSessionGeneration;
+    voiceSessionGeneration += 1;
     voiceRapidEnds = [];
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
-    setVoiceStatus("Abriendo micrófono…");
-    try {
-      if (!navigator.mediaDevices?.getUserMedia)
-        throw new Error("Este navegador no permite mantener la captura del micrófono. Abre AYN en Chrome.");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
-      if (!voiceEnabled || generation !== voiceSessionGeneration) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      voiceMicrophoneStream = stream;
-      stream.getAudioTracks().forEach((track) => {
-        track.addEventListener("ended", () => {
-          if (voiceEnabled && generation === voiceSessionGeneration)
-            stopVoiceMode("El sistema cerró el micrófono. Vuelve a activar Ain.");
-        });
-      });
-      startVoiceListening();
-    } catch (error) {
-      if (generation !== voiceSessionGeneration) return;
-      stopVoiceMode(error.name === "NotAllowedError"
-        ? "Permite el micrófono para usar Ain por voz."
-        : error.message || "No se pudo abrir el micrófono.");
-      voiceStatus.classList.add("error");
-    }
+    setVoiceStatus("Activando reconocimiento de voz…");
+    // SpeechRecognition owns microphone capture. A second getUserMedia
+    // capture can compete with the Android recognition service.
+    startVoiceListening();
   });
   window.addEventListener("pagehide", () => stopVoiceMode());
 

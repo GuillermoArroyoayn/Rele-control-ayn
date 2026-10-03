@@ -553,4 +553,4 @@ footer {
 
  .home-watermark{display:none;pointer-events:none;user-select:none}
 .user-layout[data-user-view="control"] .home-watermark,html[data-boot-layout="user"] .home-watermark{display:flex;align-items:center;justify-content:center;margin:24px 0;min-height:180px}
-.home-logo{display:block;width:clamp(150px,45vw,220px);height:auto;max-width:100%;opacity:.82;filter:var(--home-logo-filter,none);border-radius:24%;box-shadow:0 0 28px var(--theme-glow,#22d3ee33)}
+.home-logo{display:block;width:clamp(150px,45vw,220px);height:auto;max-width:100%;opacity:.18;filter:var(--home-logo-filter,none);border-radius:24%;box-shadow:none}

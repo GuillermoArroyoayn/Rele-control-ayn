@@ -136,6 +136,43 @@ function showView(view) {
   if (view === "database") loadDatabaseSummary();
   if (view === "system") loadSystemSummary();
 }
+const recoveryPanel = document.createElement("section");
+recoveryPanel.className = "menu-panel";
+recoveryPanel.hidden = true;
+const recoveryTitle = document.createElement("h2");
+recoveryTitle.textContent = "Arranque de actuadores";
+const recoveryStatus = document.createElement("p");
+recoveryStatus.textContent = "Verificación de arranque OFF pendiente.";
+const recoveryApply = document.createElement("button");
+recoveryApply.type = "button";
+recoveryApply.className = "small-button";
+recoveryApply.textContent = "Verificar arranque OFF";
+recoveryPanel.append(recoveryTitle, recoveryStatus, recoveryApply);
+mainMenu.after(recoveryPanel);
+let recoveryAttempted = false;
+async function applyPowerOnOff(force = false) {
+  if (currentRole !== "super_master" || (!force && recoveryAttempted)) return;
+  recoveryAttempted = true;
+  if (!force && localStorage.getItem("aynPowerOffPolicyV1") === "verified") {
+    recoveryStatus.textContent = "Los tres actuadores confirmaron arranque OFF. Usa Verificar para revisar nuevamente.";
+    return;
+  }
+  recoveryApply.disabled = true;
+  recoveryStatus.textContent = "Configurando y verificando arranque OFF en los actuadores…";
+  try {
+    const data = await api("/api/power-on-off", { method: "POST" });
+    recoveryStatus.textContent = (data.relays || []).map(item =>
+      `Actuador ${item.relay}: ${item.configured ? "arranque OFF confirmado" : item.error || "pendiente"}`
+    ).join(" · ");
+    if (data.ok) localStorage.setItem("aynPowerOffPolicyV1", "verified");
+    else localStorage.removeItem("aynPowerOffPolicyV1");
+  } catch (error) {
+    recoveryStatus.textContent = "Arranque OFF pendiente: " + error.message;
+    localStorage.removeItem("aynPowerOffPolicyV1");
+  } finally { recoveryApply.disabled = false; }
+}
+recoveryApply.addEventListener("click", () => applyPowerOnOff(true));
+
 const normalizePhone = (value) => {
   let number = String(value || "").replace(/\D/g, "");
   if (number.startsWith("0")) number = number.slice(1);
@@ -265,6 +302,8 @@ async function loadStatus() {
           ? "Administradores y usuarios"
           : "Mis usuarios";
     buildMenu();
+    recoveryPanel.hidden = currentRole !== "super_master";
+    if (currentRole === "super_master") applyPowerOnOff();
     if (errors.length) show(errors.join(" · "), true);
     else
       show(

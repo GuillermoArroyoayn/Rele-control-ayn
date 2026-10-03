@@ -239,8 +239,8 @@ function paint(relay, value) {
   const button = card.querySelector(".power");
   card.classList.toggle("on", value === true);
   label.textContent =
-    value === true ? "ENCENDIDO" : value === false ? "APAGADO" : "Sin conexión";
-  button.dataset.state = value === true ? "ON" : value === false ? "OFF" : "";
+    value === true ? "ENCENDIDO" : value === false ? "APAGADO" : "Estado pendiente";
+  button.dataset.state = value === true ? "ON" : value === false ? "OFF" : "…";
   button.setAttribute(
     "aria-label",
     value === true
@@ -303,19 +303,15 @@ async function initializeActuatorsOff(data) {
   }
   try {
     const result = await api("/api/start-off", { method: "POST" });
-    const results = new Map((result.relays || []).map(item => [Number(item.relay), item]));
     startupStatus.textContent = (result.relays || []).map(item =>
       `Actuador ${item.relay}: ${item.confirmed && item.state === false ? "OFF confirmado" : item.error || "apagado pendiente"}`
     ).join(" · ");
-    return { ...data, relays: data.relays.map(item => {
-      const reset = results.get(item.relay);
-      return reset?.confirmed && reset.state === false
-        ? { ...item, state: false, error: undefined }
-        : { ...item, state: null, error: reset?.error || "Apagado inicial pendiente." };
-    }) };
+    // Read the device again after the command; a delayed confirmation is not offline.
+    return await api("/api/status");
   } catch (error) {
     startupStatus.textContent = "Apagado inicial pendiente: " + error.message;
-    return { ...data, relays: data.relays.map(item => ({ ...item, state: null, error: "Apagado inicial pendiente." })) };
+    try { return await api("/api/status"); }
+    catch { return { ...data, relays: data.relays.map(item => ({ ...item, state: null, error: "Lectura de estado pendiente." })) }; }
   } finally {
     startupResetInFlight = false;
     startupRetry.disabled = false;
@@ -382,7 +378,8 @@ async function syncLiveStatus() {
     return;
   liveSyncInFlight = true;
   try {
-    const data = await api("/api/live-status");
+    const needsDeviceRead = allowedRelays.some(relay => states[relay] === null);
+    const data = await api(needsDeviceRead ? "/api/status" : "/api/live-status");
     for (const item of data.relays || []) {
       if (typeof item.state === "boolean" || item.state === null) paint(item.relay, item.state);
     }

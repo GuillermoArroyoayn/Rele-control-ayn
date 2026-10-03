@@ -3,6 +3,7 @@ const {authorize}=require("../lib/devices");
 const {setRelayState}=require("../lib/relay-state");
 
 module.exports=async function handler(req,res){
+  res.setHeader("Cache-Control","no-store");
   if(req.method!=="GET") return res.status(405).json({error:"Método no permitido"});
   try{
     const auth=await authorize(req);

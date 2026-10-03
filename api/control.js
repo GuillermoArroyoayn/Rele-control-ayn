@@ -7,7 +7,7 @@ module.exports=async function handler(req,res){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
   try{
     const auth=await authorize(req);
-    if(!auth.ok) return res.status(auth.status).json({error:auth.error,pending:Boolean(auth.pending)});
+    if(!auth.ok) return res.status(auth.status).json({error:auth.error,pending:Boolean(auth.pending),accessStatus:auth.accessStatus});
     const relay=Number(req.body?.relay);
     const state=req.body?.state;
     if(![1,2,3].includes(relay) || typeof state!=="boolean"){

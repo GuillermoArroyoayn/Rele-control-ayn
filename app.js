@@ -488,13 +488,20 @@ const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
   voiceMicrophoneStream = null;
 };
+const returnToVoiceListening = () => {
+  clearTimeout(voiceCaptureTimer);
+  recognition?.consumeUtterance?.();
+  voiceCaptureUntil = voiceWakeUntil = 0;
+  voicePhrase = voiceInterimPhrase = voiceLastTranscript = "";
+  if (voiceEnabled) setVoiceStatus("Ain está escuchando. Lista para una nueva orden.");
+};
 const beginVoiceCapture = (transcript) => {
   if (voiceCaptureUntil || (!hasWakeWord(normalizeVoice(transcript)) && Date.now() >= voiceWakeUntil)) return;
   voiceCaptureUntil = Date.now() + 8000;
   voicePhrase = "";
   voiceInterimPhrase = "";
   setVoiceStatus("Ain está escuchando. Puedes dar la orden de inmediato.");
-  voiceCaptureTimer = window.setTimeout(finishVoiceCapture, 8000);
+  voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 1200);
 };
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
@@ -681,7 +688,7 @@ async function runVoiceCommand(transcript) {
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
   const woke = hasWakeWord(normalized);
   if (!woke && Date.now() >= voiceWakeUntil) {
-    setVoiceStatus(`Recibí: “${transcript.trim()}”. No identifiqué Ain; di Ain y luego la orden.`);
+    returnToVoiceListening();
     return;
   }
   const command = woke ? removeWakeWord(normalized) : normalized;
@@ -826,8 +833,14 @@ if (!SpeechRecognition) {
       const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
+      const changed = voiceLastTranscript !== transcript.trim();
       voiceLastTranscript = transcript.trim();
       beginVoiceCapture(transcript);
+      if (voiceCaptureUntil && changed) {
+        clearTimeout(voiceCaptureTimer);
+        // A stalled partial is discarded, never used to guess an access.
+        voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 1200);
+      }
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
         receivedFinal = true;
@@ -840,7 +853,7 @@ if (!SpeechRecognition) {
     }
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
     if (voiceInterimPhrase || voicePhrase)
-      setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
+      setVoiceStatus("Ain está escuchando tu orden…");
     if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {
       // A completed utterance is processed once, including unknown commands.
       // Unknown commands return silently to wake-word listening immediately.
@@ -848,8 +861,7 @@ if (!SpeechRecognition) {
       return;
     }
 
-    if (!voiceCaptureUntil && voiceLastTranscript)
-      setVoiceStatus(`Voz 39: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
+    if (!voiceCaptureUntil && receivedFinal) returnToVoiceListening();
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {

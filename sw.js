@@ -1,9 +1,12 @@
-const CACHE = "reles-ayn-v46";
+const CACHE = "reles-ayn-v47";
 const ASSETS = [
   "/",
+  "/administracion.html",
+  "/administracion.js",
+  "/administracion.css",
   "/index.html",
   "/styles.css?v=20260929-0857",
-  "/app.js?v=20261003-voice46",
+  "/app.js?v=20261003-management47",
   "/ain-local-voice.js?v=20261003-voice46",
   "/ain-audio-worklet.js?v=20261003-voice46",
   "/share.css",

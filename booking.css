@@ -15,3 +15,6 @@
 
 .booking-space summary{cursor:pointer;font-weight:800;font-size:18px;padding:8px 0;min-height:44px}
 .booking-calendar{display:grid;gap:8px;margin:12px 0;font-weight:700}.booking-calendar input{width:100%;min-height:44px;color-scheme:dark}.booking-space h4{margin:14px 0 10px}
+
+.booking-month-nav{display:flex;justify-content:space-between;align-items:center;gap:8px}.booking-month-nav button,.booking-accept{padding:12px;border-radius:9px;background:#22c55e;color:#052e16}.booking-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.booking-month-grid>strong{text-align:center;font-size:12px}.booking-day{min-height:64px;padding:5px 2px;border-radius:8px;background:#102b43;color:#fff;display:flex;flex-direction:column;gap:4px;border:2px solid transparent;overflow-wrap:anywhere}.booking-day span{font-size:10px;line-height:1.25}.booking-day.has-bookings{background:#462335}.booking-day[aria-pressed=true]{border-color:#4ade80}.booking-day:disabled{opacity:.5}.booking-accept{width:100%}.booking-calendar{gap:10px}
+@media(min-width:621px){.booking-grid{grid-template-columns:1fr}}

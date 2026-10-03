@@ -553,4 +553,4 @@ footer {
 
  .home-watermark{display:none;pointer-events:none;user-select:none}
 .user-layout[data-user-view="control"] .home-watermark,html[data-boot-layout="user"] .home-watermark{display:flex;align-items:center;justify-content:center;margin:24px 0;min-height:180px}
-.home-logo{display:block;width:clamp(150px,45vw,220px);height:auto;max-width:100%;opacity:.18;filter:var(--home-logo-filter,none);border-radius:24%;box-shadow:none}
+.home-logo{display:block;width:clamp(220px,70vw,330px);height:auto;max-width:100%;opacity:.2;overflow:visible}

@@ -649,7 +649,7 @@ if (!SpeechRecognition) {
     voiceSessionStartedAt = Date.now();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    setVoiceStatus("Voz 29: Ain está escuchando. Di Ain seguido de una orden.");
+    setVoiceStatus("Voz 30: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -677,23 +677,15 @@ if (!SpeechRecognition) {
       voiceStatus.classList.add("error");
     }
   };
-  recognition.onend = async () => {
+  recognition.onend = () => {
     voiceStarting = false;
     voiceListening = false;
     if (!voiceEnabled) return;
-    const generation = voiceSessionGeneration;
-    const elapsed = Math.round((Date.now() - voiceSessionStartedAt) / 1000);
-    const receivedFinalPhrase = Boolean(voicePhrase);
-    // Android can emit its final transcript immediately before onend.
-    // Process it before stopVoiceMode clears the pending phrase.
-    if (receivedFinalPhrase) await deliverVoicePhrase();
-    if (!voiceEnabled || generation !== voiceSessionGeneration) return;
-    const resultMessage = receivedFinalPhrase ? voiceStatus.textContent + " " : "";
-    stopVoiceMode(resultMessage + "Voz 29: reconocimiento cerrado tras " +
-      elapsed + " segundos (" + (voiceLastError || "sin error informado") +
-      "). " + (receivedFinalPhrase ? "" : "No se recibió una frase final. ") +
-      "La escucha está detenida.");
-    voiceStatus.classList.add("error");
+    // A normal end is not a request to disable AIN. Preserve wake word,
+    // confirmation and final fragments across recognition sessions.
+    scheduleVoiceListening(350);
+    if (!voicePhrase && !voiceSpeaking)
+      setVoiceStatus("Voz 30: recuperando escucha. Di Ain seguido de una orden.");
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {

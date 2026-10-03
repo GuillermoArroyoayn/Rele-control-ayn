@@ -377,6 +377,39 @@ let voiceEchoUntil = 0;
 let voiceWakeUntil = 0;
 let voiceCommandBusy = false;
 let voiceStarting = false;
+let voiceMicrophoneStream = null;
+let voiceSessionGeneration = 0;
+let voiceSessionStartedAt = 0;
+let voiceRapidEnds = [];
+let voiceLastError = "";
+let voicePhrase = "";
+let voicePhraseTimer = 0;
+let voicePhraseAt = 0;
+
+const releaseVoiceMicrophone = () => {
+  voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
+  voiceMicrophoneStream = null;
+};
+const deliverVoicePhrase = () => {
+  clearTimeout(voicePhraseTimer);
+  const phrase = voicePhrase;
+  voicePhrase = "";
+  if (!phrase || !voiceEnabled) return;
+  runVoiceCommand(phrase).catch(() => {
+    setVoiceStatus("No se pudo ejecutar la orden. Repite Ain y la orden completa.", true, true);
+  });
+};
+const collectVoicePhrase = (transcript) => {
+  if (Date.now() - voicePhraseAt > 12000) voicePhrase = "";
+  voicePhraseAt = Date.now();
+  const normalized = normalizeVoice(transcript);
+  if (hasWakeWord(normalized)) voicePhrase = transcript;
+  else voicePhrase = [voicePhrase, transcript].filter(Boolean).join(" ");
+  clearTimeout(voicePhraseTimer);
+  // Wait for the end of the phrase; Android can deliver a command in
+  // several final fragments (Ain / activar actuador / uno).
+  voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1200);
+};
 
 const scheduleVoiceListening = (delay = 350) => {
   clearTimeout(voiceRestartTimer);
@@ -437,6 +470,10 @@ function startVoiceListening() {
 
 function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceEnabled = false;
+  voiceSessionGeneration += 1;
+  voicePhrase = "";
+  clearTimeout(voicePhraseTimer);
+  releaseVoiceMicrophone();
   pendingVoiceRelay = 0;
   voiceWakeUntil = 0;
   voiceSpeaking = false;
@@ -600,6 +637,8 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
+    voiceSessionStartedAt = Date.now();
+    voiceLastError = "";
     voiceCommand.classList.add("listening");
     setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.");
   };
@@ -608,44 +647,92 @@ if (!SpeechRecognition) {
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
       const transcript = result[0]?.transcript;
-      // Interim hypotheses can change or repeat. Execute only final results.
-      // A separate "Ain" arms the next phrase for twelve seconds.
-      if (transcript && result.isFinal)
-        runVoiceCommand(transcript).catch(() => {
-          setVoiceStatus("Ocurrió un error al ejecutar la orden de voz. Inténtalo nuevamente.", true, true);
-        });
+      if (transcript && result.isFinal) collectVoicePhrase(transcript);
+      else if (transcript) {
+        clearTimeout(voicePhraseTimer);
+        setVoiceStatus(`Escuchando: “${transcript.trim()}”…`);
+      }
     }
   };
   recognition.onerror = (event) => {
-    const denied = event.error === "not-allowed" || event.error === "service-not-allowed";
-    if (denied) {
-      stopVoiceMode("Debes permitir el micrófono para usar AIN por voz.");
+    voiceLastError = event.error;
+    const messages = {
+      "not-allowed": "Permite el micrófono para usar Ain por voz.",
+      "service-not-allowed": "El navegador bloqueó el servicio de reconocimiento de voz.",
+      "audio-capture": "No se pudo acceder al micrófono. Cierra otras aplicaciones que lo utilicen.",
+      "network": "El reconocimiento de voz perdió la conexión. Revisa Internet y vuelve a activar Ain.",
+      "language-not-supported": "Este navegador no admite reconocimiento en español de Chile.",
+    };
+    if (messages[event.error]) {
+      stopVoiceMode(messages[event.error]);
       voiceStatus.classList.add("error");
-      return;
     }
-    if (event.error === "audio-capture")
-      setVoiceStatus("No se pudo acceder al micrófono. Revisa que ninguna otra aplicación lo esté usando.", true);
   };
   recognition.onend = () => {
     voiceStarting = false;
     voiceListening = false;
-    // Si Android finaliza la sesión inesperadamente, esperar antes de
-    // reintentar para impedir ciclos rápidos y sonidos repetidos.
-    scheduleVoiceListening(1500);
+    if (!voiceEnabled) return;
+    const now = Date.now();
+    if (now - voiceSessionStartedAt < 6000) {
+      voiceRapidEnds = voiceRapidEnds.filter((time) => now - time < 20000);
+      voiceRapidEnds.push(now);
+      if (voiceRapidEnds.length >= 3) {
+        stopVoiceMode("El navegador corta la escucha repetidamente" +
+          (voiceLastError ? " (" + voiceLastError + ")" : "") +
+          ". Se detuvo el reinicio automático. Abre AYN en Chrome y vuelve a activar la voz.");
+        voiceStatus.classList.add("error");
+        return;
+      }
+    } else voiceRapidEnds = [];
+    // The capture stream stays open during recognition service reconnects.
+    // Keep already-final fragments until the complete phrase is delivered.
+    if (voicePhrase) {
+      clearTimeout(voicePhraseTimer);
+      voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
+    }
+    setVoiceStatus("Micrófono abierto. Reconectando el reconocimiento de voz…");
+    scheduleVoiceListening(500);
   };
-  voiceCommand.addEventListener("click", () => {
+  voiceCommand.addEventListener("click", async () => {
     if (voiceEnabled) {
       stopVoiceMode();
       return;
     }
     voiceEnabled = true;
+    const generation = ++voiceSessionGeneration;
+    voiceRapidEnds = [];
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
-    // Iniciar el micrófono sin reproducir una bienvenida: en Android la voz
-    // sintética detenía la escucha y hacía perder la primera orden.
-    setVoiceStatus("Activando micrófono…");
-    scheduleVoiceListening(100);
+    setVoiceStatus("Abriendo micrófono…");
+    try {
+      if (!navigator.mediaDevices?.getUserMedia)
+        throw new Error("Este navegador no permite mantener la captura del micrófono. Abre AYN en Chrome.");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
+      if (!voiceEnabled || generation !== voiceSessionGeneration) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      voiceMicrophoneStream = stream;
+      stream.getAudioTracks().forEach((track) => {
+        track.addEventListener("ended", () => {
+          if (voiceEnabled && generation === voiceSessionGeneration)
+            stopVoiceMode("El sistema cerró el micrófono. Vuelve a activar Ain.");
+        });
+      });
+      startVoiceListening();
+    } catch (error) {
+      if (generation !== voiceSessionGeneration) return;
+      stopVoiceMode(error.name === "NotAllowedError"
+        ? "Permite el micrófono para usar Ain por voz."
+        : error.message || "No se pudo abrir el micrófono.");
+      voiceStatus.classList.add("error");
+    }
   });
+  window.addEventListener("pagehide", () => stopVoiceMode());
+
 }
 
 async function changeDeviceStatus(device, status) {

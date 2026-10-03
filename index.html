@@ -26,9 +26,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-ui67" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-ui68" />
     <link rel="stylesheet" href="/share.css" />
-    <link rel="stylesheet" href="/booking.css?v=20261003-ui67" />
+    <link rel="stylesheet" href="/booking.css?v=20261003-ui68" />
     <style>
       .appearance {
         display: flex;
@@ -188,7 +188,21 @@
           </article>
         </div>
         <div class="home-watermark" role="img" aria-label="A&N Control">
-          <img class="home-logo" src="/app-icon-512.png" width="512" height="512" alt="" decoding="async" />
+          <svg class="home-logo" viewBox="0 0 360 230" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="homeMetal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#dbe4ef"/><stop offset=".55" stop-color="#7f91a9"/><stop offset=".8" stop-color="#f8fbff"/><stop offset="1" stop-color="#9caec4"/>
+              </linearGradient>
+              <filter id="homeHalo" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>
+            </defs>
+            <g fill="none" stroke="var(--theme-accent,#22d3ee)" stroke-width="5" opacity=".8">
+              <ellipse cx="180" cy="100" rx="163" ry="44" transform="rotate(-14 180 100)" filter="url(#homeHalo)"/>
+              <ellipse cx="180" cy="100" rx="163" ry="44" transform="rotate(-14 180 100)" stroke-width="2"/>
+              <path d="M32 195 Q180 210 328 195" filter="url(#homeHalo)"/>
+            </g>
+            <text x="180" y="142" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="119" font-weight="900" letter-spacing="-8" fill="url(#homeMetal)" stroke="var(--theme-accent,#22d3ee)" stroke-width="1">A&amp;N</text>
+            <text x="180" y="193" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="47" font-weight="900" letter-spacing="2" fill="url(#homeMetal)">CONTROL</text>
+          </svg>
         </div>
         <button id="refresh" class="refresh">Actualizar estado</button>
         <section class="share-section">
@@ -311,6 +325,6 @@
       })();
     </script>
     <script src="/ain-local-voice.js?v=20261003-voice49" defer></script>
-    <script src="/app.js?v=20261003-ui67" defer></script>
-  <script src="/panic.js?v=20261003-ui67" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
+    <script src="/app.js?v=20261003-ui68" defer></script>
+  <script src="/panic.js?v=20261003-ui68" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
 </html>

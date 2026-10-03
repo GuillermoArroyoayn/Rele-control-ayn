@@ -553,4 +553,8 @@ footer {
 
  .home-watermark{display:none;pointer-events:none;user-select:none}
 .user-layout[data-user-view="control"] .home-watermark,html[data-boot-layout="user"] .home-watermark{display:flex;align-items:center;justify-content:center;margin:24px 0;min-height:180px}
-.home-logo{display:block;width:clamp(220px,70vw,330px);height:auto;max-width:100%;opacity:.2;overflow:visible}
+.home-logo{display:block;width:clamp(220px,70vw,330px);height:auto;max-width:100%;opacity:.46;overflow:visible}
+
+.home-orbit-glow,.home-orbit-spark{animation:home-orbit-shine 7s linear infinite}
+@keyframes home-orbit-shine{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
+@media(prefers-reduced-motion:reduce){.home-orbit-glow,.home-orbit-spark{animation:none}}

@@ -1423,18 +1423,49 @@ function bookingSettingsEditor(spaces, date) {
   return details;
 }
 
+const openBookingSpaces = new Set();
+
 function renderBookingSpace(space, bookings, date) {
   const card = document.createElement("article");
   card.className = "booking-space";
-  const title = document.createElement("h3");
-  title.textContent = space.name;
-  card.append(title);
+  const details = document.createElement("details");
+  details.open = openBookingSpaces.has(space.id);
+  details.addEventListener("toggle", () => {
+    if (details.open) openBookingSpaces.add(space.id);
+    else openBookingSpaces.delete(space.id);
+  });
+  const title = document.createElement("summary");
+  title.textContent = `${space.name} · Reservar`;
+  details.append(title);
+  card.append(details);
+  const calendarLabel = document.createElement("label");
+  calendarLabel.className = "booking-calendar";
+  calendarLabel.textContent = "Selecciona la fecha";
+  const calendar = document.createElement("input");
+  calendar.type = "date";
+  calendar.value = date;
+  calendar.min = bookingToday();
+  const maximum = new Date(`${bookingToday()}T12:00:00Z`);
+  maximum.setUTCDate(maximum.getUTCDate() + 180);
+  calendar.max = maximum.toISOString().slice(0, 10);
+  calendar.setAttribute("aria-label", `Fecha para ${space.name}`);
+  calendar.addEventListener("click", () => {
+    try { calendar.showPicker?.(); } catch {}
+  });
+  calendar.addEventListener("change", () => {
+    if (calendar.value && calendar.checkValidity()) loadBookings(calendar.value);
+  });
+  calendarLabel.append(calendar);
+  details.append(calendarLabel);
+  const hoursTitle = document.createElement("h4");
+  hoursTitle.textContent = "Selecciona un horario";
+  details.append(hoursTitle);
   const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
   if (!space.enabled || !space.weekdays.includes(weekday)) {
     const closed = document.createElement("p");
     closed.className = "booking-closed";
     closed.textContent = "No disponible este día";
-    card.append(closed);
+    details.append(closed);
     return card;
   }
   const slots = document.createElement("div");
@@ -1453,10 +1484,10 @@ function renderBookingSpace(space, bookings, date) {
         item.startMinute < end &&
         item.endMinute > start,
     );
-    const now = new Date(),
+    const now = new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()),
       past =
         date === bookingToday() &&
-        start <= now.getHours() * 60 + now.getMinutes();
+        start <= bookingMinutes(now);
     const slot = document.createElement("div");
     slot.className = `booking-slot ${existing || past ? "occupied" : "available"}`;
     const label = document.createElement("strong");
@@ -1469,7 +1500,7 @@ function renderBookingSpace(space, bookings, date) {
       if (existing.own || ["super_master", "admin"].includes(currentRole)) {
         const cancel = document.createElement("button");
         cancel.className = "booking-cancel";
-        cancel.textContent = "Cancelar";
+        cancel.textContent = existing.own ? "Cancelar mi reserva" : "Cancelar reserva";
         cancel.addEventListener("click", async () => {
           if (
             !confirm(
@@ -1484,7 +1515,7 @@ function renderBookingSpace(space, bookings, date) {
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ id: existing.id, date }),
             });
-            show("Reserva cancelada.");
+            show("Reserva cancelada. El horario vuelve a estar disponible.");
             await loadBookings(date);
           } catch (e) {
             show(e.message, true);
@@ -1532,7 +1563,7 @@ function renderBookingSpace(space, bookings, date) {
     }
     slots.append(slot);
   }
-  card.append(slots);
+  details.append(slots);
   return card;
 }
 
@@ -1561,7 +1592,7 @@ async function loadBookings(selectedDate) {
     bookingsPanel.append(header);
     const help = document.createElement("p");
     help.textContent =
-      "Selecciona un día para ver los horarios disponibles y reservar.";
+      "Abre el espacio que quieres reservar, elige la fecha en el calendario y selecciona un horario disponible.";
     bookingsPanel.append(help);
     const settings = bookingSettingsEditor(data.spaces, date);
     if (settings) bookingsPanel.append(settings);

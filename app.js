@@ -296,6 +296,7 @@ async function api(url, options = {}) {
   if (!res.ok) {
     const error = new Error(data.error || "No se pudo completar la operación");
     error.accessStatus = data.accessStatus;
+    if (data.accessStatus) document.dispatchEvent(new CustomEvent("ayn-access-restricted", {detail: data.error}));
     throw error;
   }
   return data;
@@ -1764,3 +1765,14 @@ if ("serviceWorker" in navigator) {
     .catch(() => {});
 }
 if (pin()) loadStatus();
+
+// Clear stale controls when any shared service detects suspended access.
+document.addEventListener("ayn-access-restricted", event => {
+  statusReady = false;
+  setRelayAccess([]);
+  mainMenu.hidden = true;
+  for (const panel of [adminPanel, reportsPanel, bookingsPanel, databasePanel, systemPanel, shareSection]) panel.hidden = true;
+  stopVoiceMode(event.detail || "Acceso suspendido por la administración.", false);
+  show(event.detail || "Acceso suspendido por la administración.", true);
+});
+document.addEventListener("ayn-access-restored", () => { if (pin()) loadStatus(); });

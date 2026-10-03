@@ -81,10 +81,54 @@ reportsPanel.id = "reportsPanel";
 reportsPanel.className = "reports-panel";
 reportsPanel.hidden = true;
 systemPanel.after(reportsPanel);
+const userSettingsPanel = document.createElement("section");
+userSettingsPanel.className = "menu-panel user-settings-panel";
+userSettingsPanel.hidden = true;
+userSettingsPanel.innerHTML = "<h2>Configuración</h2>";
+systemPanel.after(userSettingsPanel);
+const userSettingNodes = [...document.querySelectorAll(".appearance, .accessibility, .security")].map(node => {
+  const marker = document.createComment("Ubicación original de configuración");
+  node.before(marker);
+  return {node, marker};
+});
+const userToolbar = document.createElement("header");
+userToolbar.className = "user-toolbar";
+userToolbar.hidden = true;
+const userMenuButton = document.createElement("button");
+userMenuButton.type = "button";
+userMenuButton.textContent = "☰ Menú";
+userMenuButton.setAttribute("aria-label", "Abrir menú");
+const userViewTitle = document.createElement("strong");
+const userHomeButton = document.createElement("button");
+userHomeButton.type = "button";
+userHomeButton.textContent = "Volver al inicio";
+userHomeButton.addEventListener("click", () => showView("control"));
+userMenuButton.addEventListener("click", () => showView(currentView === "menu" ? "control" : "menu"));
+userToolbar.append(userMenuButton,userViewTitle,userHomeButton);
+document.body.append(userToolbar);
+document.addEventListener("ayn-panic-feedback", () => {
+  if (document.body.classList.contains("user-layout")) showView("panic");
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && document.body.classList.contains("user-layout") && currentView !== "control") {
+    showView("control");userMenuButton.focus();
+  }
+});
+function configureUserLayout(enabled) {
+  document.body.classList.toggle("user-layout", enabled);
+  userToolbar.hidden = !enabled;
+  for (const {node, marker} of userSettingNodes) {
+    if (enabled) userSettingsPanel.append(node);
+    else marker.after(node);
+  }
+  if (!enabled) userSettingsPanel.hidden = true;
+}
 const menuDefinitions = [
   ["control", "Inicio", "⌂"],
   ["bookings", "Agenda", "▦"],
   ["reports", "Reportes", "✎"],
+  ["panic", "Alertas SOS", "!"],
+  ["settings", "Configuración", "⚙"],
   ["admins", "Administradores", "▣"],
   ["users", "Usuarios", "👥"],
   ["temporary", "Permisos temporales", "◷"],
@@ -97,11 +141,11 @@ function buildMenu() {
   mainMenu.innerHTML = "";
   const allowed =
     currentRole === "super_master"
-      ? menuDefinitions
+      ? menuDefinitions.filter(([id]) => !["settings", "panic"].includes(id))
       : currentRole === "admin"
-        ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
+        ? menuDefinitions.filter(([id]) => !["admins", "database", "settings", "panic"].includes(id))
         : menuDefinitions.filter(([id]) =>
-            ["control", "bookings", "reports"].includes(id),
+            ["control", "bookings", "reports", "panic", "settings"].includes(id),
           );
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
@@ -116,6 +160,7 @@ function buildMenu() {
   managementLink.textContent = currentRole === "super_master" ? "Administración general y actuadores" : currentRole === "admin" ? "Mi administración y actuadores" : "Mis actuadores";
   managementLink.className = "small-button";
   mainMenu.append(managementLink);
+  configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
@@ -124,14 +169,26 @@ function buildMenu() {
 
 function showView(view) {
   currentView = view;
+  const user = document.body.classList.contains("user-layout");
+  document.body.dataset.userView = view;
+  if (user) {
+    mainMenu.hidden = view !== "menu";
+    userSettingsPanel.hidden = view !== "settings";
+    userHomeButton.hidden = view === "control";
+    userViewTitle.hidden = view === "control";
+    userMenuButton.setAttribute("aria-expanded", String(view === "menu"));
+    userViewTitle.textContent = view === "menu" ? "Menú" : (menuDefinitions.find(([id]) => id === view)?.[1] || "");
+    document.body.classList.toggle("user-view-open", view !== "control");
+  }
+
   reportsPanel.hidden = view !== "reports";
   if (view === "reports") document.dispatchEvent(new Event("ayn-open-reports"));
   for (const button of mainMenu.querySelectorAll("button"))
     button.classList.toggle("active", button.dataset.view === view);
   const control = view === "control";
   relayGrid.hidden = !control;
-  refresh.hidden = !control;
-  shareSection.hidden = !control;
+  refresh.hidden = !control || user;
+  shareSection.hidden = !control || user;
   adminPanel.hidden = !(
     ["admins", "users", "temporary", "history"].includes(view) &&
     ["super_master", "admin"].includes(currentRole)
@@ -243,6 +300,7 @@ function pin() {
 }
 function show(text, error = false) {
   message.textContent = text;
+  message.classList.toggle("is-error", error);
   message.style.color = error ? "#fecaca" : "#bfd3e2";
 }
 function paint(relay, value) {
@@ -1950,6 +2008,7 @@ if (pin()) loadStatus();
 document.addEventListener("ayn-access-restricted", event => {
   statusReady = false;
   setRelayAccess([]);
+  configureUserLayout(false);
   mainMenu.hidden = true;
   for (const panel of [adminPanel, reportsPanel, bookingsPanel, databasePanel, systemPanel, shareSection]) panel.hidden = true;
   stopVoiceMode(event.detail || "Acceso suspendido por la administración.", false);

@@ -10,7 +10,7 @@ const states = { 1: null, 2: null, 3: null };
 let allowedRelays = [];
 let currentRole = "user",
   currentGroupId = "";
-let currentView = "control";
+let currentView = location.hash === "#reportes" ? "reports" : "control";
 let startupResetAttempted = false;
 let startupResetInFlight = false;
 let statusReady = false,
@@ -76,9 +76,15 @@ const bookingsPanel = document.createElement("section");
 bookingsPanel.className = "menu-panel bookings-panel";
 bookingsPanel.hidden = true;
 adminPanel.after(bookingsPanel, databasePanel, systemPanel);
+const reportsPanel = document.createElement("section");
+reportsPanel.id = "reportsPanel";
+reportsPanel.className = "reports-panel";
+reportsPanel.hidden = true;
+systemPanel.after(reportsPanel);
 const menuDefinitions = [
   ["control", "Inicio", "⌂"],
   ["bookings", "Agenda", "▦"],
+  ["reports", "Reportes", "✎"],
   ["admins", "Administradores", "▣"],
   ["users", "Usuarios", "👥"],
   ["temporary", "Permisos temporales", "◷"],
@@ -95,7 +101,7 @@ function buildMenu() {
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
         : menuDefinitions.filter(([id]) =>
-            ["control", "bookings"].includes(id),
+            ["control", "bookings", "reports"].includes(id),
           );
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
@@ -118,6 +124,8 @@ function buildMenu() {
 
 function showView(view) {
   currentView = view;
+  reportsPanel.hidden = view !== "reports";
+  if (view === "reports") document.dispatchEvent(new Event("ayn-open-reports"));
   for (const button of mainMenu.querySelectorAll("button"))
     button.classList.toggle("active", button.dataset.view === view);
   const control = view === "control";

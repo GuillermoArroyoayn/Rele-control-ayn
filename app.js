@@ -514,11 +514,13 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
 
 const resolveVoiceRelay = (command) => {
   const candidates = new Set();
-  for (const match of command.matchAll(/\bactuador\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
+  for (const match of command.matchAll(/\b(?:actuador|porton|puerta)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
     candidates.add(({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[match[1]]);
   }
   if (/\b(?:qr|cu erre|codigo qr)\b/.test(command)) candidates.add(1);
   if (/\bvehicular\b/.test(command)) candidates.add(2);
+  if (/\bporton\b/.test(command) && !/\bporton\s+(?:numero\s+)?(?:\d+|uno|un|primero|dos|segundo|tres|tercero)\b/.test(command)) candidates.add(2);
+  if (/\bpuerta\b/.test(command) && !/\bpuerta\s+(?:numero\s+)?(?:\d+|uno|un|primero|dos|segundo|tres|tercero)\b/.test(command)) candidates.add(3);
   if (/\bpeatonal\b/.test(command)) candidates.add(3);
   return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
 };
@@ -678,7 +680,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 32: Ain está escuchando. Di Ain seguido de una orden.");
+      setVoiceStatus("Voz 33: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -735,7 +737,7 @@ if (!SpeechRecognition) {
     }
     scheduleVoiceListening(350);
     if (!voiceLastTranscript && !voicePhrase && !voiceSpeaking)
-      setVoiceStatus("Voz 32: no se recibió texto del reconocimiento. Recuperando escucha…");
+      setVoiceStatus("Voz 33: no se recibió texto del reconocimiento. Recuperando escucha…");
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {

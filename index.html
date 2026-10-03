@@ -8,12 +8,27 @@
     />
     <meta name="theme-color" content="#0b2239" />
     <title>Sistema de Control AYN</title>
+    <script>
+      try {
+        const savedPin = localStorage.getItem("relayPin");
+        const savedRole = localStorage.getItem("aynLastRole");
+        if (savedPin && (!savedRole || savedRole === "user")) document.documentElement.dataset.bootLayout = "user";
+      } catch {}
+    </script>
+    <style>
+      #bootHeader{display:none}
+      html[data-boot-layout="user"] #bootHeader{display:flex;position:fixed;inset:0 0 auto;z-index:950;min-height:64px;padding:10px 14px;background:#0b2239;align-items:center}
+      #bootHeader button{padding:10px 12px;border-radius:12px;min-height:44px;background:#22d3ee;color:#052538;font-weight:800}
+      html[data-boot-layout="user"] :is(.brand,.appearance,.accessibility,.security,#message,#refresh,.share-section,footer,.panic-panel){display:none!important}
+      html[data-boot-layout="user"] .app{padding-top:80px}
+      html[data-boot-layout="user"] .panel{background:transparent;border:0;padding:0;backdrop-filter:none}
+    </style>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-ui63" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-ui64" />
     <link rel="stylesheet" href="/share.css" />
-    <link rel="stylesheet" href="/booking.css?v=20261003-ui63" />
+    <link rel="stylesheet" href="/booking.css?v=20261003-ui64" />
     <style>
       .appearance {
         display: flex;
@@ -75,6 +90,7 @@
     </style>
   <link rel="stylesheet" href="/panic.css?v=20261003-sos56"><link rel="stylesheet" href="/reports.css?v=20261003-reports57"></head>
   <body>
+    <header id="bootHeader" aria-busy="true"><button type="button" disabled>☰ Menú</button></header>
     <main class="app">
       <header class="brand">
         <img src="/app-icon-192.png" alt="Sistema de Control AYN" />
@@ -132,6 +148,7 @@
             </div>
             <button
               class="power"
+              disabled
               data-relay="1"
               data-state=""
               aria-label="Controlar actuador 1"
@@ -146,6 +163,7 @@
             </div>
             <button
               class="power"
+              disabled
               data-relay="2"
               data-state=""
               aria-label="Controlar actuador 2"
@@ -160,6 +178,7 @@
             </div>
             <button
               class="power"
+              disabled
               data-relay="3"
               data-state=""
               aria-label="Controlar actuador 3"
@@ -288,6 +307,6 @@
       })();
     </script>
     <script src="/ain-local-voice.js?v=20261003-voice49" defer></script>
-    <script src="/app.js?v=20261003-ui63" defer></script>
-  <script src="/panic.js?v=20261003-ui63" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
+    <script src="/app.js?v=20261003-ui64" defer></script>
+  <script src="/panic.js?v=20261003-ui64" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
 </html>

@@ -491,7 +491,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
 const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|ein|ey n|hay en|ahi en)( |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
-const misheardWakePattern = /^ahi(?: ahi)*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
+const misheardWakePattern = /^(?:ahi|hay|ay|ai)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
 const hasWakeWord = (command) => wakeWordPattern.test(command) || misheardWakePattern.test(command);
 const removeWakeWord = (command) =>
   command.replace(misheardWakePattern, " ").replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
@@ -704,7 +704,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 35: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
+      setVoiceStatus("Voz 36: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -730,6 +730,8 @@ if (!SpeechRecognition) {
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
+    if (!voiceCaptureUntil && voiceLastTranscript)
+      setVoiceStatus(`Voz 36: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {

@@ -24,7 +24,7 @@ vm.runInNewContext(fs.readFileSync(path.join(root,'lib/bookings.js'),'utf8'), {
   const source=fs.readFileSync(path.join(root,'app.js'),'utf8');
   const bookingHelpers=source.slice(source.indexOf('const bookingToday ='),source.indexOf('function bookingSettingsEditor'));
   const rendering=source.slice(source.indexOf('const openBookingSpaces ='),source.indexOf('async function loadBookings('));
-  const context={document:dom.window.document,Intl,Date,currentRole:'user',confirm:()=>true,
+  const context={document:dom.window.document,bookingsPanel:dom.window.document.body,Intl,Date,currentRole:'user',confirm:()=>true,
     api:async(url,options)=>{if(options){calls.push({url,options});return {};}return {bookings:[{id:'other',spaceId:'estacionamiento',date:'2026-10-05',start:'10:00',end:'11:00',startMinute:600,endMinute:660,apartment:'204'}]};},show:()=>{},loadBookings:async(date)=>reload=date};
   vm.createContext(context);vm.runInContext(bookingHelpers+rendering,context);
   const date='2026-10-05';
@@ -32,6 +32,7 @@ vm.runInNewContext(fs.readFileSync(path.join(root,'lib/bookings.js'),'utf8'), {
   for(const space of defaults){
     const card=context.renderBookingSpace(space,[],date);
     assert(card.querySelector('summary').textContent.includes(space.name));
+    dom.window.document.body.append(card);
     const details=card.querySelector('details');details.open=true;
     details.dispatchEvent(new dom.window.Event('toggle'));await flush();
     assert.equal(card.querySelector('.booking-slots'),null);
@@ -40,10 +41,24 @@ vm.runInNewContext(fs.readFileSync(path.join(root,'lib/bookings.js'),'utf8'), {
     day.click();assert.equal(card.querySelector('.booking-slots'),null);
     card.querySelector('.booking-accept').click();await flush();
     assert(card.querySelector('.booking-slots'));
+    const selectedDay=card.querySelector('[data-date="2026-10-05"]');
+    const accept=card.querySelector('.booking-accept');
+    const slots=card.querySelector('.booking-slots');
+    await context.refreshBookingsQuietly();
+    assert.equal(card.querySelector('[data-date="2026-10-05"]'),selectedDay);
+    assert.equal(selectedDay.getAttribute('aria-pressed'),'true');
+    assert.equal(card.querySelector('.booking-accept'),accept);
+    assert.equal(card.querySelector('.booking-slots'),slots);
+    assert.equal(details.open,true);
 
   }
   const parking=defaults.find(s=>s.id==='estacionamiento');
   const own={id:'reservation-A',spaceId:parking.id,startMinute:600,endMinute:660,own:true,userName:'Vecino'};
+  const direct=context.renderMyBookingCancellations(parking,[{...own,date,start:'10:00',end:'11:00'}]);
+  assert(direct.querySelector('.booking-cancel'));
+  direct.querySelector('.booking-cancel').click();await flush();
+  assert.equal(calls.at(-1).options.method,'DELETE');
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body),{id:own.id,date});
   const card=context.renderBookingHours(parking,[own],date);
   const cancel=card.querySelector('.booking-cancel');assert(cancel);
   cancel.click();await new Promise(r=>setImmediate(r));

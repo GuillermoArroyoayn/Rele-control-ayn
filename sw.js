@@ -1,9 +1,9 @@
-const CACHE = "reles-ayn-v26";
+const CACHE = "reles-ayn-v27";
 const ASSETS = [
   "/",
   "/index.html",
   "/styles.css?v=20260929-0857",
-  "/app.js?v=20261003-0800",
+  "/app.js?v=20261003-0845",
   "/share.css",
   "/booking.css?v=20260929-0001",
   "/app-icon-192.png",

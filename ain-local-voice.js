@@ -67,7 +67,9 @@
         this.onloading?.("Voz 35: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
-          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+          // Ask Android for automatic input gain while keeping noise and echo control.
+          // The browser may ignore this preference if the device cannot provide it.
+          audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true, channelCount: 1 }
         });
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;

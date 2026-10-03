@@ -640,7 +640,7 @@ if (!SpeechRecognition) {
     voiceSessionStartedAt = Date.now();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.");
+    setVoiceStatus("Voz 27: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -672,26 +672,13 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     voiceListening = false;
     if (!voiceEnabled) return;
-    const now = Date.now();
-    if (now - voiceSessionStartedAt < 6000) {
-      voiceRapidEnds = voiceRapidEnds.filter((time) => now - time < 20000);
-      voiceRapidEnds.push(now);
-      if (voiceRapidEnds.length >= 3) {
-        stopVoiceMode("El navegador corta la escucha repetidamente" +
-          (voiceLastError ? " (" + voiceLastError + ")" : "") +
-          ". Se detuvo el reinicio automático. Abre AYN en Chrome y vuelve a activar la voz.");
-        voiceStatus.classList.add("error");
-        return;
-      }
-    } else voiceRapidEnds = [];
-    // The capture stream stays open during recognition service reconnects.
-    // Keep already-final fragments until the complete phrase is delivered.
-    if (voicePhrase) {
-      clearTimeout(voicePhraseTimer);
-      voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
-    }
-    setVoiceStatus("Micrófono abierto. Reconectando el reconocimiento de voz…");
-    scheduleVoiceListening(500);
+    const elapsed = Math.round((Date.now() - voiceSessionStartedAt) / 1000);
+    // Do not disguise a failed service as continuous listening by reopening
+    // the microphone repeatedly. No automatic restart after disconnection.
+    stopVoiceMode("Voz 27: el servicio de reconocimiento cerró la sesión después de " +
+      elapsed + " segundos. Motivo: " + (voiceLastError || "cierre sin error informado") +
+      ". La escucha está detenida.");
+    voiceStatus.classList.add("error");
   };
   voiceCommand.addEventListener("click", async () => {
     if (voiceEnabled) {

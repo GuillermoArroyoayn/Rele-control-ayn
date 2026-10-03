@@ -11,6 +11,8 @@ let allowedRelays = [];
 let currentRole = "user",
   currentGroupId = "";
 let currentView = "control";
+let startupResetAttempted = false;
+let startupResetInFlight = false;
 let statusReady = false,
   liveSyncInFlight = false;
 const toggleShare = document.getElementById("toggleShare"),
@@ -147,7 +149,18 @@ const recoveryApply = document.createElement("button");
 recoveryApply.type = "button";
 recoveryApply.className = "small-button";
 recoveryApply.textContent = "Verificar arranque OFF";
-recoveryPanel.append(recoveryTitle, recoveryStatus, recoveryApply);
+const startupStatus = document.createElement("p");
+startupStatus.textContent = "Al iniciar el Máster se apagan los tres actuadores.";
+const startupRetry = document.createElement("button");
+startupRetry.type = "button";
+startupRetry.className = "small-button";
+startupRetry.textContent = "Reintentar apagado inicial";
+startupRetry.addEventListener("click", () => {
+  if (startupResetInFlight) return;
+  startupResetAttempted = false;
+  loadStatus();
+});
+recoveryPanel.append(recoveryTitle, startupStatus, startupRetry, recoveryStatus, recoveryApply);
 mainMenu.after(recoveryPanel);
 let recoveryAttempted = false;
 async function applyPowerOnOff(force = false) {
@@ -275,14 +288,50 @@ async function api(url, options = {}) {
   return data;
 }
 
+async function initializeActuatorsOff(data) {
+  if (data.role !== "super_master" || startupResetAttempted) return data;
+  startupResetAttempted = true;
+  startupResetInFlight = true;
+  statusReady = false;
+  startupRetry.disabled = true;
+  startupStatus.textContent = "Apagando los tres actuadores al iniciar…";
+  for (const button of buttons) button.disabled = true;
+  for (const relay of [1, 2, 3]) {
+    states[relay] = null;
+    document.getElementById(`state${relay}`).textContent = "Verificando apagado…";
+    document.querySelector(`.power[data-relay="${relay}"]`).dataset.state = "";
+  }
+  try {
+    const result = await api("/api/start-off", { method: "POST" });
+    const results = new Map((result.relays || []).map(item => [Number(item.relay), item]));
+    startupStatus.textContent = (result.relays || []).map(item =>
+      `Actuador ${item.relay}: ${item.confirmed && item.state === false ? "OFF confirmado" : item.error || "apagado pendiente"}`
+    ).join(" · ");
+    return { ...data, relays: data.relays.map(item => {
+      const reset = results.get(item.relay);
+      return reset?.confirmed && reset.state === false
+        ? { ...item, state: false, error: undefined }
+        : { ...item, state: null, error: reset?.error || "Apagado inicial pendiente." };
+    }) };
+  } catch (error) {
+    startupStatus.textContent = "Apagado inicial pendiente: " + error.message;
+    return { ...data, relays: data.relays.map(item => ({ ...item, state: null, error: "Apagado inicial pendiente." })) };
+  } finally {
+    startupResetInFlight = false;
+    startupRetry.disabled = false;
+  }
+}
+
 async function loadStatus() {
+  if (startupResetInFlight) return;
   if (!pin()) {
     show("Ingresa tu PIN de acceso.", true);
     return;
   }
   refresh.disabled = true;
   try {
-    const data = await api("/api/status");
+    let data = await api("/api/status");
+    data = await initializeActuatorsOff(data);
     setRelayAccess(data.allowedRelays || []);
     const errors = [];
     for (const item of data.relays) {
@@ -335,7 +384,7 @@ async function syncLiveStatus() {
   try {
     const data = await api("/api/live-status");
     for (const item of data.relays || []) {
-      if (typeof item.state === "boolean") paint(item.relay, item.state);
+      if (typeof item.state === "boolean" || item.state === null) paint(item.relay, item.state);
     }
   } catch (e) {
     if (e.accessStatus) statusReady = false;
@@ -365,6 +414,10 @@ savePin.addEventListener("click", () => {
 });
 refresh.addEventListener("click", loadStatus);
 async function controlRelay(relay, desired, source = "manual") {
+  if (startupResetInFlight) {
+    show("Espera mientras se verifica el apagado inicial.", true);
+    return false;
+  }
   if (!pin()) {
     show("Ingresa tu PIN de acceso.", true);
     return false;

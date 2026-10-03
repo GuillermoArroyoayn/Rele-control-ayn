@@ -506,7 +506,7 @@ const finishVoiceCapture = () => {
   if (!voiceEnabled) return;
   if (!phrase || !removeWakeWord(normalizeVoice(phrase))) {
     voiceWakeUntil = 0;
-    setVoiceStatus("No recibí una orden completa. Di Ain para intentarlo nuevamente.");
+    setVoiceStatus("Ain está en espera de una nueva orden.");
     return;
   }
   // The wake word can be in a separate result. The window authorizes only
@@ -704,7 +704,7 @@ async function runVoiceCommand(transcript) {
   }
   const relay = resolveVoiceRelay(command);
   if (relay === -1) {
-    setVoiceStatus("Nombra solamente un actuador por orden.", true, true);
+    setVoiceStatus("Ain está en espera de una nueva orden.");
     return;
   }
   if (relay) {
@@ -726,7 +726,7 @@ async function runVoiceCommand(transcript) {
       );
       return;
     }
-    setVoiceStatus("Indica la acción: Ain abrir, activar o encender, seguido del acceso.", true, true);
+    setVoiceStatus("Ain está en espera de una nueva orden.");
     return;
   }
   if (command.includes("agenda") || command.includes("reservar")) {
@@ -767,7 +767,7 @@ async function runVoiceCommand(transcript) {
     setVoiceStatus("Pantalla de inicio abierta.", false, true);
     return;
   }
-  setVoiceStatus(`No reconocí la orden “${transcript}”. No se activó ningún acceso.`, true, true);
+  setVoiceStatus("Ain está en espera de una nueva orden.");
   } finally {
     voiceCommandBusy = false;
   }
@@ -824,17 +824,12 @@ if (!SpeechRecognition) {
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
     if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {
-      const command = removeWakeWord(normalizeVoice(voicePhrase));
-      const relay = resolveVoiceRelay(command);
-      const action = /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
-      const navigation = /\b(agenda|reservar|historial|usuarios|administradores|permisos|base de datos|estado del sistema|volver|inicio|detener|desactivar)\b/.test(command);
-      if (!command || (relay > 0 && action) || relay === -1 || navigation) {
-        // Dispatch final commands immediately; preserve the full window only
-        // for incomplete instructions. A separate wake result arms the next phrase.
-        finishVoiceCapture();
-        return;
-      }
+      // A completed utterance is processed once, including unknown commands.
+      // Unknown commands return silently to wake-word listening immediately.
+      finishVoiceCapture();
+      return;
     }
+
     if (!voiceCaptureUntil && voiceLastTranscript)
       setVoiceStatus(`Voz 39: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
     // Do not cancel the final-fragment timer when only an interim arrives.

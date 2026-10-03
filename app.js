@@ -606,7 +606,11 @@ const voiceWordDistance = (a, b) => {
   }
   return row[b.length];
 };
-const normalizeVoice = text => normalizeVoiceBase(text).split(" ").map(word => {
+const normalizeVoice = text => normalizeVoiceBase(text)
+  // Rapid speech can be transcribed without word boundaries.
+  .replace(/^(ain|ayn|pain|ein)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
+  .replace(/\b(actuador|porton|puerta)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
+  .split(" ").map(word => {
   if (voiceAliases[word]) return voiceAliases[word];
   if (word.length < 4 || voiceVocabulary.includes(word)) return word;
   const candidates = voiceVocabulary.map(target => ({
@@ -680,7 +684,19 @@ const resolveVoiceRelay = (command) => {
   if (/\bporton\b/.test(command) && !/\bporton\s+(?:numero\s+)?(?:\d+|uno|un|primero|dos|segundo|tres|tercero)\b/.test(command)) candidates.add(2);
   if (/\bpuerta\b/.test(command) && !/\bpuerta\s+(?:numero\s+)?(?:\d+|uno|un|primero|dos|segundo|tres|tercero)\b/.test(command)) candidates.add(3);
   if (/\bpeatonal\b/.test(command)) candidates.add(3);
+  const spokenNumbers = new Set((command.match(/\b(?:1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g) || [])
+    .map(word => ({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[word]));
+  if (candidates.size && spokenNumbers.size > 1) return -1;
   return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
+};
+
+const isCompleteFastVoiceCommand = (phrase) => {
+  const normalized = normalizeVoice(phrase);
+  if (!hasWakeWord(normalized)) return false;
+  const command = removeWakeWord(normalized);
+  if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) return false;
+  return resolveVoiceRelay(command) > 0 &&
+    /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
 };
 
 async function runVoiceCommand(transcript) {
@@ -828,12 +844,14 @@ if (!SpeechRecognition) {
     // Keep them separately so a browser end cannot silently discard speech.
     const interim = [];
     let receivedFinal = false;
+    let transcriptChanged = false;
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
       const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
       const changed = voiceLastTranscript !== transcript.trim();
+      transcriptChanged ||= changed;
       voiceLastTranscript = transcript.trim();
       beginVoiceCapture(transcript);
       if (voiceCaptureUntil && changed) {
@@ -852,6 +870,17 @@ if (!SpeechRecognition) {
       if (!result.isFinal && result[0]?.transcript) interim.push(result[0].transcript);
     }
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
+    if (voiceCaptureUntil && transcriptChanged && voiceInterimPhrase &&
+        isCompleteFastVoiceCommand(mergeVoiceFragments(voicePhrase, voiceInterimPhrase))) {
+      clearTimeout(voiceCaptureTimer);
+      // Process a complete hypothesis only after it stops changing.
+      // Later final results for this utterance are consumed by the adapter.
+      voiceCaptureTimer = window.setTimeout(() => {
+        const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
+        if (isCompleteFastVoiceCommand(phrase)) finishVoiceCapture();
+        else returnToVoiceListening();
+      }, 500);
+    }
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus("Ain está escuchando tu orden…");
     if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {

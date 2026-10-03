@@ -1425,41 +1425,123 @@ function bookingSettingsEditor(spaces, date) {
 
 const openBookingSpaces = new Set();
 
+function bookingDepartment(item) {
+  return item.apartment ? `Depto. ${item.apartment}` : "Departamento sin registrar";
+}
+
 function renderBookingSpace(space, bookings, date) {
   const card = document.createElement("article");
   card.className = "booking-space";
   const details = document.createElement("details");
   details.open = openBookingSpaces.has(space.id);
-  details.addEventListener("toggle", () => {
-    if (details.open) openBookingSpaces.add(space.id);
-    else openBookingSpaces.delete(space.id);
-  });
   const title = document.createElement("summary");
   title.textContent = `${space.name} · Reservar`;
   details.append(title);
   card.append(details);
-  const calendarLabel = document.createElement("label");
-  calendarLabel.className = "booking-calendar";
-  calendarLabel.textContent = "Selecciona la fecha";
-  const calendar = document.createElement("input");
-  calendar.type = "date";
-  calendar.value = date;
-  calendar.min = bookingToday();
-  const maximum = new Date(`${bookingToday()}T12:00:00Z`);
-  maximum.setUTCDate(maximum.getUTCDate() + 180);
-  calendar.max = maximum.toISOString().slice(0, 10);
-  calendar.setAttribute("aria-label", `Fecha para ${space.name}`);
-  calendar.addEventListener("click", () => {
-    try { calendar.showPicker?.(); } catch {}
+  const calendar = document.createElement("div");
+  calendar.className = "booking-calendar";
+  details.append(calendar);
+  let month = date.slice(0, 7), selected = date, loaded = false, generation = 0;
+  const hours = document.createElement("div");
+  details.append(hours);
+  async function drawMonth() {
+    const request = ++generation;
+    loaded = true;
+    calendar.textContent = "Cargando calendario…";
+    hours.replaceChildren();
+    try {
+      const data = await api(`/api/bookings?month=${encodeURIComponent(month)}`);
+      if (request !== generation) return;
+      calendar.replaceChildren();
+      const navigation = document.createElement("div");
+      navigation.className = "booking-month-nav";
+      const caption = document.createElement("strong");
+      caption.textContent = new Date(`${month}-01T12:00:00Z`).toLocaleDateString("es-CL", {month:"long",year:"numeric",timeZone:"UTC"});
+      for (const [delta, text] of [[-1,"Mes anterior"],[1,"Mes siguiente"]]) {
+        const button = document.createElement("button");
+        button.textContent = delta < 0 ? "‹" : "›";
+        button.setAttribute("aria-label",text);
+        button.addEventListener("click", () => {
+          const next = new Date(`${month}-01T12:00:00Z`);
+          next.setUTCMonth(next.getUTCMonth()+delta);
+          month = next.toISOString().slice(0,7);
+          selected = "";
+          drawMonth();
+        });
+        navigation.append(button);
+      }
+      navigation.insertBefore(caption,navigation.lastChild);
+      calendar.append(navigation);
+      const grid = document.createElement("div");
+      grid.className = "booking-month-grid";
+      for (const day of ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]) {
+        const label = document.createElement("strong"); label.textContent=day;grid.append(label);
+      }
+      const first = new Date(`${month}-01T12:00:00Z`);
+      for (let i=0;i<(first.getUTCDay()+6)%7;i++) grid.append(document.createElement("span"));
+      const maximum = new Date(`${bookingToday()}T12:00:00Z`);
+      maximum.setUTCDate(maximum.getUTCDate()+180);
+      const maxDate = maximum.toISOString().slice(0,10);
+      const count = new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,0)).getUTCDate();
+      const accept = document.createElement("button");
+      accept.className = "booking-accept";
+      accept.textContent = "Aceptar día y ver horarios";
+      const selectedLabel = document.createElement("p");
+      function selectDay(dayDate) {
+        selected = dayDate;
+        selectedLabel.textContent = `Día seleccionado: ${selected}`;
+        accept.disabled = false;
+        for (const button of grid.querySelectorAll("button")) button.setAttribute("aria-pressed",String(button.dataset.date===selected));
+        hours.replaceChildren();
+      }
+      accept.disabled = true;
+      for(let day=1;day<=count;day++) {
+        const dayDate = `${month}-${String(day).padStart(2,"0")}`;
+        const dayButton = document.createElement("button");
+        dayButton.className = "booking-day";
+        dayButton.dataset.date = dayDate;
+        dayButton.setAttribute("aria-pressed",String(dayDate===selected));
+        const number = document.createElement("strong");number.textContent=String(day);dayButton.append(number);
+        const reservations = (data.bookings||[]).filter(item=>item.spaceId===space.id&&item.date===dayDate).sort((a,b)=>a.startMinute-b.startMinute);
+        for(const item of reservations) {
+          const note=document.createElement("span");
+          note.textContent=`${item.start}–${item.end} · ${bookingDepartment(item)}`;
+          dayButton.append(note);
+        }
+        if(reservations.length)dayButton.classList.add("has-bookings");
+        const weekday=new Date(`${dayDate}T12:00:00Z`).getUTCDay();
+        dayButton.disabled=dayDate<bookingToday()||dayDate>maxDate||!space.enabled||!space.weekdays.includes(weekday);
+        dayButton.addEventListener("click",()=>selectDay(dayDate));
+        grid.append(dayButton);
+        if(dayDate===selected&&!dayButton.disabled) {accept.disabled=false;selectedLabel.textContent=`Día seleccionado: ${selected}`;}
+      }
+      accept.addEventListener("click",async()=>{
+        const accepted=selected;
+        accept.disabled=true;
+        hours.textContent="Cargando horarios…";
+        try {
+          const dayData=await api(`/api/bookings?date=${encodeURIComponent(accepted)}`);
+          if(accepted!==selected||request!==generation)return;
+          const heading=document.createElement("h4");heading.textContent=`Horarios del ${accepted}`;
+          hours.replaceChildren(heading,renderBookingHours(space,dayData.bookings||[],accepted));
+          hours.scrollIntoView?.({behavior:"smooth",block:"nearest"});
+        }catch(e){hours.textContent=e.message;}
+        finally{accept.disabled=!selected;}
+      });
+      calendar.append(grid,selectedLabel,accept);
+    }catch(e){loaded=false;calendar.textContent=e.message;}
+  }
+  details.addEventListener("toggle",()=>{
+    if(details.open){openBookingSpaces.add(space.id);if(!loaded)drawMonth();}
+    else openBookingSpaces.delete(space.id);
   });
-  calendar.addEventListener("change", () => {
-    if (calendar.value && calendar.checkValidity()) loadBookings(calendar.value);
-  });
-  calendarLabel.append(calendar);
-  details.append(calendarLabel);
-  const hoursTitle = document.createElement("h4");
-  hoursTitle.textContent = "Selecciona un horario";
-  details.append(hoursTitle);
+  if(details.open)drawMonth();
+  return card;
+}
+
+function renderBookingHours(space, bookings, date) {
+  const details = document.createElement("div");
+  const card = details;
   const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
   if (!space.enabled || !space.weekdays.includes(weekday)) {
     const closed = document.createElement("p");
@@ -1495,7 +1577,7 @@ function renderBookingSpace(space, bookings, date) {
     slot.append(label);
     if (existing) {
       const owner = document.createElement("span");
-      owner.textContent = existing.userName || "Reservado";
+      owner.textContent = bookingDepartment(existing);
       slot.append(owner);
       if (existing.own || ["super_master", "admin"].includes(currentRole)) {
         const cancel = document.createElement("button");
@@ -1580,19 +1662,11 @@ async function loadBookings(selectedDate) {
     header.className = "menu-panel-title";
     const title = document.createElement("h2");
     title.textContent = "Agenda de espacios comunes";
-    const picker = document.createElement("input");
-    picker.type = "date";
-    picker.id = "bookingDate";
-    picker.value = date;
-    picker.min = bookingToday();
-    const maximum = new Date(Date.now() + 180 * 86400000);
-    picker.max = maximum.toISOString().slice(0, 10);
-    picker.addEventListener("change", () => loadBookings(picker.value));
-    header.append(title, picker);
+    header.append(title);
     bookingsPanel.append(header);
     const help = document.createElement("p");
     help.textContent =
-      "Abre el espacio que quieres reservar, elige la fecha en el calendario y selecciona un horario disponible.";
+      "Abre Reservar, selecciona un día del calendario y pulsa Aceptar día para ver los horarios. Las reservas indican horario y departamento.";
     bookingsPanel.append(help);
     const settings = bookingSettingsEditor(data.spaces, date);
     if (settings) bookingsPanel.append(settings);

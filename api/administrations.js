@@ -78,5 +78,5 @@ module.exports=async(req,res)=>{
       return res.json({ok:true,state:null,message:'Orden enviada. Actualiza para confirmar el estado real.'});
     }
     throw A.error('Acción desconocida.');
-  }catch(e){res.status(e.status||500).json({error:e.message||'Error interno.'});}
+  }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'Error interno.'});}
 };

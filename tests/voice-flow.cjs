@@ -1,0 +1,24 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require('jsdom');const root=path.join(__dirname,'..');
+const dom=new JSDOM(fs.readFileSync(path.join(root,'index.html'),'utf8'),{url:'https://ayn.test/',runScripts:'outside-only',pretendToBeVisual:true});
+const w=dom.window;let engine,captures=0,orders=[],resumes=0;
+w.setInterval=()=>0;
+w.AinLocalRecognition=class {constructor(){engine=this;}start(){captures++;this.active=true;this.onstart();}abort(){this.active=false;}consumeUtterance(){}resume(){resumes++;}};
+w.fetch=async(url,options)=>{if(String(url).includes('/control'))orders.push(JSON.parse(options.body));return {ok:true,json:async()=>({state:true,spaces:[],bookings:[]})};};
+w.eval(fs.readFileSync(path.join(root,'app.js'),'utf8')+'\nwindow.testVoice={prepare(){statusReady=true;allowedRelays=[1,2,3];},complete:isCompleteFastVoiceCommand,normalize:normalizeVoice,resolve:resolveVoiceRelay,wake:hasWakeWord};');
+w.testVoice.prepare();
+w.document.getElementById("pin").value="test-pin";
+function say(text,final){const r=[{transcript:text}];r.isFinal=final;engine.onresult({resultIndex:0,results:[r]});}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{
+assert(w.testVoice.wake(w.testVoice.normalize('Hey Ain')));
+say('ain',true);await wait(30);
+say('me abres la puerta por favor',false);await wait(450);
+assert.equal(orders.length,1);assert.equal(orders[0].relay,3);assert.equal(captures,1);assert(engine.active);
+await wait(2600);
+say('pain abrir el porton',false);await wait(450);assert.equal(orders.length,2);assert.equal(orders[1].relay,2);
+assert(!w.testVoice.complete('ain no abrir puerta'));
+assert(!w.testVoice.complete('ain abrir actuador uno y dos'));
+say('ain palabra desconocida',true);await wait(30);assert.equal(orders.length,2);assert.equal(captures,1);assert(engine.active);
+console.log('Voz: Ain separado, frase natural, variante pain, órdenes parciales completas, negaciones, ambigüedad y micrófono continuo verificados.');dom.window.close();
+})().catch(e=>{console.error(e);dom.window.close();process.exitCode=1});

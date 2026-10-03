@@ -61,5 +61,5 @@ module.exports = async (req, res) => {
     if (result === -1) throw A.error('Puedes enviar hasta 5 reportes por hora. Intenta más tarde.', 429);
     return res.json({ ok: true, id, duplicate: result === 0,
       message: 'Reporte enviado al administrador de tu administración y al administrador general.' });
-  } catch (e) { res.status(e.status || 500).json({ error: e.message || 'No se pudo procesar el reporte.' }); }
+  } catch (e) { res.status(e.status || 500).json({ accessStatus: e.accessStatus, error: e.message || 'No se pudo procesar el reporte.' }); }
 };

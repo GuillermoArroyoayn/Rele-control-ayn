@@ -578,7 +578,10 @@ const returnToVoiceListening = () => {
   if (voiceEnabled) setVoiceStatus("Ain está escuchando. Lista para una nueva orden.");
 };
 const beginVoiceCapture = (transcript) => {
-  if (voiceCaptureUntil || (!hasWakeWord(normalizeVoice(transcript)) && Date.now() >= voiceWakeUntil)) return;
+  const woke = hasWakeWord(normalizeVoice(transcript));
+  // Autorizar la orden desde la primera hipótesis de Ain, sin esperar su resultado final.
+  if (woke) voiceWakeUntil = Date.now() + 8000;
+  if (voiceCaptureUntil || (!woke && Date.now() >= voiceWakeUntil)) return;
   voiceCaptureUntil = Date.now() + 8000;
   voicePhrase = "";
   voiceInterimPhrase = "";
@@ -690,7 +693,7 @@ const voiceWordDistance = (a, b) => {
 };
 const normalizeVoice = text => normalizeVoiceBase(text)
   // Rapid speech can be transcribed without word boundaries.
-  .replace(/^(ain|ayn|pain|ein)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
+  .replace(/^(ain|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
   .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador|acceso|rele)\b/g, "$1 $2")
   .replace(/\b(actuador|porton|puerta|acceso|rele)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
   .split(" ").map(word => {

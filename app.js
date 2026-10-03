@@ -415,7 +415,7 @@ setInterval(() => {
     !bookingsPanel.querySelector(".booking-settings[open]") &&
     !bookingsPanel.contains(document.activeElement)
   )
-    loadBookings();
+    refreshBookingsQuietly();
 }, 15000);
 
 savePin.addEventListener("click", () => {
@@ -1424,9 +1424,43 @@ function bookingSettingsEditor(spaces, date) {
 }
 
 const openBookingSpaces = new Set();
+const bookingRefreshers = new Set();
+let bookingRefreshInFlight = false;
+async function refreshBookingsQuietly(force = false) {
+  if (bookingRefreshInFlight) return;
+  bookingRefreshInFlight = true;
+  try { await Promise.allSettled([...bookingRefreshers].map(refresh => refresh(force))); }
+  finally { bookingRefreshInFlight = false; }
+}
 
 function bookingDepartment(item) {
   return item.apartment ? `Depto. ${item.apartment}` : "Departamento sin registrar";
+}
+
+function renderMyBookingCancellations(space, rows) {
+  const list = document.createElement("div");
+  list.className = "booking-my-reservations";
+  const heading = document.createElement("h4"); heading.textContent = "Mis reservas de este mes";
+  list.append(heading);
+  const own = rows.filter(item => item.spaceId === space.id && item.own).sort((a,b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+  if (!own.length) { const empty = document.createElement("p"); empty.textContent = "No tienes reservas en este mes."; list.append(empty); }
+  for (const item of own) {
+    const row = document.createElement("div"); row.className = "booking-slot occupied";
+    const label = document.createElement("strong"); label.textContent = `${item.date} · ${item.start}–${item.end}`;
+    const cancel = document.createElement("button"); cancel.className = "booking-cancel"; cancel.textContent = "Cancelar mi reserva";
+    cancel.addEventListener("click", async () => {
+      if (!confirm(`¿Cancelar la reserva de ${space.name} el ${item.date} a las ${item.start}?`)) return;
+      cancel.disabled = true;
+      try {
+        await api("/api/bookings",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({id:item.id,date:item.date})});
+        show("Reserva cancelada. El horario vuelve a estar disponible.");
+        await refreshBookingsQuietly(true);
+      } catch(e) {show(e.message,true);}
+      finally {cancel.disabled=false;}
+    });
+    row.append(label,cancel);list.append(row);
+  }
+  return list;
 }
 
 function renderBookingSpace(space, bookings, date) {
@@ -1442,6 +1476,9 @@ function renderBookingSpace(space, bookings, date) {
   calendar.className = "booking-calendar";
   details.append(calendar);
   let month = date.slice(0, 7), selected = date, loaded = false, generation = 0;
+  let acceptedDate = "", hoursSignature = "", calendarSignature = "";
+  const ownReservations = document.createElement("div");
+  details.append(ownReservations);
   const hours = document.createElement("div");
   details.append(hours);
   async function drawMonth() {
@@ -1449,9 +1486,12 @@ function renderBookingSpace(space, bookings, date) {
     loaded = true;
     calendar.textContent = "Cargando calendario…";
     hours.replaceChildren();
+    acceptedDate = "";
     try {
       const data = await api(`/api/bookings?month=${encodeURIComponent(month)}`);
       if (request !== generation) return;
+      calendarSignature = JSON.stringify(data.bookings || []);
+      ownReservations.replaceChildren(renderMyBookingCancellations(space,data.bookings || []));
       calendar.replaceChildren();
       const navigation = document.createElement("div");
       navigation.className = "booking-month-nav";
@@ -1493,6 +1533,7 @@ function renderBookingSpace(space, bookings, date) {
         accept.disabled = false;
         for (const button of grid.querySelectorAll("button")) button.setAttribute("aria-pressed",String(button.dataset.date===selected));
         hours.replaceChildren();
+        acceptedDate = "";
       }
       accept.disabled = true;
       for(let day=1;day<=count;day++) {
@@ -1523,6 +1564,8 @@ function renderBookingSpace(space, bookings, date) {
           const dayData=await api(`/api/bookings?date=${encodeURIComponent(accepted)}`);
           if(accepted!==selected||request!==generation)return;
           const heading=document.createElement("h4");heading.textContent=`Horarios del ${accepted}`;
+          acceptedDate = accepted;
+          hoursSignature = JSON.stringify(dayData.bookings || []);
           hours.replaceChildren(heading,renderBookingHours(space,dayData.bookings||[],accepted));
           hours.scrollIntoView?.({behavior:"smooth",block:"nearest"});
         }catch(e){hours.textContent=e.message;}
@@ -1534,6 +1577,37 @@ function renderBookingSpace(space, bookings, date) {
   details.addEventListener("toggle",()=>{
     if(details.open){openBookingSpaces.add(space.id);if(!loaded)drawMonth();}
     else openBookingSpaces.delete(space.id);
+  });
+  bookingRefreshers.add(async (force = false) => {
+    if (!details.open || !loaded || calendar.textContent === "Cargando calendario…" || hours.querySelector("button:disabled")) return;
+    const request = generation, currentMonth = month, currentAccepted = acceptedDate;
+    const data = await api(`/api/bookings?month=${encodeURIComponent(currentMonth)}`);
+    if (request !== generation || !card.isConnected || !details.open || (!force && bookingsPanel.contains(document.activeElement))) return;
+    const rows = data.bookings || [];
+    const signature = JSON.stringify(rows);
+    if (signature !== calendarSignature) {
+      for (const button of calendar.querySelectorAll(".booking-day")) {
+        for (const note of button.querySelectorAll("span")) note.remove();
+        const reservations = rows.filter(item => item.spaceId === space.id && item.date === button.dataset.date).sort((a,b) => a.startMinute-b.startMinute);
+        for (const item of reservations) {
+          const note = document.createElement("span");
+          note.textContent = `${item.start}–${item.end} · ${bookingDepartment(item)}`;
+          button.append(note);
+        }
+        button.classList.toggle("has-bookings", reservations.length > 0);
+      }
+      calendarSignature = signature;
+      ownReservations.replaceChildren(renderMyBookingCancellations(space,rows));
+    }
+    if (currentAccepted && currentAccepted === acceptedDate) {
+      const dayRows = rows.filter(item => item.date === currentAccepted);
+      const daySignature = JSON.stringify(dayRows);
+      if (daySignature !== hoursSignature) {
+        const heading = document.createElement("h4");heading.textContent = `Horarios del ${currentAccepted}`;
+        hours.replaceChildren(heading,renderBookingHours(space,dayRows,currentAccepted));
+        hoursSignature = daySignature;
+      }
+    }
   });
   if(details.open)drawMonth();
   return card;
@@ -1650,6 +1724,7 @@ function renderBookingHours(space, bookings, date) {
 }
 
 async function loadBookings(selectedDate) {
+  bookingRefreshers.clear();
   const date =
     selectedDate ||
     bookingsPanel.querySelector("#bookingDate")?.value ||

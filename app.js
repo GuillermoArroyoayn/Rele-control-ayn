@@ -590,7 +590,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -609,8 +609,8 @@ const voiceWordDistance = (a, b) => {
 const normalizeVoice = text => normalizeVoiceBase(text)
   // Rapid speech can be transcribed without word boundaries.
   .replace(/^(ain|ayn|pain|ein)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
-  .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador)\b/g, "$1 $2")
-  .replace(/\b(actuador|porton|puerta)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
+  .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador|acceso|rele)\b/g, "$1 $2")
+  .replace(/\b(actuador|porton|puerta|acceso|rele)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
   .split(" ").map(word => {
   if (voiceAliases[word]) return voiceAliases[word];
   if (word.length < 4 || voiceVocabulary.includes(word)) return word;
@@ -677,7 +677,7 @@ function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = 
 
 const resolveVoiceRelay = (command) => {
   const candidates = new Set();
-  for (const match of command.matchAll(/\b(?:actuador|porton|puerta)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
+  for (const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
     candidates.add(({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[match[1]]);
   }
   if (/\b(?:qr|cu erre|codigo qr)\b/.test(command)) candidates.add(1);

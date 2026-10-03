@@ -105,6 +105,11 @@ function buildMenu() {
     button.addEventListener("click", () => showView(id));
     mainMenu.append(button);
   }
+  const managementLink = document.createElement("a");
+  managementLink.href = "/administracion.html";
+  managementLink.textContent = currentRole === "super_master" ? "Administración general y actuadores" : currentRole === "admin" ? "Mi administración y actuadores" : "Mis actuadores";
+  managementLink.className = "small-button";
+  mainMenu.append(managementLink);
   mainMenu.hidden = false;
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",

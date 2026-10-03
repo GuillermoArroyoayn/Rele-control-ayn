@@ -540,7 +540,7 @@ const scheduleVoiceListening = (delay = 350) => {
   if (!voiceEnabled) return;
   voiceRestartTimer = window.setTimeout(startVoiceListening, delay);
 };
-const speak = (text) => {
+const speak = (text, onFinished) => {
   if (!("speechSynthesis" in window)) return false;
   const generation = ++voiceSpeechGeneration;
   clearTimeout(voiceSpeechTimer);
@@ -551,19 +551,27 @@ const speak = (text) => {
   utterance.lang = "es-CL";
   // Keep recognition open; ignore our own spoken replies instead of stopping
   // and reopening the Android microphone after every command.
+  let finished = false;
   const finishSpeaking = () => {
-    if (generation !== voiceSpeechGeneration) return;
+    if (finished || generation !== voiceSpeechGeneration) return;
+    finished = true;
     clearTimeout(voiceSpeechTimer);
     voiceSpeaking = false;
     if (recognition) recognition.suppressAudio = false;
     voiceEchoUntil = Date.now() + 300;
     scheduleVoiceListening();
+    onFinished?.();
   };
   utterance.onend = utterance.onerror = finishSpeaking;
   speechSynthesis.speak(utterance);
   voiceSpeechTimer = window.setTimeout(finishSpeaking, Math.max(3500, text.length * 95));
   return true;
 };
+// Let the short acknowledgement finish before the execution report speaks.
+const acknowledgeVoiceCommand = () => new Promise(resolve => {
+  setVoiceStatus("OK");
+  if (!speak("OK", resolve)) resolve();
+});
 const normalizeVoiceBase = (text) =>
   String(text || "")
     .toLowerCase()
@@ -715,6 +723,8 @@ async function runVoiceCommand(transcript) {
     }
     const directAction = /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
     if (directAction) {
+      await acknowledgeVoiceCommand();
+      if (!voiceEnabled) return;
       setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
       setVoiceStatus(
@@ -730,6 +740,8 @@ async function runVoiceCommand(transcript) {
     return;
   }
   if (command.includes("agenda") || command.includes("reservar")) {
+    await acknowledgeVoiceCommand();
+      if (!voiceEnabled) return;
     showView("bookings");
     setVoiceStatus("Agenda abierta.", false, true);
     return;
@@ -753,16 +765,22 @@ async function runVoiceCommand(transcript) {
       setVoiceStatus("No tienes permiso para abrir esa función.", true, true);
       return;
     }
+    await acknowledgeVoiceCommand();
+      if (!voiceEnabled) return;
     showView(requestedView);
     setVoiceStatus("Función abierta.", false, true);
     return;
   }
   if (command.includes("historial") && ["super_master", "admin"].includes(currentRole)) {
+    await acknowledgeVoiceCommand();
+      if (!voiceEnabled) return;
     showView("history");
     setVoiceStatus("Historial abierto.", false, true);
     return;
   }
   if (command.includes("inicio") || command.includes("volver")) {
+    await acknowledgeVoiceCommand();
+      if (!voiceEnabled) return;
     showView("control");
     setVoiceStatus("Pantalla de inicio abierta.", false, true);
     return;

@@ -153,6 +153,13 @@
       this.consumedIndex = undefined;
       // No onend notification/restart cycle: only an explicit start captures audio.
     }
+    resume() {
+      if (this.active && this.context?.state === "suspended") {
+        this.context.resume().catch(() => {
+          this.onloading?.("Toca el botón de voz para habilitar el audio de Ain.");
+        });
+      }
+    }
     stop() { this.abort(); }
   }
   window.AinLocalRecognition = AinLocalRecognition;

@@ -862,7 +862,13 @@ if (!SpeechRecognition) {
     stopVoiceMode("Preferencia de voz guardada.", false);
   });
   const restoreVoiceSelection = () => {
-    if (localStorage.getItem("aynVoiceSelected") !== "true" || voiceEnabled) return;
+    if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") === "false") return;
+    if (voiceEnabled) {
+      recognition?.resume?.();
+      startVoiceListening();
+      return;
+    }
+    localStorage.setItem("aynVoiceSelected", "true");
     voiceEnabled = true;
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
@@ -870,6 +876,8 @@ if (!SpeechRecognition) {
     startVoiceListening();
   };
   window.addEventListener("pageshow", restoreVoiceSelection);
+  document.addEventListener("visibilitychange", restoreVoiceSelection);
+  window.addEventListener("focus", restoreVoiceSelection);
   restoreVoiceSelection();
 
 }

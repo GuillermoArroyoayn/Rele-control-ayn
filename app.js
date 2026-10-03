@@ -583,7 +583,7 @@ const beginVoiceCapture = (transcript) => {
   voicePhrase = "";
   voiceInterimPhrase = "";
   setVoiceStatus("Ain está escuchando. Puedes dar la orden de inmediato.");
-  voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 1200);
+  voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 6000);
 };
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
@@ -594,8 +594,8 @@ const finishVoiceCapture = () => {
   voiceInterimPhrase = "";
   if (!voiceEnabled) return;
   if (!phrase || !removeWakeWord(normalizeVoice(phrase))) {
-    voiceWakeUntil = 0;
-    setVoiceStatus("Ain está en espera de una nueva orden.");
+    voiceWakeUntil = Date.now() + 6000;
+    setVoiceStatus("Ain te escucha. Di la orden.");
     return;
   }
   // The wake word can be in a separate result. The window authorizes only
@@ -647,7 +647,7 @@ const speak = (text, onFinished) => {
     clearTimeout(voiceSpeechTimer);
     voiceSpeaking = false;
     if (recognition) recognition.suppressAudio = false;
-    voiceEchoUntil = Date.now() + 300;
+    voiceEchoUntil = Date.now() + 120;
     scheduleVoiceListening();
     onFinished?.();
   };
@@ -672,7 +672,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { abres:"abre", abrime:"abre", abrelo:"abre", abran:"abre", encendes:"encender", enciendes:"enciende", prendes:"prende", activas:"activa",  accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -711,7 +711,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.classList.toggle("error", error);
   if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /^(?:oye |hola )?(?:ain|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
+const wakeWordPattern = /^(?:(?:oye|hola|hey|ey) )?(?:ain|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
 const misheardWakePattern = /^(?:ahi|hay|ay|ai|a|en|in)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
@@ -775,8 +775,8 @@ const resolveVoiceRelay = (command) => {
 
 const isCompleteFastVoiceCommand = (phrase) => {
   const normalized = normalizeVoice(phrase);
-  if (!hasWakeWord(normalized)) return false;
-  const command = removeWakeWord(normalized);
+  if (!hasWakeWord(normalized) && Date.now() >= voiceWakeUntil) return false;
+  const command = hasWakeWord(normalized) ? removeWakeWord(normalized) : normalized;
   if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) return false;
   return resolveVoiceRelay(command) > 0 &&
     /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
@@ -940,7 +940,8 @@ if (!SpeechRecognition) {
       if (voiceCaptureUntil && changed) {
         clearTimeout(voiceCaptureTimer);
         // A stalled partial is discarded, never used to guess an access.
-        voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 1200);
+        const remaining = removeWakeWord(normalizeVoice(transcript));
+        voiceCaptureTimer = window.setTimeout(returnToVoiceListening, remaining ? 1800 : 6000);
       }
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
@@ -962,7 +963,7 @@ if (!SpeechRecognition) {
         const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
         if (isCompleteFastVoiceCommand(phrase)) finishVoiceCapture();
         else returnToVoiceListening();
-      }, 500);
+      }, 300);
     }
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus("Ain está escuchando tu orden…");
@@ -1023,6 +1024,11 @@ if (!SpeechRecognition) {
     setVoiceStatus("Voz seleccionada. Recuperando escucha de Ain…");
     startVoiceListening();
   };
+  window.setInterval(() => {
+    if (!voiceEnabled || document.hidden) return;
+    recognition.resume?.();
+    if (!voiceListening && !voiceStarting) startVoiceListening();
+  }, 2000);
   window.addEventListener("pageshow", restoreVoiceSelection);
   document.addEventListener("visibilitychange", restoreVoiceSelection);
   window.addEventListener("focus", restoreVoiceSelection);

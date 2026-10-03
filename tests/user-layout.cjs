@@ -10,6 +10,7 @@ w.eval(fs.readFileSync(path.join(root,'app.js'),'utf8')+'\nwindow.setTestRole=ro
 w.setTestRole('user');
 const doc=w.document;
 assert(doc.body.classList.contains('user-layout'));
+for(const selector of ['.main-menu','.bookings-panel','.reports-panel','.user-settings-panel'])assert.equal(doc.querySelector(selector).parentElement,doc.body);
 assert.equal(doc.querySelector('.main-menu').hidden,true);
 assert.equal(doc.querySelector('.relay-grid').hidden,false);
 assert(doc.querySelector('.user-settings-panel').contains(doc.querySelector('.accessibility')));
@@ -36,5 +37,7 @@ w.setTestRole('user');w.showView('reports');
 assert.equal(w.getComputedStyle(doc.querySelector('.reports-panel')).position,'fixed');
 assert.equal(w.getComputedStyle(doc.querySelector('.brand')).display,'none');
 assert.equal(w.getComputedStyle(doc.querySelector('.relay-grid')).display,'none');
+assert.equal(w.getComputedStyle(doc.querySelector('.reports-panel')).maxHeight,'none');
+assert.equal(w.getComputedStyle(doc.querySelector('.main-menu')).overflow,'auto');
 console.log('Pantalla usuario: inicio limpio, menú y vistas completas, configuración conservada, SOS, retorno y administración verificados.');
 dom.window.close();

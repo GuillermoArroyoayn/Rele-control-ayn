@@ -114,9 +114,21 @@ document.addEventListener("keydown", event => {
     showView("control");userMenuButton.focus();
   }
 });
+const userViewOrigins = new Map();
 function configureUserLayout(enabled) {
   document.body.classList.toggle("user-layout", enabled);
   userToolbar.hidden = !enabled;
+  for (const node of [mainMenu, bookingsPanel, reportsPanel, userSettingsPanel]) {
+    if (enabled) {
+      if (!userViewOrigins.has(node)) {
+        const marker = document.createComment("Ubicación original de vista");
+        node.before(marker);userViewOrigins.set(node,marker);
+      }
+      document.body.append(node);
+    } else if (userViewOrigins.has(node)) {
+      userViewOrigins.get(node).after(node);
+    }
+  }
   for (const {node, marker} of userSettingNodes) {
     if (enabled) userSettingsPanel.append(node);
     else marker.after(node);

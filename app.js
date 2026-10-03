@@ -672,9 +672,9 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { abres:"abre", abrime:"abre", abrelo:"abre", abran:"abre", encendes:"encender", enciendes:"enciende", prendes:"prende", activas:"activa",  accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { abreme:"abre", abrila:"abre", abrirme:"abrir", abrirlo:"abrir", abrirla:"abrir", abrela:"abre", abras:"abre", abranme:"abre", aperturar:"abrir", apertura:"abrir", levantar:"abrir", levanta:"abre", levantame:"abre", desbloquear:"abrir", desbloquea:"abre", liberar:"abrir", libera:"abre", activarame:"activar", activame:"activa", activalo:"activa", enciendeme:"enciende", encendeme:"encender", prenderlo:"prender", encenderlo:"encender", portoncito:"porton", portal:"porton", reja:"porton", ingreso:"entrada", entradavehicular:"vehicular", salidavehicular:"vehicular", portonentrada:"porton entrada", portonsalida:"porton salida", puertapeatonal:"puerta peatonal",  abres:"abre", abrime:"abre", abrelo:"abre", abran:"abre", encendes:"encender", enciendes:"enciende", prendes:"prende", activas:"activa",  accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
-  "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
+  "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal", "entrada", "salida",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
   "permisos", "temporales", "sistema", "inicio", "volver"];
 const voiceWordDistance = (a, b) => {
@@ -773,13 +773,19 @@ const resolveVoiceRelay = (command) => {
   return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
 };
 
+const hasVoiceOpenIntent = command => {
+  if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener|cerrar|cierra|cerrado|apagar|apaga|desactivar)\b/.test(command)) return false;
+  if (/(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command)) return true;
+  // También admite un destino directo después de Ain: "puerta" o "portón de entrada".
+  return /^(?:el |la |los |las )?(?:porton|puerta|acceso|actuador|rele|qr)(?: (?:de|del|la|el|numero|entrada|salida|vehicular|peatonal|qr|1|2|3|uno|un|dos|tres|primero|segundo|tercero))*$/.test(command);
+};
+
 const isCompleteFastVoiceCommand = (phrase) => {
   const normalized = normalizeVoice(phrase);
   if (!hasWakeWord(normalized) && Date.now() >= voiceWakeUntil) return false;
   const command = hasWakeWord(normalized) ? removeWakeWord(normalized) : normalized;
   if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) return false;
-  return resolveVoiceRelay(command) > 0 &&
-    /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
+  return resolveVoiceRelay(command) > 0 && hasVoiceOpenIntent(command);
 };
 
 async function runVoiceCommand(transcript) {
@@ -827,7 +833,7 @@ async function runVoiceCommand(transcript) {
       setVoiceStatus(text, true, true);
       return;
     }
-    const directAction = /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
+    const directAction = hasVoiceOpenIntent(command);
     if (directAction) {
       await acknowledgeVoiceCommand();
       if (!voiceEnabled) return;

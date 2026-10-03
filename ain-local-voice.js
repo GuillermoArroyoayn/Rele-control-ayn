@@ -101,8 +101,7 @@
           if (this.active) this.fail(new Error("El teléfono interrumpió el micrófono"));
         }));
         context.onstatechange = () => {
-          if (this.active && context.state === "suspended")
-            this.onloading?.("El teléfono pausó el audio. Vuelve a la app y toca el botón de voz para reactivar.");
+          if (this.active && context.state === "suspended") this.resume();
         };
         this.starting = false;
         this.active = true;

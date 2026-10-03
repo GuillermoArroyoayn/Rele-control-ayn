@@ -22,27 +22,27 @@ module.exports=async(req,res)=>{
         if(old&&old.status!=='pending')throw A.error('Este equipo ya tiene una cuenta. Usa otro equipo o solicita su cambio al Máster.',409);
         if(old?.groupId&&old.groupId!==invitation.groupId)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,role:invitation.role,groupId:invitation.groupId,status:'active',relays:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString()};
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString()};
       });
       await A.redis('DEL',key);return res.json({ok:true});
     }
     const auth=await A.access(req);
     if(req.method==='GET'){
       const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
-      const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
+      const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       return res.json({role:auth.role,groupId:auth.groupId,groups:auth.role==='user'?[]:groups,users:auth.role==='user'?[]:users,actuators:all.filter(d=>A.visible(auth,d)).map(({deviceId,...publicItem})=>publicItem)});
     }
     if(b.action==='invite'){
       A.manager(auth);const role=b.role==='admin'?'admin':'user';if(role==='admin'&&auth.role!=='super_master')throw A.error('Solo el Máster crea administradores.',403);
       const name=String(b.name||'').trim().slice(0,60),phone=String(b.phone||'').replace(/\D/g,'');if(!name||phone.length<9||phone.length>15)throw A.error('Indica nombre y teléfono válidos.');
       const groupId=role==='admin'?'group-'+A.uuid():A.group(auth,b.groupId);
-      const token=A.token();await A.redis('SET','ayn:managed:invite:'+A.hash(token),JSON.stringify({creator:auth.device.id,role,groupId,name,phone}),'EX',86400);
+      const token=A.token();await A.redis('SET','ayn:managed:invite:'+A.hash(token),JSON.stringify({creator:auth.device.id,role,groupId,name,phone,apartment:String(b.apartment||'').trim().slice(0,30)}),'EX',86400);
       return res.json({ok:true,token,expiresIn:86400});
     }
     if(b.action==='permissions'){
       A.manager(auth);const groupId=A.group(auth,b.groupId);const all=await A.records();const ids=[...new Set(Array.isArray(b.actuatorIds)?b.actuatorIds:[])];
       if(ids.some(id=>!all.some(d=>d.id===id&&d.groupId===groupId&&d.approved)))throw A.error('Actuadores inválidos.');
-      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId)throw A.error('Usuario fuera de esta administración.',403);user.actuatorIds=ids;});return res.json({ok:true});
+      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId)throw A.error('Usuario fuera de esta administración.',403);user.actuatorIds=ids;if(b.apartment!==undefined)user.apartment=String(b.apartment).trim().slice(0,30);});return res.json({ok:true});
     }
     if(b.action==='accountStatus'){
       A.manager(auth);if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado inválido.');

@@ -10,7 +10,7 @@ const states = { 1: null, 2: null, 3: null };
 let allowedRelays = [];
 let currentRole = "user",
   currentGroupId = "";
-let currentView = location.hash === "#reportes" ? "reports" : "control";
+let currentView = "control";
 let startupResetAttempted = false;
 let startupResetInFlight = false;
 let statusReady = false,
@@ -118,6 +118,7 @@ const userViewOrigins = new Map();
 function configureUserLayout(enabled) {
   document.body.classList.toggle("user-layout", enabled);
   userToolbar.hidden = !enabled;
+  userMenuButton.disabled = !statusReady;
   for (const node of [mainMenu, bookingsPanel, reportsPanel, userSettingsPanel]) {
     if (enabled) {
       if (!userViewOrigins.has(node)) {
@@ -419,6 +420,7 @@ async function loadStatus() {
       if (item.error) errors.push(`Actuador ${item.relay}: ${item.error}`);
     }
     currentRole = data.role || "user";
+    localStorage.setItem("aynLastRole",currentRole);
     currentGroupId = data.groupId || "";
     statusReady = true;
     if (currentRole === "admin" && currentGroupId)
@@ -445,6 +447,7 @@ async function loadStatus() {
   } catch (e) {
     statusReady = false;
     setRelayAccess([]);
+    configureUserLayout(false);
     show(e.message, true);
   } finally {
     refresh.disabled = false;
@@ -2014,6 +2017,14 @@ if ("serviceWorker" in navigator) {
     })
     .catch(() => {});
 }
+// Mostrar Inicio antes de esperar la validación de red; los actuadores siguen deshabilitados.
+if (document.documentElement.dataset.bootLayout === "user") {
+  setRelayAccess([]);
+  configureUserLayout(true);
+  showView("control");
+}
+delete document.documentElement.dataset.bootLayout;
+document.getElementById("bootHeader")?.remove();
 if (pin()) loadStatus();
 
 // Clear stale controls when any shared service detects suspended access.
@@ -2026,4 +2037,12 @@ document.addEventListener("ayn-access-restricted", event => {
   stopVoiceMode(event.detail || "Acceso suspendido por la administración.", false);
   show(event.detail || "Acceso suspendido por la administración.", true);
 });
-document.addEventListener("ayn-access-restored", () => { if (pin()) loadStatus(); });
+document.addEventListener("ayn-access-restored", () => { // Mostrar Inicio antes de esperar la validación de red; los actuadores siguen deshabilitados.
+if (document.documentElement.dataset.bootLayout === "user") {
+  setRelayAccess([]);
+  configureUserLayout(true);
+  showView("control");
+}
+delete document.documentElement.dataset.bootLayout;
+document.getElementById("bootHeader")?.remove();
+if (pin()) loadStatus(); });

@@ -1,6 +1,6 @@
 const crypto=require("crypto");
 const {authorize}=require("../lib/devices");
-const {readSettings,writeSettings,readBookings,createBooking,cancelBooking}=require("../lib/bookings");
+const {readSettings,writeSettings,readBookings,readMonthBookings,createBooking,cancelBooking}=require("../lib/bookings");
 
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
 const timePattern=/^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -29,13 +29,20 @@ function validateSpaces(spaces){
 module.exports=async function handler(req,res){
   try{
     const auth=await authorize(req,{allowRegistration:false});
-    if(!auth.ok)return res.status(auth.status).json({error:auth.error});
+    if(!auth.ok)return res.status(auth.status).json({error:auth.error,accessStatus:auth.accessStatus});
     const scope=scopeFor(auth,req);const isManager=["super_master","admin"].includes(auth.role);
     if(req.method==="GET"){
+      const month=String(req.query?.month||"");
+      if(month&&!/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month))return res.status(400).json({error:"Mes inválido."});
       const date=String(req.query?.date||chileToday());if(!datePattern.test(date))return res.status(400).json({error:"Fecha inválida."});
-      const spaces=await readSettings(scope);const rows=(await readBookings(scope,date)).filter(item=>!item.cancelledAt);
-      const bookings=rows.map(item=>isManager?item:{id:item.id,spaceId:item.spaceId,date:item.date,start:item.start,end:item.end,startMinute:item.startMinute,endMinute:item.endMinute,own:item.deviceId===auth.device.id,userName:item.deviceId===auth.device.id?item.userName:"Reservado"});
-      return res.status(200).json({date,scope,spaces,bookings,canManage:isManager});
+      const spaces=await readSettings(scope);
+      const rows=month?await readMonthBookings(scope,month):(await readBookings(scope,date)).filter(item=>!item.cancelledAt);
+      const bookings=rows.map(item=>{
+        const apartment=String(item.apartment||auth.registry.devices[item.deviceId]?.apartment||"").slice(0,50);
+        const shared={id:item.id,spaceId:item.spaceId,date:item.date,start:item.start,end:item.end,startMinute:item.startMinute,endMinute:item.endMinute,apartment,own:item.deviceId===auth.device.id};
+        return isManager?{...item,...shared}:{...shared,userName:shared.own?item.userName:"Reservado"};
+      });
+      return res.status(200).json({date,month,scope,spaces,bookings,canManage:isManager});
     }
     if(req.method==="PUT"){
       if(!isManager)return res.status(403).json({error:"Solo un administrador puede configurar los espacios."});
@@ -49,7 +56,7 @@ module.exports=async function handler(req,res){
       const weekday=new Date(`${date}T12:00:00Z`).getUTCDay();if(!space.weekdays.includes(weekday))return res.status(400).json({error:"Este espacio no está disponible ese día."});
       const startMinute=minutes(start),endMinute=startMinute+space.slotMinutes;if(startMinute<minutes(space.open)||endMinute>minutes(space.close)||(startMinute-minutes(space.open))%space.slotMinutes!==0)return res.status(400).json({error:"Selecciona uno de los horarios disponibles."});
       if(date===chileToday()&&startMinute<=chileMinute())return res.status(400).json({error:"No puedes reservar un horario que ya comenzó."});
-      const record=auth.registry.devices[auth.device.id]||{};const booking={id:crypto.randomUUID(),spaceId,date,start,end:`${String(Math.floor(endMinute/60)).padStart(2,"0")}:${String(endMinute%60).padStart(2,"0")}`,startMinute,endMinute,deviceId:auth.device.id,userName:record.adminName||auth.device.name,createdAt:new Date().toISOString()};
+      const record=auth.registry.devices[auth.device.id]||{};const booking={id:crypto.randomUUID(),spaceId,date,start,end:`${String(Math.floor(endMinute/60)).padStart(2,"0")}:${String(endMinute%60).padStart(2,"0")}`,startMinute,endMinute,deviceId:auth.device.id,userName:record.adminName||auth.device.name,apartment:String(record.apartment||"").slice(0,50),createdAt:new Date().toISOString()};
       await createBooking(scope,date,booking);return res.status(201).json({ok:true,booking});
     }
     if(req.method==="DELETE"){

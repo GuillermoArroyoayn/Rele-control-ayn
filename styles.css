@@ -550,3 +550,9 @@ footer {
 /* Un filtro de fondo crea un contenedor para elementos fixed en Android. */
 .user-layout .panel{backdrop-filter:none;-webkit-backdrop-filter:none}
 .user-layout :is(.main-menu,.bookings-panel,.reports-panel,.user-settings-panel){width:100%;max-width:none;max-height:none;min-height:0;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+
+.home-watermark{display:none;pointer-events:none;user-select:none}
+.user-layout[data-user-view="control"] .home-watermark,html[data-boot-layout="user"] .home-watermark{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:clamp(150px,25vh,230px);margin:20px 0 0;opacity:.22;color:#fff;color:color-mix(in srgb,var(--theme-accent,#22d3ee) 25%,white 75%)}
+.home-monogram{font-family:system-ui,sans-serif;font-size:clamp(76px,22vw,132px);font-weight:900;line-height:1;letter-spacing:-.06em}
+html[data-font-size] body .home-monogram span,.home-monogram span{font-size:.7em!important;line-height:1;vertical-align:8%;padding:0 .05em}
+.home-brand-caption{font-size:12px;font-weight:800;letter-spacing:.5em;margin:14px 0 0 .5em}

@@ -474,7 +474,7 @@ const speak = (text) => {
   voiceSpeechTimer = window.setTimeout(finishSpeaking, Math.max(3500, text.length * 95));
   return true;
 };
-const normalizeVoice = (text) =>
+const normalizeVoiceBase = (text) =>
   String(text || "")
     .toLowerCase()
     .normalize("NFD")
@@ -482,6 +482,35 @@ const normalizeVoice = (text) =>
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+// Conservative text tolerance after acoustic recognition. Numbers and
+// confirmation words are never guessed. Only a unique nearest word is used.
+const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
+  "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
+  "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
+  "permisos", "temporales", "sistema", "inicio", "volver"];
+const voiceWordDistance = (a, b) => {
+  let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++)
+      next[j] = Math.min(next[j - 1] + 1, row[j] + 1,
+        row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+};
+const normalizeVoice = text => normalizeVoiceBase(text).split(" ").map(word => {
+  if (word.length < 4 || voiceVocabulary.includes(word)) return word;
+  const candidates = voiceVocabulary.map(target => ({
+    target, distance: voiceWordDistance(word, target)
+  })).filter(({ target, distance }) =>
+    target.length >= 5 && distance <= (target.length >= 9 ? 2 : 1));
+  candidates.sort((a, b) => a.distance - b.distance);
+  if (!candidates.length || (candidates[1] && candidates[1].distance === candidates[0].distance))
+    return word;
+  return candidates[0].target;
+}).join(" ");
 
 const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.textContent = text;
@@ -550,6 +579,7 @@ const resolveVoiceRelay = (command) => {
 
 async function runVoiceCommand(transcript, provisional = false) {
   const normalized = normalizeVoice(transcript);
+  provisional = provisional || normalized !== normalizeVoiceBase(transcript);
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
   // Después de preguntar por una confirmación se acepta también "confirmar",
   // "sí", "cancelar" o "no" sin repetir AIN.
@@ -704,7 +734,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 36: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
+      setVoiceStatus("Voz 37: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -731,7 +761,7 @@ if (!SpeechRecognition) {
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
     if (!voiceCaptureUntil && voiceLastTranscript)
-      setVoiceStatus(`Voz 36: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
+      setVoiceStatus(`Voz 37: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {

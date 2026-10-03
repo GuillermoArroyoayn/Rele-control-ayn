@@ -53,5 +53,5 @@ module.exports=async(req,res)=>{
     // Update only delivery status: an apology posted concurrently is preserved.
     await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); e.actuatorStatus=ARGV[1]; redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+id,actuatorStatus);
     return res.json({ok:true,eventId:id,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
-  }catch(e){res.status(e.status||500).json({error:e.message||'No se pudo procesar la alerta.'});}
+  }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'No se pudo procesar la alerta.'});}
 };

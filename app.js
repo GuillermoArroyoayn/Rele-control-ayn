@@ -385,6 +385,8 @@ let voiceLastError = "";
 let voicePhrase = "";
 let voicePhraseTimer = 0;
 let voicePhraseAt = 0;
+let voiceInterimPhrase = "";
+let voiceLastTranscript = "";
 
 const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
@@ -392,6 +394,10 @@ const releaseVoiceMicrophone = () => {
 };
 const deliverVoicePhrase = () => {
   clearTimeout(voicePhraseTimer);
+  if (voiceInterimPhrase) {
+    voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
+    return;
+  }
   const phrase = voicePhrase;
   voicePhrase = "";
   if (!phrase || !voiceEnabled) return;
@@ -408,7 +414,7 @@ const collectVoicePhrase = (transcript) => {
   clearTimeout(voicePhraseTimer);
   // Wait for the end of the phrase; Android can deliver a command in
   // several final fragments (Ain / activar actuador / uno).
-  voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1200);
+  voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
 };
 
 const scheduleVoiceListening = (delay = 350) => {
@@ -472,6 +478,8 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceEnabled = false;
   voiceSessionGeneration += 1;
   voicePhrase = "";
+  voiceInterimPhrase = "";
+  voiceLastTranscript = "";
   clearTimeout(voicePhraseTimer);
   releaseVoiceMicrophone();
   pendingVoiceRelay = 0;
@@ -499,14 +507,17 @@ const resolveVoiceRelay = (command) => {
   return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
 };
 
-async function runVoiceCommand(transcript) {
+async function runVoiceCommand(transcript, provisional = false) {
   const normalized = normalizeVoice(transcript);
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
   // Después de preguntar por una confirmación se acepta también "confirmar",
   // "sí", "cancelar" o "no" sin repetir AIN.
   const pendingReply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(normalized);
   const woke = hasWakeWord(normalized);
-  if (!woke && !pendingReply && Date.now() >= voiceWakeUntil) return;
+  if (!woke && !pendingReply && Date.now() >= voiceWakeUntil) {
+    setVoiceStatus(`Recibí: “${transcript.trim()}”. No identifiqué Ain; di Ain y luego la orden.`);
+    return;
+  }
   const command = woke ? removeWakeWord(normalized) : normalized;
   if (!command) {
     voiceWakeUntil = Date.now() + 12000;
@@ -530,7 +541,7 @@ async function runVoiceCommand(transcript) {
   }
 
   if (pendingVoiceRelay) {
-    if (command.includes("confirmar") || command.includes("confirma") || command === "si") {
+    if (!provisional && (command.includes("confirmar") || command.includes("confirma") || command === "si")) {
       const relayToOpen = pendingVoiceRelay;
       pendingVoiceRelay = 0;
       setVoiceStatus(`Abriendo ${voiceRelayNames[relayToOpen]}…`, false, true);
@@ -565,7 +576,7 @@ async function runVoiceCommand(transcript) {
       return;
     }
     const directAction = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
-    if (directAction) {
+    if (directAction && !provisional) {
       pendingVoiceRelay = 0;
       setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
@@ -641,7 +652,7 @@ if (!SpeechRecognition) {
   // micrófono cada pocos segundos (sonido "tic tic").
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
+  recognition.maxAlternatives = 3;
   recognition.onstart = () => {
     voiceStarting = false;
     if (!voiceEnabled) { recognition.abort(); return; }
@@ -649,19 +660,30 @@ if (!SpeechRecognition) {
     voiceSessionStartedAt = Date.now();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    setVoiceStatus("Voz 30: Ain está escuchando. Di Ain seguido de una orden.");
+    if (!voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
+      setVoiceStatus("Voz 31: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
+    // Interim results are replaceable hypotheses, never final fragments.
+    // Keep them separately so a browser end cannot silently discard speech.
+    const interim = [];
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
-      const transcript = result[0]?.transcript;
-      if (transcript && result.isFinal) collectVoicePhrase(transcript);
-      else if (transcript) {
-        clearTimeout(voicePhraseTimer);
-        setVoiceStatus(`Escuchando: “${transcript.trim()}”…`);
-      }
+      const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
+      const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
+      if (!transcript) continue;
+      voiceLastTranscript = transcript.trim();
+      if (result.isFinal) collectVoicePhrase(transcript);
     }
+    for (let index = 0; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      if (!result.isFinal && result[0]?.transcript) interim.push(result[0].transcript);
+    }
+    voiceInterimPhrase = interim.join(" ").trim();
+    if (voiceInterimPhrase || voicePhrase)
+      setVoiceStatus(`Recibí: “${[voicePhrase, voiceInterimPhrase].filter(Boolean).join(" ")}”.`);
+    // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {
     voiceLastError = event.error;
@@ -681,11 +703,19 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     voiceListening = false;
     if (!voiceEnabled) return;
-    // A normal end is not a request to disable AIN. Preserve wake word,
-    // confirmation and final fragments across recognition sessions.
+    if (voiceInterimPhrase) {
+      const provisionalPhrase = [voicePhrase, voiceInterimPhrase].filter(Boolean).join(" ");
+      voiceInterimPhrase = "";
+      voicePhrase = "";
+      clearTimeout(voicePhraseTimer);
+      // A provisional result must never open an access or confirm one.
+      // Ask for a final spoken confirmation before any physical action.
+      runVoiceCommand(provisionalPhrase, true).catch(() =>
+        setVoiceStatus("No se pudo procesar la frase recibida.", true));
+    }
     scheduleVoiceListening(350);
-    if (!voicePhrase && !voiceSpeaking)
-      setVoiceStatus("Voz 30: recuperando escucha. Di Ain seguido de una orden.");
+    if (!voiceLastTranscript && !voicePhrase && !voiceSpeaking)
+      setVoiceStatus("Voz 31: no se recibió texto del reconocimiento. Recuperando escucha…");
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {

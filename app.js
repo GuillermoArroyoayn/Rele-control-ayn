@@ -485,11 +485,11 @@ const releaseVoiceMicrophone = () => {
 };
 const beginVoiceCapture = (transcript) => {
   if (voiceCaptureUntil || (!hasWakeWord(normalizeVoice(transcript)) && Date.now() >= voiceWakeUntil)) return;
-  voiceCaptureUntil = Date.now() + 5000;
+  voiceCaptureUntil = Date.now() + 8000;
   voicePhrase = "";
   voiceInterimPhrase = "";
   setVoiceStatus("Ain está escuchando. Puedes dar la orden de inmediato.");
-  voiceCaptureTimer = window.setTimeout(finishVoiceCapture, 5000);
+  voiceCaptureTimer = window.setTimeout(finishVoiceCapture, 8000);
 };
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
@@ -570,6 +570,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
+const voiceAliases = { actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -586,6 +587,7 @@ const voiceWordDistance = (a, b) => {
   return row[b.length];
 };
 const normalizeVoice = text => normalizeVoiceBase(text).split(" ").map(word => {
+  if (voiceAliases[word]) return voiceAliases[word];
   if (word.length < 4 || voiceVocabulary.includes(word)) return word;
   const candidates = voiceVocabulary.map(target => ({
     target, distance: voiceWordDistance(word, target)
@@ -691,6 +693,10 @@ async function runVoiceCommand(transcript) {
     return;
   }
 
+  if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) {
+    setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
+    return;
+  }
   const relay = resolveVoiceRelay(command);
   if (relay === -1) {
     setVoiceStatus("Nombra solamente un actuador por orden.", true, true);
@@ -702,7 +708,7 @@ async function runVoiceCommand(transcript) {
       setVoiceStatus(text, true, true);
       return;
     }
-    const directAction = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
+    const directAction = /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
     if (directAction) {
       setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
@@ -784,7 +790,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 43: escucha continua. Di Ain y la orden seguida, sin esperar.");
+      setVoiceStatus("Escucha continua. Di Ain y la orden seguida, sin esperar.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -815,7 +821,7 @@ if (!SpeechRecognition) {
     if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {
       const command = removeWakeWord(normalizeVoice(voicePhrase));
       const relay = resolveVoiceRelay(command);
-      const action = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
+      const action = /(^| )(activar|activa|activame|abrir|abre|abreme|encender|enciende|enciendeme|prender|prende|prendeme)( |$)/.test(command);
       const navigation = /\b(agenda|reservar|historial|usuarios|administradores|permisos|base de datos|estado del sistema|volver|inicio|detener|desactivar)\b/.test(command);
       if (!command || (relay > 0 && action) || relay === -1 || navigation) {
         // Dispatch final commands immediately; preserve the full window only

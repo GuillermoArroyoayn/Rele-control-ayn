@@ -484,11 +484,11 @@ const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream = null;
 };
 const beginVoiceCapture = (transcript) => {
-  if (voiceCaptureUntil || !hasWakeWord(normalizeVoice(transcript))) return;
+  if (voiceCaptureUntil || (!hasWakeWord(normalizeVoice(transcript)) && Date.now() >= voiceWakeUntil)) return;
   voiceCaptureUntil = Date.now() + 5000;
   voicePhrase = "";
   voiceInterimPhrase = "";
-  setVoiceStatus("Ain: recopilo tu orden durante 5 segundos.");
+  setVoiceStatus("Ain está escuchando. Puedes dar la orden de inmediato.");
   voiceCaptureTimer = window.setTimeout(finishVoiceCapture, 5000);
 };
 const finishVoiceCapture = () => {
@@ -602,10 +602,10 @@ const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.classList.toggle("error", error);
   if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|ein|ey n|hay en|ahi en)( |$)/;
+const wakeWordPattern = /^(?:oye |hola )?(?:ain|ayn|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
-const misheardWakePattern = /^(?:ahi|hay|ay|ai)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
+const misheardWakePattern = /^(?:ahi|hay|ay|ai|a)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
 const hasWakeWord = (command) => wakeWordPattern.test(command) || misheardWakePattern.test(command);
 const removeWakeWord = (command) =>
   command.replace(misheardWakePattern, " ").replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
@@ -784,7 +784,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 39: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
+      setVoiceStatus("Voz 43: escucha continua. Di Ain y la orden seguida, sin esperar.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -816,9 +816,10 @@ if (!SpeechRecognition) {
       const command = removeWakeWord(normalizeVoice(voicePhrase));
       const relay = resolveVoiceRelay(command);
       const action = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
-      if (relay > 0 && action) {
-        // A finalized complete instruction needs no artificial five-second wait.
-        // Partial or unfinished instructions keep their original time window.
+      const navigation = /\b(agenda|reservar|historial|usuarios|administradores|permisos|base de datos|estado del sistema|volver|inicio|detener|desactivar)\b/.test(command);
+      if (!command || (relay > 0 && action) || relay === -1 || navigation) {
+        // Dispatch final commands immediately; preserve the full window only
+        // for incomplete instructions. A separate wake result arms the next phrase.
         finishVoiceCapture();
         return;
       }

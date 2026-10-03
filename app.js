@@ -366,7 +366,6 @@ const voiceRelayNames = { 1: "Acceso QR", 2: "Acceso vehicular", 3: "Acceso peat
 let voiceEnabled = false;
 let voiceListening = false;
 let voiceSpeaking = false;
-let pendingVoiceRelay = 0;
 let lastVoiceCommand = "";
 let lastVoiceCommandAt = 0;
 let recognition;
@@ -388,7 +387,6 @@ let voicePhraseAt = 0;
 let voiceInterimPhrase = "";
 let voiceLastTranscript = "";
 let voiceFinalResults = new Map();
-let voiceCaptureProvisional = false;
 let voiceCaptureUntil = 0;
 let voiceCaptureTimer = 0;
 
@@ -398,7 +396,6 @@ const releaseVoiceMicrophone = () => {
 };
 const beginVoiceCapture = (transcript) => {
   if (voiceCaptureUntil || !hasWakeWord(normalizeVoice(transcript))) return;
-  voiceCaptureProvisional = false;
   voiceCaptureUntil = Date.now() + 5000;
   voicePhrase = "";
   voiceInterimPhrase = "";
@@ -408,7 +405,6 @@ const beginVoiceCapture = (transcript) => {
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
-  const provisional = voiceCaptureProvisional || Boolean(voiceInterimPhrase);
   recognition?.consumeUtterance?.();
   voiceCaptureUntil = 0;
   voicePhrase = "";
@@ -420,9 +416,9 @@ const finishVoiceCapture = () => {
     return;
   }
   // The wake word can be in a separate result. The window authorizes only
-  // this collected phrase; provisional physical actions still need confirmation.
+  // this collected phrase.
   voiceWakeUntil = Date.now() + 1000;
-  runVoiceCommand(phrase, provisional).catch(() =>
+  runVoiceCommand(phrase).catch(() =>
     setVoiceStatus("No se pudo procesar la orden.", true));
 };
 const deliverVoicePhrase = finishVoiceCapture;
@@ -548,7 +544,6 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceLastTranscript = "";
   clearTimeout(voicePhraseTimer);
   releaseVoiceMicrophone();
-  pendingVoiceRelay = 0;
   voiceWakeUntil = 0;
   voiceSpeaking = false;
   voiceSpeechGeneration += 1;
@@ -577,15 +572,11 @@ const resolveVoiceRelay = (command) => {
   return candidates.size === 1 ? [...candidates][0] : candidates.size > 1 ? -1 : 0;
 };
 
-async function runVoiceCommand(transcript, provisional = false) {
+async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
-  provisional = provisional || normalized !== normalizeVoiceBase(transcript);
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
-  // Después de preguntar por una confirmación se acepta también "confirmar",
-  // "sí", "cancelar" o "no" sin repetir AIN.
-  const pendingReply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(normalized);
   const woke = hasWakeWord(normalized);
-  if (!woke && !pendingReply && Date.now() >= voiceWakeUntil) {
+  if (!woke && Date.now() >= voiceWakeUntil) {
     setVoiceStatus(`Recibí: “${transcript.trim()}”. No identifiqué Ain; di Ain y luego la orden.`);
     return;
   }
@@ -611,30 +602,6 @@ async function runVoiceCommand(transcript, provisional = false) {
     return;
   }
 
-  if (pendingVoiceRelay) {
-    if (!provisional && (command.includes("confirmar") || command.includes("confirma") || command === "si")) {
-      const relayToOpen = pendingVoiceRelay;
-      pendingVoiceRelay = 0;
-      setVoiceStatus(`Abriendo ${voiceRelayNames[relayToOpen]}…`, false, true);
-      const success = await controlRelay(relayToOpen, true, "voice");
-      setVoiceStatus(
-        success
-          ? `${voiceRelayNames[relayToOpen]} activado.`
-          : `No fue posible activar ${voiceRelayNames[relayToOpen]}.`,
-        !success,
-        true,
-      );
-      return;
-    }
-    if (command.includes("cancelar") || command.includes("cancela") || command === "no") {
-      pendingVoiceRelay = 0;
-      setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
-      return;
-    }
-    setVoiceStatus("Hay una orden pendiente. Di AIN confirmar o AIN cancelar.", true, true);
-    return;
-  }
-
   const relay = resolveVoiceRelay(command);
   if (relay === -1) {
     setVoiceStatus("Nombra solamente un actuador por orden.", true, true);
@@ -647,8 +614,7 @@ async function runVoiceCommand(transcript, provisional = false) {
       return;
     }
     const directAction = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
-    if (directAction && !provisional) {
-      pendingVoiceRelay = 0;
+    if (directAction) {
       setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
       setVoiceStatus(
@@ -660,12 +626,7 @@ async function runVoiceCommand(transcript, provisional = false) {
       );
       return;
     }
-    pendingVoiceRelay = relay;
-    setVoiceStatus(
-      `¿Confirmas abrir ${voiceRelayNames[relay]}? Di AIN confirmar o AIN cancelar.`,
-      false,
-      true,
-    );
+    setVoiceStatus("Indica la acción: Ain abrir, activar o encender, seguido del acceso.", true, true);
     return;
   }
   if (command.includes("agenda") || command.includes("reservar")) {
@@ -734,7 +695,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 38: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
+      setVoiceStatus("Voz 39: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -766,8 +727,7 @@ if (!SpeechRecognition) {
       const command = removeWakeWord(normalizeVoice(voicePhrase));
       const relay = resolveVoiceRelay(command);
       const action = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
-      const reply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(command);
-      if ((relay > 0 && action) || reply) {
+      if (relay > 0 && action) {
         // A finalized complete instruction needs no artificial five-second wait.
         // Partial or unfinished instructions keep their original time window.
         finishVoiceCapture();
@@ -775,7 +735,7 @@ if (!SpeechRecognition) {
       }
     }
     if (!voiceCaptureUntil && voiceLastTranscript)
-      setVoiceStatus(`Voz 38: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
+      setVoiceStatus(`Voz 39: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {

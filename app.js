@@ -387,6 +387,7 @@ let voicePhraseTimer = 0;
 let voicePhraseAt = 0;
 let voiceInterimPhrase = "";
 let voiceLastTranscript = "";
+let voiceFinalResults = new Map();
 
 const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
@@ -405,12 +406,24 @@ const deliverVoicePhrase = () => {
     setVoiceStatus("No se pudo ejecutar la orden. Repite Ain y la orden completa.", true, true);
   });
 };
+const mergeVoiceFragments = (previous, next) => {
+  const a = normalizeVoice(previous).split(" ").filter(Boolean);
+  const b = normalizeVoice(next).split(" ").filter(Boolean);
+  if (!a.length) return next;
+  if (b.join(" ").startsWith(a.join(" ") + " ") || b.join(" ") === a.join(" ")) return next;
+  if (a.join(" ").startsWith(b.join(" ") + " ")) return previous;
+  for (let overlap = Math.min(a.length, b.length); overlap > 0; overlap -= 1) {
+    if (a.slice(-overlap).join(" ") === b.slice(0, overlap).join(" "))
+      return [...a, ...b.slice(overlap)].join(" ");
+  }
+  return [previous, next].filter(Boolean).join(" ");
+};
 const collectVoicePhrase = (transcript) => {
   if (Date.now() - voicePhraseAt > 12000) voicePhrase = "";
   voicePhraseAt = Date.now();
   const normalized = normalizeVoice(transcript);
   if (hasWakeWord(normalized)) voicePhrase = transcript;
-  else voicePhrase = [voicePhrase, transcript].filter(Boolean).join(" ");
+  else voicePhrase = mergeVoiceFragments(voicePhrase, transcript);
   clearTimeout(voicePhraseTimer);
   // Wait for the end of the phrase; Android can deliver a command in
   // several final fragments (Ain / activar actuador / uno).
@@ -459,9 +472,12 @@ const setVoiceStatus = (text, error = false, say = false) => {
   if (say && !speak(text)) startVoiceListening();};
 
 const wakeWordPattern = /(^| )(ain|ayn|a i n|a y n|ein|ey n|hay en|ahi en)( |$)/;
-const hasWakeWord = (command) => wakeWordPattern.test(command);
+// This phone transcribes "Ain" as "ahí". Accept that spelling only at
+// the beginning, before a supported command; never as an arbitrary word.
+const misheardWakePattern = /^ahi(?: ahi)*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
+const hasWakeWord = (command) => wakeWordPattern.test(command) || misheardWakePattern.test(command);
 const removeWakeWord = (command) =>
-  command.replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
+  command.replace(misheardWakePattern, " ").replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
 
 function startVoiceListening() {
   if (!voiceEnabled || voiceListening || voiceStarting || !recognition) return;
@@ -658,10 +674,11 @@ if (!SpeechRecognition) {
     if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
     voiceSessionStartedAt = Date.now();
+    voiceFinalResults = new Map();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 31: Ain está escuchando. Di Ain seguido de una orden.");
+      setVoiceStatus("Voz 32: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -674,7 +691,10 @@ if (!SpeechRecognition) {
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
       voiceLastTranscript = transcript.trim();
-      if (result.isFinal) collectVoicePhrase(transcript);
+      if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
+        voiceFinalResults.set(index, transcript);
+        collectVoicePhrase(transcript);
+      }
     }
     for (let index = 0; index < event.results.length; index += 1) {
       const result = event.results[index];
@@ -682,7 +702,7 @@ if (!SpeechRecognition) {
     }
     voiceInterimPhrase = interim.join(" ").trim();
     if (voiceInterimPhrase || voicePhrase)
-      setVoiceStatus(`Recibí: “${[voicePhrase, voiceInterimPhrase].filter(Boolean).join(" ")}”.`);
+      setVoiceStatus(`Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {
@@ -715,7 +735,7 @@ if (!SpeechRecognition) {
     }
     scheduleVoiceListening(350);
     if (!voiceLastTranscript && !voicePhrase && !voiceSpeaking)
-      setVoiceStatus("Voz 31: no se recibió texto del reconocimiento. Recuperando escucha…");
+      setVoiceStatus("Voz 32: no se recibió texto del reconocimiento. Recuperando escucha…");
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {

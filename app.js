@@ -649,7 +649,7 @@ if (!SpeechRecognition) {
     voiceSessionStartedAt = Date.now();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    setVoiceStatus("Voz 28: Ain está escuchando. Di Ain seguido de una orden.");
+    setVoiceStatus("Voz 29: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -689,7 +689,7 @@ if (!SpeechRecognition) {
     if (receivedFinalPhrase) await deliverVoicePhrase();
     if (!voiceEnabled || generation !== voiceSessionGeneration) return;
     const resultMessage = receivedFinalPhrase ? voiceStatus.textContent + " " : "";
-    stopVoiceMode(resultMessage + "Voz 28: reconocimiento cerrado tras " +
+    stopVoiceMode(resultMessage + "Voz 29: reconocimiento cerrado tras " +
       elapsed + " segundos (" + (voiceLastError || "sin error informado") +
       "). " + (receivedFinalPhrase ? "" : "No se recibió una frase final. ") +
       "La escucha está detenida.");

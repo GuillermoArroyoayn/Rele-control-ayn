@@ -1,8 +1,8 @@
-const CACHE = "reles-ayn-v55";
+const CACHE = "reles-ayn-v56";
 const ASSETS = [
   "/",
-  "/panic.css",
-  "/panic.js?v=20261003-panic48",
+  "/panic.css?v=20261003-sos56",
+  "/panic.js?v=20261003-sos56",
   "/administracion.html",
   "/administracion.js",
   "/administracion.css",

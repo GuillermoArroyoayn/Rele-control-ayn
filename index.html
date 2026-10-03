@@ -26,9 +26,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-ui65" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-ui66" />
     <link rel="stylesheet" href="/share.css" />
-    <link rel="stylesheet" href="/booking.css?v=20261003-ui65" />
+    <link rel="stylesheet" href="/booking.css?v=20261003-ui66" />
     <style>
       .appearance {
         display: flex;
@@ -188,8 +188,7 @@
           </article>
         </div>
         <div class="home-watermark" role="img" aria-label="A&N Control">
-          <div class="home-monogram">A<span aria-hidden="true">&amp;</span>N</div>
-          <div class="home-brand-caption">CONTROL</div>
+          <img class="home-logo" src="/app-icon-512.png" width="512" height="512" alt="" decoding="async" />
         </div>
         <button id="refresh" class="refresh">Actualizar estado</button>
         <section class="share-section">
@@ -288,6 +287,7 @@
         const saved = localStorage.getItem("aynBackground") || "azul";
         const apply = (value) => {
           const t = themes[value] || themes.azul;
+          document.documentElement.style.setProperty("--home-logo-filter", ({azul:"none",negro:"grayscale(1)",celeste:"hue-rotate(-25deg)",gris:"grayscale(1)",morado:"hue-rotate(60deg)",verde:"hue-rotate(-75deg)",rosado:"hue-rotate(110deg)"})[value] || "none");
           document.body.style.background = t.bg;
           document.documentElement.style.setProperty("--theme-bg", t.bg);
           document.body.style.backgroundAttachment = "fixed";
@@ -311,6 +311,6 @@
       })();
     </script>
     <script src="/ain-local-voice.js?v=20261003-voice49" defer></script>
-    <script src="/app.js?v=20261003-ui65" defer></script>
-  <script src="/panic.js?v=20261003-ui65" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
+    <script src="/app.js?v=20261003-ui66" defer></script>
+  <script src="/panic.js?v=20261003-ui66" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
 </html>

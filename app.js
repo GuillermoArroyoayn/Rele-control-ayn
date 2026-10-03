@@ -734,13 +734,14 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 37: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
+      setVoiceStatus("Voz 38: escucha local continua. Di Ain; tienes 5 segundos para la orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
     // Interim results are replaceable hypotheses, never final fragments.
     // Keep them separately so a browser end cannot silently discard speech.
     const interim = [];
+    let receivedFinal = false;
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
       const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
@@ -750,6 +751,7 @@ if (!SpeechRecognition) {
       beginVoiceCapture(transcript);
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
+        receivedFinal = true;
         collectVoicePhrase(transcript);
       }
     }
@@ -760,8 +762,20 @@ if (!SpeechRecognition) {
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
+    if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {
+      const command = removeWakeWord(normalizeVoice(voicePhrase));
+      const relay = resolveVoiceRelay(command);
+      const action = /(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command);
+      const reply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(command);
+      if ((relay > 0 && action) || reply) {
+        // A finalized complete instruction needs no artificial five-second wait.
+        // Partial or unfinished instructions keep their original time window.
+        finishVoiceCapture();
+        return;
+      }
+    }
     if (!voiceCaptureUntil && voiceLastTranscript)
-      setVoiceStatus(`Voz 37: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
+      setVoiceStatus(`Voz 38: recibí “${voiceLastTranscript}”. Esperando la palabra Ain.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {

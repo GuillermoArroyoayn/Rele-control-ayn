@@ -372,31 +372,36 @@ let lastVoiceCommandAt = 0;
 let recognition;
 let voiceRestartTimer = 0;
 let voiceSpeechTimer = 0;
+let voiceSpeechGeneration = 0;
+let voiceEchoUntil = 0;
+let voiceWakeUntil = 0;
+let voiceCommandBusy = false;
+let voiceStarting = false;
 
 const scheduleVoiceListening = (delay = 350) => {
   clearTimeout(voiceRestartTimer);
-  if (!voiceEnabled || voiceSpeaking) return;
+  if (!voiceEnabled) return;
   voiceRestartTimer = window.setTimeout(startVoiceListening, delay);
 };
 const speak = (text) => {
   if (!("speechSynthesis" in window)) return false;
+  const generation = ++voiceSpeechGeneration;
   clearTimeout(voiceSpeechTimer);
+  voiceSpeaking = true;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
-  utterance.onstart = () => {
-    voiceSpeaking = true;
-    if (voiceListening) recognition?.stop();
-  };
+  // Keep recognition open; ignore our own spoken replies instead of stopping
+  // and reopening the Android microphone after every command.
   const finishSpeaking = () => {
+    if (generation !== voiceSpeechGeneration) return;
     clearTimeout(voiceSpeechTimer);
     voiceSpeaking = false;
+    voiceEchoUntil = Date.now() + 300;
     scheduleVoiceListening();
   };
   utterance.onend = utterance.onerror = finishSpeaking;
   speechSynthesis.speak(utterance);
-  // Android a veces no informa el fin de la síntesis. Este respaldo evita
-  // que el micrófono quede detenido después de una respuesta hablada.
   voiceSpeechTimer = window.setTimeout(finishSpeaking, Math.max(3500, text.length * 95));
   return true;
 };
@@ -420,10 +425,12 @@ const removeWakeWord = (command) =>
   command.replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
 
 function startVoiceListening() {
-  if (!voiceEnabled || voiceListening || voiceSpeaking || !recognition) return;
+  if (!voiceEnabled || voiceListening || voiceStarting || !recognition) return;
   try {
+    voiceStarting = true;
     recognition.start();
   } catch (_) {
+    voiceStarting = false;
     scheduleVoiceListening(600);
   }
 }
@@ -431,10 +438,13 @@ function startVoiceListening() {
 function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceEnabled = false;
   pendingVoiceRelay = 0;
+  voiceWakeUntil = 0;
+  voiceSpeaking = false;
+  voiceSpeechGeneration += 1;
   clearTimeout(voiceRestartTimer);
   clearTimeout(voiceSpeechTimer);
   window.speechSynthesis?.cancel();
-  if (voiceListening) recognition?.stop();
+  if (voiceListening || voiceStarting) recognition?.abort();
   voiceCommand.classList.remove("listening");
   voiceCommand.setAttribute("aria-pressed", "false");
   voiceCommand.innerHTML = '<span aria-hidden="true">🎤</span> Activar AIN por voz';
@@ -443,17 +453,27 @@ function stopVoiceMode(message = "AIN por voz desactivado.") {
 
 async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
-  if (normalized) setVoiceStatus(`Escuché: “${transcript.trim()}”. Procesando…`);
+  if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
   // Después de preguntar por una confirmación se acepta también "confirmar",
   // "sí", "cancelar" o "no" sin repetir AIN.
   const pendingReply = pendingVoiceRelay && /^(confirmar|confirma|si|cancelar|cancela|no)$/.test(normalized);
-  if (!hasWakeWord(normalized) && !pendingReply) return;
-  const command = pendingReply ? normalized : removeWakeWord(normalized);
+  const woke = hasWakeWord(normalized);
+  if (!woke && !pendingReply && Date.now() >= voiceWakeUntil) return;
+  const command = woke ? removeWakeWord(normalized) : normalized;
+  if (!command) {
+    voiceWakeUntil = Date.now() + 12000;
+    setVoiceStatus("Ain está escuchando tu orden.");
+    return;
+  }
+  voiceWakeUntil = 0;
+  setVoiceStatus(`Escuché: “${transcript.trim()}”. Procesando…`);
   const now = Date.now();
   if (command === lastVoiceCommand && now - lastVoiceCommandAt < 2500) return;
   lastVoiceCommand = command;
   lastVoiceCommandAt = now;
   voiceStatus.classList.remove("error");
+  voiceCommandBusy = true;
+  try {
 
   if (command.includes("detener voz") || command.includes("desactivar voz")) {
     stopVoiceMode();
@@ -559,6 +579,9 @@ async function runVoiceCommand(transcript) {
     return;
   }
   setVoiceStatus(`No reconocí la orden “${transcript}”. No se activó ningún acceso.`, true, true);
+  } finally {
+    voiceCommandBusy = false;
+  }
 }
 
 if (!SpeechRecognition) {
@@ -574,15 +597,21 @@ if (!SpeechRecognition) {
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
   recognition.onstart = () => {
+    voiceStarting = false;
+    if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
     voiceCommand.classList.add("listening");
     setVoiceStatus("AIN está escuchando. Di AIN seguido de una orden.");
   };
   recognition.onresult = (event) => {
+    if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
-      if (result[0]?.transcript && (result.isFinal || /\b(?:qr|vehicular|peatonal|actuador\s+(?:1|2|3|uno|dos|tres))\b/i.test(result[0].transcript)))
-        runVoiceCommand(result[0].transcript).catch(() => {
+      const transcript = result[0]?.transcript;
+      // Interim hypotheses can change or repeat. Execute only final results.
+      // A separate "Ain" arms the next phrase for twelve seconds.
+      if (transcript && result.isFinal)
+        runVoiceCommand(transcript).catch(() => {
           setVoiceStatus("Ocurrió un error al ejecutar la orden de voz. Inténtalo nuevamente.", true, true);
         });
     }
@@ -598,6 +627,7 @@ if (!SpeechRecognition) {
       setVoiceStatus("No se pudo acceder al micrófono. Revisa que ninguna otra aplicación lo esté usando.", true);
   };
   recognition.onend = () => {
+    voiceStarting = false;
     voiceListening = false;
     // Si Android finaliza la sesión inesperadamente, esperar antes de
     // reintentar para impedir ciclos rápidos y sonidos repetidos.

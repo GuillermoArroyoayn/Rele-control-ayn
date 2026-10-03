@@ -41,3 +41,17 @@ assert.equal(w.getComputedStyle(doc.querySelector('.reports-panel')).maxHeight,'
 assert.equal(w.getComputedStyle(doc.querySelector('.main-menu')).overflow,'auto');
 console.log('Pantalla usuario: inicio limpio, menú y vistas completas, configuración conservada, SOS, retorno y administración verificados.');
 dom.window.close();
+const boot=new JSDOM(html,{url:'https://ayn.test/#reportes',runScripts:'outside-only',pretendToBeVisual:true});
+boot.window.localStorage.setItem('relayPin','test-pin');
+boot.window.document.documentElement.dataset.bootLayout='user';
+boot.window.setInterval=()=>0;
+boot.window.fetch=()=>new Promise(()=>{});
+boot.window.eval(fs.readFileSync(path.join(root,'app.js'),'utf8'));
+assert(boot.window.document.body.classList.contains('user-layout'));
+assert.equal(boot.window.document.body.dataset.userView,'control');
+assert.equal(boot.window.document.querySelector('.relay-grid').hidden,false);
+assert.equal(boot.window.document.querySelector('.main-menu').hidden,true);
+assert([...boot.window.document.querySelectorAll('.power')].every(button=>button.disabled));
+assert.equal(boot.window.document.querySelector('.user-toolbar button').disabled,true);
+console.log('Inicio inmediato comprobado con validación de red pendiente, sin habilitar actuadores y sin abrir la vista anterior.');
+boot.window.close();

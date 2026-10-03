@@ -565,6 +565,19 @@ let voiceLastTranscript = "";
 let voiceFinalResults = new Map();
 let voiceCaptureUntil = 0;
 let voiceCaptureTimer = 0;
+let voiceCaptureStartedAt = 0;
+let voiceLastSpeechAt = 0;
+const scheduleVoicePhraseEnd = () => {
+  if (!voiceCaptureUntil) return;
+  clearTimeout(voiceCaptureTimer);
+  const remaining = Math.max(voiceCaptureStartedAt + 3000, voiceLastSpeechAt + 1500) - Date.now();
+  voiceCaptureTimer = window.setTimeout(() => {
+    if (!voiceCaptureUntil) return;
+    const deadline = Math.max(voiceCaptureStartedAt + 3000, voiceLastSpeechAt + 1500);
+    if (Date.now() < deadline) { scheduleVoicePhraseEnd(); return; }
+    finishVoiceCapture();
+  }, Math.max(0, remaining));
+};
 
 const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
@@ -582,11 +595,13 @@ const beginVoiceCapture = (transcript) => {
   // Autorizar la orden desde la primera hipótesis de Ain, sin esperar su resultado final.
   if (woke) voiceWakeUntil = Date.now() + 8000;
   if (voiceCaptureUntil || (!woke && Date.now() >= voiceWakeUntil)) return;
-  voiceCaptureUntil = Date.now() + 8000;
+  voiceCaptureStartedAt = Date.now();
+  voiceLastSpeechAt = Math.max(voiceLastSpeechAt, voiceCaptureStartedAt);
+  voiceCaptureUntil = voiceCaptureStartedAt + 8000;
   voicePhrase = "";
   voiceInterimPhrase = "";
   setVoiceStatus("Ain está escuchando. Puedes dar la orden de inmediato.");
-  voiceCaptureTimer = window.setTimeout(returnToVoiceListening, 6000);
+  scheduleVoicePhraseEnd();
 };
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
@@ -597,8 +612,8 @@ const finishVoiceCapture = () => {
   voiceInterimPhrase = "";
   if (!voiceEnabled) return;
   if (!phrase || !removeWakeWord(normalizeVoice(phrase))) {
-    voiceWakeUntil = Date.now() + 6000;
-    setVoiceStatus("Ain te escucha. Di la orden.");
+    voiceWakeUntil = 0;
+    setVoiceStatus("Ain está escuchando. Lista para una nueva orden.");
     return;
   }
   // The wake word can be in a separate result. The window authorizes only
@@ -914,6 +929,15 @@ if (!SpeechRecognition) {
   recognition = new SpeechRecognition();
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
+  recognition.onspeechactivity = () => {
+    if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
+    voiceLastSpeechAt = Date.now();
+    if (voiceCaptureUntil) {
+      voiceCaptureUntil = voiceLastSpeechAt + 8000;
+      voiceWakeUntil = voiceCaptureUntil;
+      scheduleVoicePhraseEnd();
+    }
+  };
   recognition.lang = "es-CL";
   // Vosk processes the same microphone stream through silence and final results.
   recognition.continuous = true;
@@ -947,10 +971,8 @@ if (!SpeechRecognition) {
       voiceLastTranscript = transcript.trim();
       beginVoiceCapture(transcript);
       if (voiceCaptureUntil && changed) {
-        clearTimeout(voiceCaptureTimer);
-        // A stalled partial is discarded, never used to guess an access.
-        const remaining = removeWakeWord(normalizeVoice(transcript));
-        voiceCaptureTimer = window.setTimeout(returnToVoiceListening, remaining ? 1800 : 6000);
+        if (!recognition.providesSpeechActivity) voiceLastSpeechAt = Date.now();
+        scheduleVoicePhraseEnd();
       }
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
@@ -963,25 +985,9 @@ if (!SpeechRecognition) {
       if (!result.isFinal && result[0]?.transcript) interim.push(result[0].transcript);
     }
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
-    if (voiceCaptureUntil && transcriptChanged && voiceInterimPhrase &&
-        isCompleteFastVoiceCommand(mergeVoiceFragments(voicePhrase, voiceInterimPhrase))) {
-      clearTimeout(voiceCaptureTimer);
-      // Process a complete hypothesis only after it stops changing.
-      // Later final results for this utterance are consumed by the adapter.
-      voiceCaptureTimer = window.setTimeout(() => {
-        const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
-        if (isCompleteFastVoiceCommand(phrase)) finishVoiceCapture();
-        else returnToVoiceListening();
-      }, 300);
-    }
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus("Ain está escuchando tu orden…");
-    if (voiceCaptureUntil && receivedFinal && !voiceInterimPhrase) {
-      // A completed utterance is processed once, including unknown commands.
-      // Unknown commands return silently to wake-word listening immediately.
-      finishVoiceCapture();
-      return;
-    }
+    if (voiceCaptureUntil) scheduleVoicePhraseEnd();
 
     if (!voiceCaptureUntil && receivedFinal) returnToVoiceListening();
     // Do not cancel the final-fragment timer when only an interim arrives.

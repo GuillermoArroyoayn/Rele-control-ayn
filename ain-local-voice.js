@@ -45,6 +45,7 @@
       this.generation = 0;
       this.results = [];
       this.suppressAudio = false;
+      this.providesSpeechActivity = true;
     }
     async start() {
       if (this.active || this.starting) throw new Error("La escucha ya está iniciada");
@@ -90,6 +91,16 @@
           try {
             const samples = event.data;
             if (this.suppressAudio) samples.fill(0);
+            else {
+              let energy = 0;
+              for (const sample of samples) energy += sample * sample;
+              const rms = Math.sqrt(energy / Math.max(1, samples.length));
+              const now = Date.now();
+              if (rms > .015 && (!this.lastSpeechActivity || now - this.lastSpeechActivity >= 100)) {
+                this.lastSpeechActivity = now;
+                this.onspeechactivity?.();
+              }
+            }
             recognizer.acceptWaveformFloat(samples, context.sampleRate);
           } catch (error) { this.fail(error); }
         };

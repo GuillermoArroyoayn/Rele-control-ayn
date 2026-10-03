@@ -388,24 +388,43 @@ let voicePhraseAt = 0;
 let voiceInterimPhrase = "";
 let voiceLastTranscript = "";
 let voiceFinalResults = new Map();
+let voiceCaptureProvisional = false;
+let voiceCaptureUntil = 0;
+let voiceCaptureTimer = 0;
 
 const releaseVoiceMicrophone = () => {
   voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
   voiceMicrophoneStream = null;
 };
-const deliverVoicePhrase = () => {
-  clearTimeout(voicePhraseTimer);
-  if (voiceInterimPhrase) {
-    voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
+const beginVoiceCapture = (transcript) => {
+  if (voiceCaptureUntil || !hasWakeWord(normalizeVoice(transcript))) return;
+  voiceCaptureProvisional = false;
+  voiceCaptureUntil = Date.now() + 5000;
+  voicePhrase = "";
+  voiceInterimPhrase = "";
+  setVoiceStatus("Ain: recopilo tu orden durante 5 segundos.");
+  voiceCaptureTimer = window.setTimeout(finishVoiceCapture, 5000);
+};
+const finishVoiceCapture = () => {
+  clearTimeout(voiceCaptureTimer);
+  const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
+  const provisional = voiceCaptureProvisional || Boolean(voiceInterimPhrase);
+  voiceCaptureUntil = 0;
+  voicePhrase = "";
+  voiceInterimPhrase = "";
+  if (!voiceEnabled) return;
+  if (!phrase || !removeWakeWord(normalizeVoice(phrase))) {
+    voiceWakeUntil = 0;
+    setVoiceStatus("No recibí una orden completa. Di Ain para intentarlo nuevamente.");
     return;
   }
-  const phrase = voicePhrase;
-  voicePhrase = "";
-  if (!phrase || !voiceEnabled) return;
-  return runVoiceCommand(phrase).catch(() => {
-    setVoiceStatus("No se pudo ejecutar la orden. Repite Ain y la orden completa.", true, true);
-  });
+  // The wake word can be in a separate result. The window authorizes only
+  // this collected phrase; provisional physical actions still need confirmation.
+  voiceWakeUntil = Date.now() + 1000;
+  runVoiceCommand(phrase, provisional).catch(() =>
+    setVoiceStatus("No se pudo procesar la orden.", true));
 };
+const deliverVoicePhrase = finishVoiceCapture;
 const mergeVoiceFragments = (previous, next) => {
   const a = normalizeVoice(previous).split(" ").filter(Boolean);
   const b = normalizeVoice(next).split(" ").filter(Boolean);
@@ -419,15 +438,10 @@ const mergeVoiceFragments = (previous, next) => {
   return [previous, next].filter(Boolean).join(" ");
 };
 const collectVoicePhrase = (transcript) => {
-  if (Date.now() - voicePhraseAt > 12000) voicePhrase = "";
+  beginVoiceCapture(transcript);
+  if (!voiceCaptureUntil) return;
+  voicePhrase = mergeVoiceFragments(voicePhrase, transcript);
   voicePhraseAt = Date.now();
-  const normalized = normalizeVoice(transcript);
-  if (hasWakeWord(normalized)) voicePhrase = transcript;
-  else voicePhrase = mergeVoiceFragments(voicePhrase, transcript);
-  clearTimeout(voicePhraseTimer);
-  // Wait for the end of the phrase; Android can deliver a command in
-  // several final fragments (Ain / activar actuador / uno).
-  voicePhraseTimer = window.setTimeout(deliverVoicePhrase, 1800);
 };
 
 const scheduleVoiceListening = (delay = 350) => {
@@ -492,6 +506,9 @@ function startVoiceListening() {
 
 function stopVoiceMode(message = "AIN por voz desactivado.") {
   voiceEnabled = false;
+  localStorage.setItem("aynVoiceSelected", "false");
+  voiceCaptureUntil = 0;
+  clearTimeout(voiceCaptureTimer);
   voiceSessionGeneration += 1;
   voicePhrase = "";
   voiceInterimPhrase = "";
@@ -679,8 +696,8 @@ if (!SpeechRecognition) {
     voiceFinalResults = new Map();
     voiceLastError = "";
     voiceCommand.classList.add("listening");
-    if (!voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Voz 33: Ain está escuchando. Di Ain seguido de una orden.");
+    if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
+      setVoiceStatus("Voz 34: Ain está escuchando. Di Ain seguido de una orden.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
@@ -693,6 +710,7 @@ if (!SpeechRecognition) {
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
       voiceLastTranscript = transcript.trim();
+      beginVoiceCapture(transcript);
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
         collectVoicePhrase(transcript);
@@ -702,9 +720,9 @@ if (!SpeechRecognition) {
       const result = event.results[index];
       if (!result.isFinal && result[0]?.transcript) interim.push(result[0].transcript);
     }
-    voiceInterimPhrase = interim.join(" ").trim();
+    voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
     if (voiceInterimPhrase || voicePhrase)
-      setVoiceStatus(`Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
+      setVoiceStatus(`Ain: recopilando (${Math.max(0, Math.ceil((voiceCaptureUntil - Date.now()) / 1000))} s). Recibí: “${mergeVoiceFragments(voicePhrase, voiceInterimPhrase)}”.`);
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {
@@ -717,7 +735,9 @@ if (!SpeechRecognition) {
       "language-not-supported": "Este navegador no admite reconocimiento en español de Chile.",
     };
     if (messages[event.error]) {
-      stopVoiceMode(messages[event.error]);
+      const selected = voiceEnabled;
+      stopVoiceMode(messages[event.error] + " La selección queda guardada; toca Activar AIN por voz para reintentar.");
+      localStorage.setItem("aynVoiceSelected", String(selected));
       voiceStatus.classList.add("error");
     }
   };
@@ -725,19 +745,15 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     voiceListening = false;
     if (!voiceEnabled) return;
-    if (voiceInterimPhrase) {
-      const provisionalPhrase = [voicePhrase, voiceInterimPhrase].filter(Boolean).join(" ");
+    // Keep the five-second window and its text across recognition sessions.
+    if (voiceCaptureUntil && voiceInterimPhrase) {
+      voicePhrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
       voiceInterimPhrase = "";
-      voicePhrase = "";
-      clearTimeout(voicePhraseTimer);
-      // A provisional result must never open an access or confirm one.
-      // Ask for a final spoken confirmation before any physical action.
-      runVoiceCommand(provisionalPhrase, true).catch(() =>
-        setVoiceStatus("No se pudo procesar la frase recibida.", true));
+      voiceCaptureProvisional = true;
     }
     scheduleVoiceListening(350);
-    if (!voiceLastTranscript && !voicePhrase && !voiceSpeaking)
-      setVoiceStatus("Voz 33: no se recibió texto del reconocimiento. Recuperando escucha…");
+    if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceSpeaking)
+      setVoiceStatus("Voz 34: no se recibió texto del reconocimiento. Recuperando escucha…");
   };
   voiceCommand.addEventListener("click", () => {
     if (voiceEnabled) {
@@ -745,6 +761,7 @@ if (!SpeechRecognition) {
       return;
     }
     voiceEnabled = true;
+    localStorage.setItem("aynVoiceSelected", "true");
     voiceSessionGeneration += 1;
     voiceRapidEnds = [];
     voiceCommand.setAttribute("aria-pressed", "true");
@@ -754,7 +771,18 @@ if (!SpeechRecognition) {
     // capture can compete with the Android recognition service.
     startVoiceListening();
   });
-  window.addEventListener("pagehide", () => stopVoiceMode());
+  window.addEventListener("pagehide", () => {
+    const selected = voiceEnabled;
+    stopVoiceMode();
+    localStorage.setItem("aynVoiceSelected", String(selected));
+  });
+  if (localStorage.getItem("aynVoiceSelected") === "true") {
+    voiceEnabled = true;
+    voiceCommand.setAttribute("aria-pressed", "true");
+    voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
+    setVoiceStatus("Voz seleccionada. Recuperando escucha de Ain…");
+    startVoiceListening();
+  }
 
 }
 

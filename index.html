@@ -26,9 +26,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261003-ui68" />
+    <link rel="stylesheet" href="/styles.css?v=20261003-ui69" />
     <link rel="stylesheet" href="/share.css" />
-    <link rel="stylesheet" href="/booking.css?v=20261003-ui68" />
+    <link rel="stylesheet" href="/booking.css?v=20261003-ui69" />
     <style>
       .appearance {
         display: flex;
@@ -191,7 +191,7 @@
           <svg class="home-logo" viewBox="0 0 360 230" aria-hidden="true" focusable="false">
             <defs>
               <linearGradient id="homeMetal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#dbe4ef"/><stop offset=".55" stop-color="#7f91a9"/><stop offset=".8" stop-color="#f8fbff"/><stop offset="1" stop-color="#9caec4"/>
+                <stop offset="0" stop-color="#ffffff"/><stop offset=".25" stop-color="#edf2f7"/><stop offset=".45" stop-color="#929ba8"/><stop offset=".49" stop-color="#ffffff"/><stop offset=".58" stop-color="#bcc4cf"/><stop offset=".8" stop-color="#ffffff"/><stop offset="1" stop-color="#8b96a6"/>
               </linearGradient>
               <filter id="homeHalo" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>
             </defs>
@@ -200,7 +200,11 @@
               <ellipse cx="180" cy="100" rx="163" ry="44" transform="rotate(-14 180 100)" stroke-width="2"/>
               <path d="M32 195 Q180 210 328 195" filter="url(#homeHalo)"/>
             </g>
-            <text x="180" y="142" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="119" font-weight="900" letter-spacing="-8" fill="url(#homeMetal)" stroke="var(--theme-accent,#22d3ee)" stroke-width="1">A&amp;N</text>
+            <g fill="none" transform="rotate(-14 180 100)">
+              <ellipse class="home-orbit-glow" cx="180" cy="100" rx="163" ry="44" pathLength="100" stroke="var(--theme-accent,#22d3ee)" stroke-width="7" stroke-dasharray="12 88" filter="url(#homeHalo)"/>
+              <ellipse class="home-orbit-spark" cx="180" cy="100" rx="163" ry="44" pathLength="100" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 97"/>
+            </g>
+            <text x="180" y="142" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="119" font-weight="900" letter-spacing="-8" fill="url(#homeMetal)" stroke="#eef2f7" stroke-width=".65">A&amp;N</text>
             <text x="180" y="193" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="47" font-weight="900" letter-spacing="2" fill="url(#homeMetal)">CONTROL</text>
           </svg>
         </div>
@@ -325,6 +329,6 @@
       })();
     </script>
     <script src="/ain-local-voice.js?v=20261003-voice49" defer></script>
-    <script src="/app.js?v=20261003-ui68" defer></script>
-  <script src="/panic.js?v=20261003-ui68" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
+    <script src="/app.js?v=20261003-ui69" defer></script>
+  <script src="/panic.js?v=20261003-ui69" defer></script><script src="/reports.js?v=20261003-reports57" defer></script></body>
 </html>

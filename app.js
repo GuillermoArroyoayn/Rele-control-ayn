@@ -590,7 +590,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -612,7 +612,7 @@ const normalizeVoice = text => normalizeVoiceBase(text).split(" ").map(word => {
   const candidates = voiceVocabulary.map(target => ({
     target, distance: voiceWordDistance(word, target)
   })).filter(({ target, distance }) =>
-    target.length >= 5 && distance <= (target.length >= 9 ? 2 : 1));
+    target.length >= 5 && distance <= (target.length >= 7 ? 2 : 1) && distance / Math.max(word.length, target.length) <= 0.29);
   candidates.sort((a, b) => a.distance - b.distance);
   if (!candidates.length || (candidates[1] && candidates[1].distance === candidates[0].distance))
     return word;
@@ -624,7 +624,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.classList.toggle("error", error);
   if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /^(?:oye |hola )?(?:ain|ayn|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
+const wakeWordPattern = /^(?:oye |hola )?(?:ain|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
 const misheardWakePattern = /^(?:ahi|hay|ay|ai|a)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;

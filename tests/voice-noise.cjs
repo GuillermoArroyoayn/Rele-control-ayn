@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const window={};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../ain-local-voice.js'),'utf8'),{window});
+const Gate=window.AinNoiseActivity;
+const frame=level=>new Float32Array(512).fill(level);
+const gate=new Gate();
+for(let i=0;i<160;i++)gate.accept(frame(.025),48000);
+assert.equal(gate.accept(frame(.025),48000),false);
+let speech=false;for(let i=0;i<12;i++)speech ||= gate.accept(frame(.09),48000);
+assert(speech);
+for(let i=0;i<300;i++)assert(gate.accept(frame(.09),48000,true));
+assert.equal(gate.accept(frame(.025),48000),false);
+const quiet=new Gate();for(let i=0;i<160;i++)quiet.accept(frame(.002),48000);
+assert.equal(quiet.accept(frame(.5),48000),false);assert.equal(quiet.accept(frame(.002),48000),false);
+let soft=false;for(let i=0;i<12;i++)soft ||= quiet.accept(frame(.02),48000);assert(soft);
+console.log('Ruido: fondo constante calibrado, golpe aislado descartado, voz sobre fondo y voz suave detectadas. Señales sintéticas.');

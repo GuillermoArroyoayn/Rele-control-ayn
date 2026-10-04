@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 89';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 90';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -581,14 +581,8 @@ let voiceEchoUntil = 0;
 let voiceWakeUntil = 0;
 let voiceCommandBusy = false;
 let voiceStarting = false;
-let voiceMicrophoneStream = null;
 let voiceSessionGeneration = 0;
-let voiceSessionStartedAt = 0;
-let voiceRapidEnds = [];
-let voiceLastError = "";
 let voicePhrase = "";
-let voicePhraseTimer = 0;
-let voicePhraseAt = 0;
 let voiceInterimPhrase = "";
 let voiceLastTranscript = "";
 let voiceFinalResults = new Map();
@@ -616,10 +610,6 @@ const scheduleVoicePhraseEnd = () => {
   }, Math.max(0, remaining));
 };
 
-const releaseVoiceMicrophone = () => {
-  voiceMicrophoneStream?.getTracks().forEach((track) => track.stop());
-  voiceMicrophoneStream = null;
-};
 const returnToVoiceListening = () => {
   clearTimeout(voiceCaptureTimer);
   if (recognition) recognition.captureActive = false;
@@ -663,7 +653,6 @@ const finishVoiceCapture = () => {
   runVoiceCommand(phrase).catch(() =>
     setVoiceStatus("No se pudo procesar la orden.", true));
 };
-const deliverVoicePhrase = finishVoiceCapture;
 const mergeVoiceFragments = (previous, next) => {
   const a = normalizeVoice(previous).split(" ").filter(Boolean);
   const b = normalizeVoice(next).split(" ").filter(Boolean);
@@ -680,7 +669,6 @@ const collectVoicePhrase = (transcript) => {
   beginVoiceCapture(transcript);
   if (!voiceCaptureUntil) return;
   voicePhrase = mergeVoiceFragments(voicePhrase, transcript);
-  voicePhraseAt = Date.now();
 };
 
 const scheduleVoiceListening = (delay = 350) => {
@@ -731,7 +719,7 @@ const normalizeVoiceBase = (text) =>
 
 // Conservative text tolerance after acoustic recognition. Numbers and
 // confirmation words are never guessed. Only a unique nearest word is used.
-const voiceAliases = { habreme:"abre", avreme:"abre", habrirme:"abrir", abremee:"abre", avrir:"abrir", avre:"abre", pordon:"porton", porlon:"porton", patonal:"peatonal", peatonalmente:"peatonal", vehiculal:"vehicular",  abreme:"abre", abrila:"abre", abrirme:"abrir", abrirlo:"abrir", abrirla:"abrir", abrela:"abre", abras:"abre", abranme:"abre", aperturar:"abrir", apertura:"abrir", levantar:"abrir", levanta:"abre", levantame:"abre", desbloquear:"abrir", desbloquea:"abre", liberar:"abrir", libera:"abre", activarame:"activar", activame:"activa", activalo:"activa", enciendeme:"enciende", encendeme:"encender", prenderlo:"prender", encenderlo:"encender", portoncito:"porton", portal:"porton", reja:"porton", ingreso:"entrada", entradavehicular:"vehicular", salidavehicular:"vehicular", portonentrada:"porton entrada", portonsalida:"porton salida", puertapeatonal:"puerta peatonal",  abres:"abre", abrime:"abre", abrelo:"abre", abran:"abre", encendes:"encender", enciendes:"enciende", prendes:"prende", activas:"activa",  accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrime: "abre", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
+const voiceAliases = { habreme:"abre", avreme:"abre", habrirme:"abrir", abremee:"abre", avrir:"abrir", avre:"abre", pordon:"porton", porlon:"porton", patonal:"peatonal", peatonalmente:"peatonal", vehiculal:"vehicular",  abreme:"abre", abrila:"abre", abrirme:"abrir", abrirlo:"abrir", abrirla:"abrir", abrela:"abre", abras:"abre", abranme:"abre", aperturar:"abrir", apertura:"abrir", levantar:"abrir", levanta:"abre", levantame:"abre", desbloquear:"abrir", desbloquea:"abre", liberar:"abrir", libera:"abre", activarame:"activar", activame:"activa", activalo:"activa", enciendeme:"enciende", encendeme:"encender", prenderlo:"prender", encenderlo:"encender", portoncito:"porton", portal:"porton", reja:"porton", ingreso:"entrada", entradavehicular:"vehicular", salidavehicular:"vehicular", portonentrada:"porton entrada", portonsalida:"porton salida", puertapeatonal:"puerta peatonal",  abres:"abre", abrime:"abre", abrelo:"abre", abran:"abre", encendes:"encender", enciendes:"enciende", prendes:"prende", activas:"activa",  accesos: "acceso", portones: "porton", reles: "rele",  puertas: "puerta",  activador: "actuador", actuado: "actuador", atuado: "actuador", actuadore: "actuador", actua: "activar", accionar: "activar", acciona: "activar", activarmee: "activar", abrira: "abrir", abri: "abrir", enciendelo: "encender", prendelo: "prender", prendeme: "prender", portonvehicular: "vehicular", peatona: "peatonal",  actibar: "activar", habrir: "abrir", habre: "abre", enciende: "enciende", atuador: "actuador", actuadores: "actuador", actualdor: "actuador", vehiculo: "vehicular", auto: "vehicular", peaton: "peatonal", peatonala: "peatonal", historial: "historial" };
 const voiceVocabulary = ["activar", "activa", "abrir", "abre", "encender", "enciende",
   "prender", "prende", "actuador", "porton", "puerta", "vehicular", "peatonal", "entrada", "salida",
   "agenda", "reservar", "piscina", "historial", "administradores", "usuarios",
@@ -803,8 +791,6 @@ function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = 
   voicePhrase = "";
   voiceInterimPhrase = "";
   voiceLastTranscript = "";
-  clearTimeout(voicePhraseTimer);
-  releaseVoiceMicrophone();
   voiceWakeUntil = 0;
   voiceSpeaking = false;
   voiceEchoUntil = 0;
@@ -984,7 +970,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 89 · Deepgram en tiempo real':'Motor de voz · versión 89 · local';};
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 90 · Deepgram en tiempo real':'Motor de voz · versión 90 · local';};
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.onspeechactivity = () => {
@@ -996,18 +982,11 @@ if (!SpeechRecognition) {
       scheduleVoicePhraseEnd();
     }
   };
-  recognition.lang = "es-CL";
-  // Vosk processes the same microphone stream through silence and final results.
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 3;
   recognition.onstart = () => {
     voiceStarting = false;
     if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
-    voiceSessionStartedAt = Date.now();
     voiceFinalResults = new Map();
-    voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
       setVoiceStatus(!statusReady||startupResetInFlight?"Micrófono listo. Validando el acceso; conservaré tu primera orden.":"Escucha continua. Di Ain y la orden seguida, sin esperar.");
@@ -1018,14 +997,12 @@ if (!SpeechRecognition) {
     // Keep them separately so a browser end cannot silently discard speech.
     const interim = [];
     let receivedFinal = false;
-    let transcriptChanged = false;
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
       const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
       const changed = voiceLastTranscript !== transcript.trim();
-      transcriptChanged ||= changed;
       voiceLastTranscript = transcript.trim();
       beginVoiceCapture(transcript);
       if (voiceCaptureUntil && changed) {
@@ -1051,7 +1028,6 @@ if (!SpeechRecognition) {
     // Do not cancel the final-fragment timer when only an interim arrives.
   };
   recognition.onerror = (event) => {
-    voiceLastError = event.error;
     const messages = {
       "local-engine": event.message || "No se pudo cargar el motor local.",
       "not-allowed": "Permite el micrófono para usar Ain por voz.",
@@ -1073,7 +1049,6 @@ if (!SpeechRecognition) {
     voiceEnabled = true;
     localStorage.setItem("aynVoiceSelected", "true");
     voiceSessionGeneration += 1;
-    voiceRapidEnds = [];
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
     setVoiceStatus("Activando reconocimiento de voz…");

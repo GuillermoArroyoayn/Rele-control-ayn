@@ -1776,10 +1776,18 @@ function renderBookingSpace(space, bookings, date) {
     }
     if (currentAccepted && currentAccepted === acceptedDate) {
       const dayRows = rows.filter(item => item.date === currentAccepted);
-      const daySignature = JSON.stringify(dayRows);
+      const daySignature = JSON.stringify(dayRows.filter(bookingActive)) + new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
       if (daySignature !== hoursSignature) {
         const heading = document.createElement("h4");heading.textContent = `Horarios del ${currentAccepted}`;
-        if (!hours.querySelector("form[hidden]")) hours.replaceChildren(heading,renderBookingHours(space,dayRows,currentAccepted));
+        if (!hours.querySelector("form[hidden]")) {
+          const oldStart=hours.querySelector(".booking-time")?.value, oldEnd=hours.querySelector(".booking-end-time")?.value, oldParking=hours.querySelector("input")?.value;
+          hours.replaceChildren(heading,renderBookingHours(space,dayRows,currentAccepted));
+          const form=hours.querySelector("form"), parking=form?.querySelector("input");
+          if(parking && oldParking) {parking.value=oldParking;parking.dispatchEvent(new Event("input"));}
+          const start=form?.querySelector(".booking-time"), end=form?.querySelector(".booking-end-time");
+          if(start && [...start.options].some(o=>o.value===oldStart)) {start.value=oldStart;start.dispatchEvent(new Event("change"));}
+          if(end && [...end.options].some(o=>o.value===oldEnd)) end.value=oldEnd;
+        }
         hoursSignature = daySignature;
       }
     }
@@ -1790,31 +1798,48 @@ function renderBookingSpace(space, bookings, date) {
 
 function renderBookingHours(space, bookings, date) {
   const form = document.createElement("form"); form.className = "booking-hours-form";
-  const label = document.createElement("label"); label.textContent = "Horario";
+  const label = document.createElement("label"); label.textContent = "Hora de inicio";
   const select = document.createElement("select"); select.className = "booking-time"; label.append(select);
+  const endLabel=document.createElement("label"); endLabel.textContent="Hora de término";
+  const endSelect=document.createElement("select"); endSelect.className="booking-end-time"; endLabel.append(endSelect);
   const parking = document.createElement("input"); parking.type = "number"; parking.min = "1"; parking.max = "9999"; parking.step = "1"; parking.required = true; parking.value = "1";
   const parkingLabel = document.createElement("label"); parkingLabel.textContent = "Número de estacionamiento"; parkingLabel.append(parking);
   const save = document.createElement("button"); save.type = "submit"; save.className = "booking-reserve"; save.textContent = "Guardar reserva";
   const now = bookingMinutes(new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()));
+  function busyBetween(start,end) {
+    return bookings.some(item=>item.spaceId===space.id && bookingActive(item) && item.startMinute<end && item.endMinute>start && (space.id!=="estacionamiento" || !item.parkingNumber || Number(item.parkingNumber)===Number(parking.value)));
+  }
+  function updateEnds() {
+    const previous=endSelect.value; endSelect.replaceChildren();
+    const start=bookingMinutes(select.value);
+    for(let end=start+space.slotMinutes;Number.isFinite(end)&&end<=bookingMinutes(space.close);end+=space.slotMinutes) {
+      if(busyBetween(start,end)) break;
+      const option=document.createElement("option"); option.value=bookingTime(end); option.textContent=bookingTime(end); endSelect.append(option);
+    }
+    if([...endSelect.options].some(option=>option.value===previous)) endSelect.value=previous;
+    save.disabled=!endSelect.options.length;
+  }
+  select.addEventListener("change",updateEnds);
   function updateTimes() {
     const previous = select.value; select.replaceChildren();
     for(let start=bookingMinutes(space.open);start+space.slotMinutes<=bookingMinutes(space.close);start+=space.slotMinutes) {
       const end=start+space.slotMinutes;
-      const busy=bookings.some(item=>item.spaceId===space.id && !item.cancelledAt && item.startMinute<end && item.endMinute>start && (space.id!=="estacionamiento" || !item.parkingNumber || Number(item.parkingNumber)===Number(parking.value)));
+      const busy=busyBetween(start,end);
       if(date<bookingToday() || (date===bookingToday() && start<=now) || busy) continue;
       const option=document.createElement("option"); option.value=bookingTime(start); option.textContent=`${bookingTime(start)}–${bookingTime(end)}`; select.append(option);
     }
     if([...select.options].some(option=>option.value===previous)) select.value=previous;
     save.disabled=!select.options.length;
+    updateEnds();
     if(save.disabled) {const option=document.createElement("option");option.textContent="Sin horarios disponibles";select.append(option);}
   }
   parking.addEventListener("input",updateTimes);
-  form.append(label); if(space.id==="estacionamiento") form.append(parkingLabel); form.append(save); updateTimes();
+  form.append(label,endLabel); if(space.id==="estacionamiento") form.append(parkingLabel); form.append(save); updateTimes();
   form.addEventListener("submit",async event=>{
     event.preventDefault(); if(save.disabled || !form.reportValidity()) return;
     save.disabled=true;
     try {
-      await api("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({spaceId:space.id,date,start:select.value,...(space.id==="estacionamiento"?{parkingNumber:Number(parking.value)}:{})})});
+      await api("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({spaceId:space.id,date,start:select.value,end:endSelect.value,...(space.id==="estacionamiento"?{parkingNumber:Number(parking.value)}:{})})});
       show("Reserva confirmada.");
       form.hidden=true;
       await refreshBookingsQuietly(true);

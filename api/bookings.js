@@ -55,7 +55,9 @@ module.exports=async function handler(req,res){
       const future=new Date(`${date}T12:00:00Z`).getTime()-new Date(`${chileToday()}T12:00:00Z`).getTime();if(future>180*86400000)return res.status(400).json({error:"Solo puedes reservar hasta 180 días hacia adelante."});
       const spaces=await readSettings(scope);const space=spaces.find(item=>item.id===spaceId&&item.enabled);if(!space)return res.status(404).json({error:"Espacio no disponible."});
       const weekday=new Date(`${date}T12:00:00Z`).getUTCDay();if(!space.weekdays.includes(weekday))return res.status(400).json({error:"Este espacio no está disponible ese día."});
-      const startMinute=minutes(start),endMinute=startMinute+space.slotMinutes;if(startMinute<minutes(space.open)||endMinute>minutes(space.close)||(startMinute-minutes(space.open))%space.slotMinutes!==0)return res.status(400).json({error:"Selecciona uno de los horarios disponibles."});
+      const requestedEnd=req.body?.end;
+      if(requestedEnd!==undefined&&!timePattern.test(String(requestedEnd)))return res.status(400).json({error:"Hora de término inválida."});
+      const startMinute=minutes(start),endMinute=requestedEnd===undefined?startMinute+space.slotMinutes:minutes(requestedEnd);if(endMinute<=startMinute||(endMinute-startMinute)%space.slotMinutes!==0||startMinute<minutes(space.open)||endMinute>minutes(space.close)||(startMinute-minutes(space.open))%space.slotMinutes!==0)return res.status(400).json({error:"Selecciona uno de los horarios disponibles."});
       if(date===chileToday()&&startMinute<=chileMinute())return res.status(400).json({error:"No puedes reservar un horario que ya comenzó."});
       const parkingNumber=spaceId==="estacionamiento"?Number(req.body?.parkingNumber):null;
       if(spaceId==="estacionamiento"&&(!Number.isInteger(parkingNumber)||parkingNumber<1||parkingNumber>9999))return res.status(400).json({error:"Indica un número de estacionamiento válido."});

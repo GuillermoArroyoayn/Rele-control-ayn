@@ -22,6 +22,7 @@ console.log(phrases.length+' frases guardadas verificadas para sus actuadores.')
 for(const phrase of [
  'ain abre porton entrada','ain abrir porton de entrada','ain abre el porton de salida',
  'ain abrime la puerta','ain abreme la puerta','ain puerta','ain porton entrada','ain porton salida',
+ 'ain avre por ton', 'ain habreme la puerta', 'ain abre acceso peaton al', 'ain abre acceso vehicul ar', 'ain abre actua dor dos',
  'ain levanta el porton','ain desbloquea la puerta','ain abre portonentrada','ain abrir puertapeatonal'
 ]) assert(w.testVoice.complete(phrase),phrase);
 for(const phrase of ['ain cierra puerta','ain no abras puerta','ain apaga actuador uno','ain esta abierta la puerta','ain abrir puerta y porton'])assert(!w.testVoice.complete(phrase),phrase);

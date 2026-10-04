@@ -99,12 +99,9 @@
         this.onloading?.("Voz 35: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
         const model = await loadModel();
         if (generation !== this.generation) return;
-        const recognizer = new model.KaldiRecognizer(context.sampleRate);
-        this.recognizer = recognizer;
-        this.results = [];
+        this.model = model;
         this.noiseActivity = new AinNoiseActivity();
-        recognizer.on("result", message => this.emit(message.result?.text || "", true, generation));
-        recognizer.on("partialresult", message => this.emit(message.result?.partial || "", false, generation));
+        this.resetDecoder();
         await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261003-voice49");
         if (generation !== this.generation) return;
         const node = new AudioWorkletNode(context, "ain-audio-capture");
@@ -112,6 +109,7 @@
         node.port.onmessage = event => {
           if (!this.active || generation !== this.generation) return;
           try {
+            this.lastAudioAt = Date.now();
             const samples = event.data;
             if (this.suppressAudio) samples.fill(0);
             else {
@@ -122,7 +120,7 @@
                 this.onspeechactivity?.();
               }
             }
-            recognizer.acceptWaveformFloat(samples, context.sampleRate);
+            this.recognizer.acceptWaveformFloat(samples, context.sampleRate);
           } catch (error) { this.fail(error); }
         };
         const source = context.createMediaStreamSource(stream);
@@ -135,6 +133,7 @@
         context.onstatechange = () => {
           if (this.active && context.state === "suspended") this.resume();
         };
+        this.lastAudioAt = Date.now();
         this.starting = false;
         this.active = true;
         this.onstart?.();
@@ -158,9 +157,32 @@
         this.onreset?.();
       }
     }
+    resetDecoder() {
+      const previous = this.recognizer;
+      const recognizer = new this.model.KaldiRecognizer(this.context.sampleRate);
+      this.recognizer = recognizer;
+      const generation = this.generation;
+      recognizer.on("result", message => {
+        if (this.recognizer === recognizer) this.emit(message.result?.text || "", true, generation);
+      });
+      recognizer.on("partialresult", message => {
+        if (this.recognizer === recognizer) this.emit(message.result?.partial || "", false, generation);
+      });
+      previous?.remove();
+      this.results = [];
+      this.consumedIndex = undefined;
+      this.onreset?.();
+    }
     consumeUtterance() {
       const index = this.results.length - 1;
-      if (index >= 0 && !this.results[index].isFinal) this.consumedIndex = index;
+      // Un parcial consumido no puede bloquear la siguiente orden esperando un final
+      // que quizá no llegue en ambientes ruidosos. Renovar solo el decodificador.
+      if (index >= 0 && !this.results[index].isFinal && this.active) this.resetDecoder();
+    }
+    audioStalled() {
+      if (!this.active) return true;
+      if (this.context?.state === "closed") return true;
+      return this.context?.state === "running" && Date.now() - (this.lastAudioAt || Date.now()) > 5000;
     }
     fail(error) {
       const permission = error?.name === "NotAllowedError";

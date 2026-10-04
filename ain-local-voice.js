@@ -80,14 +80,14 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 96: preparando audio local…");
+        this.onloading?.("Voz 97: preparando audio local…");
         let resumeTimer;
         try {
           await Promise.race([context.resume(), new Promise((_, reject) => {
             resumeTimer = setTimeout(() => reject(new DOMException("Toca Activar AIN por voz para habilitar el audio.", "NotAllowedError")), 2500);
           })]);
         } finally { clearTimeout(resumeTimer); }
-        this.onloading?.("Voz 96: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 97: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -96,12 +96,12 @@
         });
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
-        this.onloading?.("Voz 96: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
+        this.onloading?.("Voz 97: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
         const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release96");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release97");
         if (generation !== this.generation) return;
         let firstAudio;const firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");

@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 95';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 96';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -970,7 +970,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 95 · Deepgram en tiempo real':'Motor de voz · versión 95 · local';};
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 96 · Deepgram en tiempo real':'Motor de voz · versión 96 · local';};
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.onspeechactivity = () => {

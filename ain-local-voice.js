@@ -80,14 +80,8 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 97: preparando audio local…");
-        let resumeTimer;
-        try {
-          await Promise.race([context.resume(), new Promise((_, reject) => {
-            resumeTimer = setTimeout(() => reject(new DOMException("Toca Activar AIN por voz para habilitar el audio.", "NotAllowedError")), 2500);
-          })]);
-        } finally { clearTimeout(resumeTimer); }
-        this.onloading?.("Voz 97: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 98: preparando audio local…");
+        this.onloading?.("Voz 98: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -96,14 +90,21 @@
         });
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
-        this.onloading?.("Voz 97: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
-        const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);return remote||loadModel();})();
+        let resumeTimer;
+        try {
+          await Promise.race([context.resume(), new Promise((_, reject) => {
+            resumeTimer = setTimeout(() => reject(new DOMException("Toca Activar AIN por voz para habilitar el audio.", "NotAllowedError")), 2500);
+          })]);
+        } finally { clearTimeout(resumeTimer); }
+
+        this.onloading?.("Voz 98: preparando la transcripción continua…");
+        const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);if(generation!==this.generation)return null;return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release97");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release98");
         if (generation !== this.generation) return;
-        let firstAudio;const firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
+        let firstAudio;let firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");
         this.node = node;
         node.port.onmessage = event => {
@@ -121,7 +122,7 @@
                 this.onspeechactivity?.();
               }
             }
-            if(!this.recognizer){this.pendingAudio.push(samples.slice());this.pendingSamples+=samples.length;while(this.pendingSamples>context.sampleRate*5){this.pendingSamples-=this.pendingAudio.shift().length;}return;}
+            if(!this.recognizer){this.pendingAudio.push(samples.slice());this.pendingSamples+=samples.length;while(this.pendingSamples>context.sampleRate*30){this.pendingSamples-=this.pendingAudio.shift().length;}return;}
             this.recognizer.acceptWaveformFloat(samples, context.sampleRate);
           } catch (error) { this.fail(error); }
         };
@@ -130,19 +131,20 @@
         source.connect(node);
         node.connect(context.destination); // worklet output is silence, never microphone playback
         stream.getAudioTracks().forEach(track => track.addEventListener("ended", () => {
-          if (this.active) this.fail(new Error("El teléfono interrumpió el micrófono"));
+          if (this.active) this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
         }));
         context.onstatechange = () => {
-          if (this.active && context.state === "suspended") this.resume();
+          if ((this.active||this.starting) && ["suspended","interrupted"].includes(context.state)) this.resume();
         };
         const model=await preparingModel;
         if(generation!==this.generation)return;
+        if(model.ready===false)throw Object.assign(new Error('La conexión de voz no está lista.'),{recoverable:true});
         this.model=model;this.resetDecoder();
         await context.resume();
+        if(Date.now()-(this.lastAudioAt||0)>1000)firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         let firstAudioTimeout;
         try{await Promise.race([firstAudioReady,new Promise((_,reject)=>{firstAudioTimeout=setTimeout(()=>reject(new Error('El micrófono no está entregando audio. Toca Activar AIN por voz para reintentar.')),5000);})]);}finally{clearTimeout(firstAudioTimeout);}
         if(generation!==this.generation)return;
-        this.lastAudioAt = Date.now();
         this.starting = false;
         this.active = true;
         this.onstart?.();
@@ -190,16 +192,39 @@
       // que quizá no llegue en ambientes ruidosos. Renovar solo el decodificador.
       if (index >= 0 && !this.results[index].isFinal && this.active) this.resetDecoder();
     }
+    async recoverStreaming() {
+      if(!this.active||this.recovering)return;
+      this.recovering=true;
+      this.onrecovering?.();
+      const generation=this.generation;
+      this.onloading?.('Reconectando la voz. Conservaré tu orden mientras recupero la conexión…');
+      this.streamingModel?.terminate();this.streamingModel=null;
+      this.recognizer?.remove();this.recognizer=null;
+      this.pendingAudio=[];this.pendingSamples=0;
+      try {
+        const remote=await window.AinVoiceProvider?.prepare(this);
+        if(generation!==this.generation)return;
+        const model=remote||await loadModel();
+        if(generation!==this.generation)return;
+        if(model.ready===false)throw Object.assign(new Error('La conexión de voz no está lista.'),{recoverable:true});
+        this.model=model;this.resetDecoder();
+        this.onstart?.();
+        for(const samples of this.pendingAudio)this.recognizer.acceptWaveformFloat(samples,this.context.sampleRate);
+        this.pendingAudio=[];this.pendingSamples=0;
+      }catch(error){if(generation===this.generation)this.fail(Object.assign(error,{recoverable:true}));}
+      finally{if(generation===this.generation)this.recovering=false;}
+    }
     audioStalled() {
       if (!this.active) return true;
       if (this.context?.state === "closed") return true;
-      return this.context?.state === "running" && Date.now() - (this.lastAudioAt || Date.now()) > 5000;
+      return Date.now() - (this.lastAudioAt || Date.now()) > 5000;
     }
     fail(error) {
       const permission = error?.name === "NotAllowedError";
       this.abort();
       this.onerror?.({
         error: permission ? "not-allowed" : "local-engine",
+        recoverable:!permission&&(Boolean(error?.recoverable)||["NotReadableError","AbortError","NetworkError"].includes(error?.name)),
         message: error?.message || "No se pudo iniciar la escucha local"
       });
     }
@@ -207,6 +232,7 @@
       ++this.generation;
       this.active = false;
       this.starting = false;
+      this.recovering = false;
       this.suppressAudio = false;
       this.node?.disconnect();
       if (this.node) this.node.port.onmessage = null;
@@ -221,7 +247,7 @@
       // No onend notification/restart cycle: only an explicit start captures audio.
     }
     resume() {
-      if (this.active && this.context?.state === "suspended") {
+      if ((this.active||this.starting) && ["suspended","interrupted"].includes(this.context?.state)) {
         this.context.resume().catch(() => {
           this.onloading?.("Toca el botón de voz para habilitar el audio de Ain.");
         });

@@ -17,7 +17,7 @@ function environment(users,latency){
   for(let i=0;i<Math.ceil(users/50);i++){const id='admin-device-'+String(i).padStart(8,'0');admins.push(id);devices[id]={name:id,adminName:'Admin '+i,role:'admin',status:'active',groupId:'group-'+i,relays:[1,2,3],actuatorIds:[]};}
   for(let i=0;i<users;i++){const id='user-device-'+String(i).padStart(8,'0');ids.push(id);devices[id]={name:id,adminName:'Persona '+i,phone:'56912345678',apartment:String(i+1),role:'user',status:'active',groupId:'group-'+Math.floor(i/50),relays:[1,2,3],actuatorIds:[0,1,2].map(j=>'act-'+Math.floor(i/50)+'-'+j)};}
   const registry=JSON.stringify({masterId:'master-device-0000',devices,revoked:{}});
-  const actuators=admins.flatMap((id,i)=>Array.from({length:3},(_,j)=>({id:'act-'+i+'-'+j,groupId:'group-'+i,name:'Actuador '+j,approved:true,deviceId:'mock-device-'+i+'-'+j,code:'switch_1',timerSeconds:0,timer:null})));
+  const actuators=admins.flatMap((id,i)=>Array.from({length:3},(_,j)=>({id:'act-'+i+'-'+j,groupId:'group-'+i,name:'Actuador '+j,approved:true,deviceId:'mock-device-'+i+'-'+j,code:'switch_1',timerSeconds:0,timerConfigured:true,timer:null})));
   const physical=new Map(),commandLog=[],settings={stateWriteLagMs:0,offlineDevices:new Set()};
   const values=new Map([['ayn:relay:devices',registry]]),lists=new Map(),hashes=new Map();
   hashes.set('ayn:managed:actuators',Object.fromEntries(actuators.map(a=>[a.id,JSON.stringify(a)])));

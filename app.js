@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 105';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 106';voiceStatus.after(voiceBuildLabel);
 const voiceHeardLabel=document.createElement('small');voiceHeardLabel.id='voiceHeard';voiceHeardLabel.textContent='Última frase escuchada: —';voiceBuildLabel.after(voiceHeardLabel);
 const voiceProviderNote=document.createElement('small');voiceProviderNote.id='voiceProviderNote';voiceProviderNote.hidden=true;voiceProviderNote.style.gridColumn='1 / -1';voiceHeardLabel.after(voiceProviderNote);
 const voiceRetryProvider=document.createElement('button');voiceRetryProvider.type='button';voiceRetryProvider.textContent='Reintentar motor de voz en línea';voiceRetryProvider.hidden=true;voiceProviderNote.after(voiceRetryProvider);
@@ -144,6 +144,8 @@ const menuDefinitions = [
   ["control", "Inicio", "🏠"],
   ["bookings", "Agenda", "📅"],
   ["reports", "Reportes", "📝"],
+  ["wall", "Muro digital", "📢"],
+  ["polls", "Encuestas", "📊"],
   ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
   ["admins", "Administradores", "🛡️"],
@@ -165,7 +167,7 @@ function buildMenu() {
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
         : menuDefinitions.filter(([id]) =>
-            ["control", "bookings", "reports", "panic", "settings"].includes(id),
+            ["control", "bookings", "reports", "wall", "polls", "panic", "settings"].includes(id),
           );
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
@@ -184,8 +186,9 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
-  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools',panic:'panic'};
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools',panic:'panic',wall:'wall',polls:'polls'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
+  if(["wall","polls"].includes(masterRoute)){showView(masterRoute);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
   );
@@ -979,7 +982,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 105 · Deepgram en tiempo real':'Motor de voz · versión 105 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
+  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 106 · Deepgram en tiempo real':'Motor de voz · versión 106 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
   voiceRetryProvider.onclick=async()=>{if(!voiceEnabled||!recognition.active||recognition.recovering)return;voiceRetryProvider.disabled=true;try{await recognition.recoverStreaming?.();}finally{voiceRetryProvider.disabled=!voiceEnabled||!recognition.active;}};
   recognition.onutteranceend=()=>{
     if(!voiceEnabled||voiceSpeaking||Date.now()<voiceEchoUntil||!voiceCaptureUntil)return;

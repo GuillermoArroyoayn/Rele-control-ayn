@@ -1,0 +1,10 @@
+const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/strict');
+(async()=>{for(const role of ['user','admin','super_master']){
+ const dom=new JSDOM('<main><input id="pin" value="test"><button data-view="wall"></button><section id="reportsPanel"></section></main>',{url:'https://ayn.test',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
+ w.localStorage.setItem('relayDeviceId','device');w.document.body.dataset.userView='wall';
+ w.fetch=async()=>({ok:true,json:async()=>({role,groupId:'A',groups:role==='super_master'?[{id:'A',name:'Comunidad A'}]:[],items:[{id:'test',type:'notice',title:'<script>ataque</script>',text:'Aviso',createdAt:new Date().toISOString(),author:'Admin'},{id:'poll',type:'poll',title:'Consulta',text:'Elige',options:['Sí','No'],counts:[1,0],total:1,myVote:null,closed:false,closesAt:new Date(Date.now()+60000).toISOString(),createdAt:new Date().toISOString(),author:'Admin'}]})});
+ w.eval(fs.readFileSync('community.js','utf8'));await new Promise(r=>setTimeout(r,20));
+ const q=id=>w.document.getElementById(id);assert.equal(q('communityPanel').hidden,false);assert.equal(q('communityForm').hidden,role==='user');assert.equal(q('communityGroupLabel').hidden,role!=='super_master');assert.equal(q('communityList').querySelector('script'),null);assert.match(q('communityList').textContent,/<script>/);
+ w.document.body.dataset.userView='polls';w.document.dispatchEvent(new w.Event('ayn-menu-view'));await new Promise(r=>setTimeout(r,20));assert.match(q('communityList').textContent,/Consulta/);assert.equal(q('communityList').textContent.includes('ataque'),false);assert.match(q('communityList').textContent,/Elegir: Sí/);
+ w.document.dispatchEvent(new w.Event('ayn-access-restricted'));assert.equal(q('communityPanel').hidden,true);assert.equal(q('communityList').children.length,0);w.close();
+ }console.log('Interfaz muro/encuestas: roles, navegación, títulos seguros y bloqueo correctos.');})().catch(e=>{console.error(e);process.exitCode=1});

@@ -80,8 +80,8 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 98: preparando audio local…");
-        this.onloading?.("Voz 98: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 99: preparando audio local…");
+        this.onloading?.("Voz 99: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -97,12 +97,12 @@
           })]);
         } finally { clearTimeout(resumeTimer); }
 
-        this.onloading?.("Voz 98: preparando la transcripción continua…");
+        this.onloading?.("Voz 99: preparando la transcripción continua…");
         const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);if(generation!==this.generation)return null;return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release98");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release99");
         if (generation !== this.generation) return;
         let firstAudio;let firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");
@@ -154,12 +154,13 @@
         if (generation === this.generation) this.fail(error);
       }
     }
-    emit(text, final, generation) {
+    emit(text, final, generation, utteranceEnded = final) {
       if (!this.active || this.suppressAudio || generation !== this.generation) return;
       let index = this.results.length;
       if (index && !this.results[index - 1].isFinal) index -= 1;
       const result = [{ transcript: text, confidence: 1 }];
       result.isFinal = final;
+      result.utteranceEnded = utteranceEnded;
       this.results[index] = result;
       if (this.consumedIndex !== index && text)
         this.onresult?.({ resultIndex: index, results: this.results });
@@ -176,7 +177,7 @@
       this.recognizer = recognizer;
       const generation = this.generation;
       recognizer.on("result", message => {
-        if (this.recognizer === recognizer) this.emit(message.result?.text || "", true, generation);
+        if (this.recognizer === recognizer) this.emit(message.result?.text || "", true, generation, message.speechFinal ?? true);
       });
       recognizer.on("partialresult", message => {
         if (this.recognizer === recognizer) this.emit(message.result?.partial || "", false, generation);

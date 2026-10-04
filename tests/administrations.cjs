@@ -7,6 +7,8 @@ const endpointModule={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(_
 function login(role,id,groupId=''){auth={ok:true,role,groupId,device:{id,name:id},registry};}
 async function request(body,method='POST'){let result,status=200;const res={setHeader(){},status(n){status=n;return this;},json(value){result=value;return this;}};await endpointModule.exports({method,body,headers:{}},res);return {status,result};}
 (async()=>{let count=0;const check=(value)=>{assert(value);count++;};
+ check(A.timerCapability([{code:'countdown',type:'integer',values:'{"unit":"s","max":60}'}],'switch').code==='countdown');
+ check(A.timerCapability([{code:'switch_1',type:'Boolean'},{code:'switch_2',type:'Boolean'},{code:'countdown',type:'Integer',values:'{"unit":"s","max":60}'}],'switch_2')===null);
  check(A.timerCapability([{code:'countdown_1',type:'Integer',values:'{"unit":"s","max":60,"step":1}'}],'switch_1').max===60);
  check(A.timerCapability([{code:'countdown_1',type:'Integer',values:'{"unit":"minute","max":60}'}],'switch_1')===null);
  assert.throws(()=>A.seconds(5,null));count++;assert.throws(()=>A.seconds(61,items[0].timer));count++;assert.throws(()=>A.seconds(-1,items[0].timer));count++;check(A.seconds(0,null)===0);

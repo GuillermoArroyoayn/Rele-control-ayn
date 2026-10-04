@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 101';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 102';voiceStatus.after(voiceBuildLabel);
 const voiceHeardLabel=document.createElement('small');voiceHeardLabel.id='voiceHeard';voiceHeardLabel.textContent='Última frase escuchada: —';voiceBuildLabel.after(voiceHeardLabel);
 const voiceProviderNote=document.createElement('small');voiceProviderNote.id='voiceProviderNote';voiceProviderNote.hidden=true;voiceProviderNote.style.gridColumn='1 / -1';voiceHeardLabel.after(voiceProviderNote);
 const voiceRetryProvider=document.createElement('button');voiceRetryProvider.type='button';voiceRetryProvider.textContent='Reintentar motor de voz en línea';voiceRetryProvider.hidden=true;voiceProviderNote.after(voiceRetryProvider);
@@ -144,7 +144,7 @@ const menuDefinitions = [
   ["control", "Inicio", "⌂"],
   ["bookings", "Agenda", "▦"],
   ["reports", "Reportes", "✎"],
-  ["panic", "Alertas SOS", "!"],
+  ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
   ["admins", "Administradores", "▣"],
   ["users", "Usuarios", "👥"],
@@ -161,9 +161,9 @@ function buildMenu() {
   if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.textContent='☰ Menú Máster';mainMenu.append(back);}
   const allowed =
     currentRole === "super_master"
-      ? menuDefinitions.filter(([id]) => !["settings", "panic"].includes(id))
+      ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
-        ? menuDefinitions.filter(([id]) => !["admins", "database", "settings", "panic"].includes(id))
+        ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
         : menuDefinitions.filter(([id]) =>
             ["control", "bookings", "reports", "panic", "settings"].includes(id),
           );
@@ -171,7 +171,7 @@ function buildMenu() {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.view = id;
-    button.innerHTML = `<span>${icon}</span>${label}`;
+    button.innerHTML = `<span class="menu-icon" aria-hidden="true">${icon}</span><span class="menu-label">${label}</span>`;
     button.addEventListener("click", () => showView(id));
     mainMenu.append(button);
   }
@@ -182,7 +182,7 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
-  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools'};
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools',panic:'panic'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
@@ -192,6 +192,7 @@ function buildMenu() {
 const masterConfigLink=document.createElement('a');masterConfigLink.className='small-button';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;mainMenu.before(masterConfigLink);
 function showView(view) {
   currentView = view;
+  document.dispatchEvent(new Event("ayn-menu-view"));
   masterConfigLink.hidden=currentRole!=='super_master';
   masterConfigLink.href=view==='control'?'/administracion.html#timers':view==='temporary'?'/#temporary':view==='bookings'?'/#bookings':view==='voice'?'/#voice':'/#tools';
   if(currentRole==='super_master'){
@@ -976,7 +977,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 101 · Deepgram en tiempo real':'Motor de voz · versión 101 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
+  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 102 · Deepgram en tiempo real':'Motor de voz · versión 102 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
   voiceRetryProvider.onclick=async()=>{if(!voiceEnabled||!recognition.active||recognition.recovering)return;voiceRetryProvider.disabled=true;try{await recognition.recoverStreaming?.();}finally{voiceRetryProvider.disabled=!voiceEnabled||!recognition.active;}};
   recognition.onutteranceend=()=>{
     if(!voiceEnabled||voiceSpeaking||Date.now()<voiceEchoUntil||!voiceCaptureUntil)return;

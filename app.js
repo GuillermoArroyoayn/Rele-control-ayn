@@ -38,8 +38,10 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 99';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 100';voiceStatus.after(voiceBuildLabel);
 const voiceHeardLabel=document.createElement('small');voiceHeardLabel.id='voiceHeard';voiceHeardLabel.textContent='Última frase escuchada: —';voiceBuildLabel.after(voiceHeardLabel);
+const voiceProviderNote=document.createElement('small');voiceProviderNote.id='voiceProviderNote';voiceProviderNote.hidden=true;voiceProviderNote.style.gridColumn='1 / -1';voiceHeardLabel.after(voiceProviderNote);
+const voiceRetryProvider=document.createElement('button');voiceRetryProvider.type='button';voiceRetryProvider.textContent='Reintentar motor de voz en línea';voiceRetryProvider.hidden=true;voiceProviderNote.after(voiceRetryProvider);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -743,9 +745,10 @@ const normalizeVoice = text => normalizeVoiceBase(text)
   .replace(/\bpor ton\b/g, "porton")
   .replace(/\bactua dor\b/g, "actuador")
   // Rapid speech can be transcribed without word boundaries.
-  .replace(/^(ain|auin|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
+  .replace(/^(ain|ains|auin|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
   .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador|acceso|rele)\b/g, "$1 $2")
   .replace(/\b(actuador|porton|puerta|acceso|rele)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
+  .replace(/\b(porton|puerta|actuador|rele|acceso)( numero)? unos\b/g, "$1$2 uno")
   .split(" ").map(word => {
   if (voiceAliases[word]) return voiceAliases[word];
   if (word.length < 4 || voiceVocabulary.includes(word)) return word;
@@ -764,7 +767,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.classList.toggle("error", error);
   if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /^(?:(?:oye|hola|hey|ey) )?(?:ain|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
+const wakeWordPattern = /^(?:(?:oye|hola|hey|ey) )?(?:ain|ains|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
 const misheardWakePattern = /^(?:ahi|hay|ay|ai|a|en|in)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
@@ -973,7 +976,8 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 99 · Deepgram en tiempo real':'Motor de voz · versión 99 · local';};
+  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 100 · Deepgram en tiempo real':'Motor de voz · versión 100 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
+  voiceRetryProvider.onclick=async()=>{if(!voiceEnabled||!recognition.active||recognition.recovering)return;voiceRetryProvider.disabled=true;try{await recognition.recoverStreaming?.();}finally{voiceRetryProvider.disabled=!voiceEnabled||!recognition.active;}};
   recognition.onutteranceend=()=>{
     if(!voiceEnabled||voiceSpeaking||Date.now()<voiceEchoUntil||!voiceCaptureUntil)return;
     if(isCompleteFastVoiceCommand(mergeVoiceFragments(voicePhrase,voiceInterimPhrase)))finishVoiceCapture();
@@ -1001,6 +1005,7 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
+    voiceRetryProvider.disabled=false;
     voiceRetryCount=0;
     voiceFinalResults = new Map();
     voiceCommand.classList.add("listening");

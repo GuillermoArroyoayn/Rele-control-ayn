@@ -80,8 +80,8 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 99: preparando audio local…");
-        this.onloading?.("Voz 99: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 100: preparando audio local…");
+        this.onloading?.("Voz 100: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -97,12 +97,12 @@
           })]);
         } finally { clearTimeout(resumeTimer); }
 
-        this.onloading?.("Voz 99: preparando la transcripción continua…");
+        this.onloading?.("Voz 100: preparando la transcripción continua…");
         const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);if(generation!==this.generation)return null;return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release99");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release100");
         if (generation !== this.generation) return;
         let firstAudio;let firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");

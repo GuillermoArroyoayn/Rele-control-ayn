@@ -567,13 +567,18 @@ let voiceCaptureUntil = 0;
 let voiceCaptureTimer = 0;
 let voiceCaptureStartedAt = 0;
 let voiceLastSpeechAt = 0;
+const voicePhraseDeadline = () => {
+  const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
+  const minimum = isCompleteFastVoiceCommand(phrase) ? 0 : voiceCaptureStartedAt + 3000;
+  return Math.max(minimum, voiceLastSpeechAt + 1500);
+};
 const scheduleVoicePhraseEnd = () => {
   if (!voiceCaptureUntil) return;
   clearTimeout(voiceCaptureTimer);
-  const remaining = Math.max(voiceCaptureStartedAt + 3000, voiceLastSpeechAt + 1500) - Date.now();
+  const remaining = voicePhraseDeadline() - Date.now();
   voiceCaptureTimer = window.setTimeout(() => {
     if (!voiceCaptureUntil) return;
-    const deadline = Math.max(voiceCaptureStartedAt + 3000, voiceLastSpeechAt + 1500);
+    const deadline = voicePhraseDeadline();
     if (Date.now() < deadline) { scheduleVoicePhraseEnd(); return; }
     finishVoiceCapture();
   }, Math.max(0, remaining));
@@ -853,10 +858,12 @@ async function runVoiceCommand(transcript) {
     }
     const directAction = hasVoiceOpenIntent(command);
     if (directAction) {
-      await acknowledgeVoiceCommand();
+      const acknowledgement = acknowledgeVoiceCommand();
       if (!voiceEnabled) return;
       setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
+      await acknowledgement;
+      if (!voiceEnabled) return;
       setVoiceStatus(
         success
           ? `${voiceRelayNames[relay]} activado correctamente.`

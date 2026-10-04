@@ -570,7 +570,7 @@ let voiceLastSpeechAt = 0;
 const voicePhraseDeadline = () => {
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
   const minimum = isCompleteFastVoiceCommand(phrase) ? 0 : voiceCaptureStartedAt + 3000;
-  return Math.max(minimum, voiceLastSpeechAt + 1500);
+  return Math.max(minimum, voiceLastSpeechAt + 800);
 };
 const scheduleVoicePhraseEnd = () => {
   if (!voiceCaptureUntil) return;

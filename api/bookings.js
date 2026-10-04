@@ -1,3 +1,4 @@
+const {addHistory}=require('../lib/history');
 const crypto=require("crypto");
 const {authorize}=require("../lib/devices");
 const {readSettings,writeSettings,readBookings,readMonthBookings,createBooking,cancelBooking}=require("../lib/bookings");
@@ -46,7 +47,7 @@ module.exports=async function handler(req,res){
     }
     if(req.method==="PUT"){
       if(!isManager)return res.status(403).json({error:"Solo un administrador puede configurar los espacios."});
-      const spaces=validateSpaces(req.body?.spaces);await writeSettings(scope,spaces);return res.status(200).json({ok:true,spaces});
+      const spaces=validateSpaces(req.body?.spaces);await writeSettings(scope,spaces);await addHistory({kind:"agenda",groupId:scope,userName:auth.device.name,action:"Configuración de espacios actualizada"}).catch(()=>{});return res.status(200).json({ok:true,spaces});
     }
     if(req.method==="POST"){
       const date=String(req.body?.date||""),spaceId=String(req.body?.spaceId||""),start=String(req.body?.start||"");
@@ -57,13 +58,13 @@ module.exports=async function handler(req,res){
       const startMinute=minutes(start),endMinute=startMinute+space.slotMinutes;if(startMinute<minutes(space.open)||endMinute>minutes(space.close)||(startMinute-minutes(space.open))%space.slotMinutes!==0)return res.status(400).json({error:"Selecciona uno de los horarios disponibles."});
       if(date===chileToday()&&startMinute<=chileMinute())return res.status(400).json({error:"No puedes reservar un horario que ya comenzó."});
       const record=auth.registry.devices[auth.device.id]||{};const booking={id:crypto.randomUUID(),spaceId,date,start,end:`${String(Math.floor(endMinute/60)).padStart(2,"0")}:${String(endMinute%60).padStart(2,"0")}`,startMinute,endMinute,deviceId:auth.device.id,userName:record.adminName||auth.device.name,apartment:String(record.apartment||"").slice(0,50),createdAt:new Date().toISOString()};
-      await createBooking(scope,date,booking);return res.status(201).json({ok:true,booking});
+      await createBooking(scope,date,booking);await addHistory({...booking,id:crypto.randomUUID(),createdAt:new Date().toISOString(),kind:"agenda",groupId:scope,action:"Reserva creada"}).catch(()=>{});return res.status(201).json({ok:true,booking});
     }
     if(req.method==="DELETE"){
       const date=String(req.body?.date||""),id=String(req.body?.id||"");if(!datePattern.test(date)||!id)return res.status(400).json({error:"Reserva inválida."});
       const rows=await readBookings(scope,date);const booking=rows.find(item=>item.id===id&&!item.cancelledAt);if(!booking)return res.status(404).json({error:"Reserva no encontrada."});
       if(!isManager&&booking.deviceId!==auth.device.id)return res.status(403).json({error:"Solo puedes cancelar tus propias reservas."});
-      await cancelBooking(scope,date,id,auth.device.id);return res.status(200).json({ok:true});
+      await cancelBooking(scope,date,id,auth.device.id);await addHistory({...booking,id:crypto.randomUUID(),createdAt:new Date().toISOString(),kind:"agenda",groupId:scope,action:"Reserva cancelada",actor:auth.device.name}).catch(()=>{});return res.status(200).json({ok:true});
     }
     return res.status(405).json({error:"Método no permitido"});
   }catch(e){console.error(e);return res.status(e.code==="SLOT_CONFLICT"?409:400).json({error:e.message||"No se pudo completar la reserva."});}

@@ -36,21 +36,20 @@ module.exports=async(req,res)=>{
       const ok=await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); if e.apology then return 2 end e.apology=cjson.decode(ARGV[1]); redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+old.id,JSON.stringify(apology));if(!ok)throw A.error('La alerta ya venció.',410);return res.json({ok:true});
     }
     if(b.action!=='trigger')throw A.error('Acción desconocida.');
-    if(!actuator)throw A.error('El Máster debe configurar un actuador de pánico para esta administración.');
     if(!/^[a-zA-Z0-9-]{16,80}$/.test(b.requestId||''))throw A.error('Solicitud inválida.');
     const id=A.hash(groupId+':'+auth.device.id+':'+b.requestId).slice(0,32);
     const now=new Date().toISOString();
     const person=auth.registry.devices[auth.device.id];
-    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,expiresAt:new Date(Date.parse(now)+300000).toISOString(),message:'ALERTA DE PÁNICO: se solicita ayuda en esta administración.',actuatorName:actuator.name,actuatorStatus:'pending',apology:null};
+    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,expiresAt:new Date(Date.parse(now)+300000).toISOString(),message:'ALERTA DE PÁNICO: se solicita ayuda en esta administración.',actuatorName:actuator?.name||'Sin sirena asignada',actuatorStatus:'pending',apology:null};
     const inserted=await A.redis('EVAL',"if redis.call('EXISTS',KEYS[1])==1 then return 0 end redis.call('SET',KEYS[1],ARGV[1],'EX',604800); redis.call('LPUSH',KEYS[2],ARGV[2]); redis.call('LTRIM',KEYS[2],0,99); redis.call('EXPIRE',KEYS[2],604800); return 1",2,PREFIX+'event:'+id,PREFIX+'feed:'+groupId,JSON.stringify(alert),id);
     if(!inserted)return res.json({ok:true,eventId:id,expiresAt:(await event(id))?.expiresAt,duplicate:true});
-    let actuatorStatus='sent';
+    let actuatorStatus=actuator?'sent':'not-configured';
     try{
-      const seconds=A.seconds(actuator.timerSeconds,actuator.timer);
-      await require('../lib/timed-command').runTimed(actuator.deviceId,actuator.code,true,seconds,actuator.timer);
+      if(actuator){const seconds=A.seconds(actuator.timerSeconds,actuator.timer);
+      await require('../lib/timed-command').runTimed(actuator.deviceId,actuator.code,true,seconds,actuator.timer);}
     }catch{actuatorStatus='failed';}
     // Update only delivery status: an apology posted concurrently is preserved.
     await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); e.actuatorStatus=ARGV[1]; redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+id,actuatorStatus);
-    return res.json({ok:true,eventId:id,expiresAt:alert.expiresAt,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
+    return res.json({ok:true,eventId:id,expiresAt:alert.expiresAt,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':actuatorStatus==='not-configured'?'Alerta emitida a esta administración. No hay una sirena asignada.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
   }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'No se pudo procesar la alerta.'});}
 };

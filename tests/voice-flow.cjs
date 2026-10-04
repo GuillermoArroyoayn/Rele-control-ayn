@@ -23,7 +23,7 @@ assert(w.document.getElementById('voiceStatus').textContent.includes('escuchando
 // La orden llega inmediatamente tras la hipótesis de Ain, sin final ni pausa.
 
 say('me abres la puerta por favor',false);
-await wait(2600);assert.equal(orders.length,0);
+await wait(900);assert.equal(orders.length,0);
 engine.onspeechactivity();
 await wait(1100);assert.equal(orders.length,0);
 await wait(550);

@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 88';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 89';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -539,7 +539,7 @@ async function controlRelay(relay, desired, source = "manual") {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ relay, state: desired, source,progressive:typeof TextDecoder==='function' }),
-      onCompleted:result=>{completedResult=result;clearTimeout(relayTimerChecks.get(relay));controlOutcomes.set(relay,result);paint(relay,result.state);if(result.autoOffPending)show(result.message||'Apagado pendiente de confirmar.',true);else if(result.autoOffConfirmed)show(`Actuador ${relay}: apagado automático confirmado.`);},
+      onCompleted:result=>{completedResult=result;clearTimeout(relayTimerChecks.get(relay));controlOutcomes.set(relay,result);paint(relay,result.state);if(result.autoOffPending)show(result.message||'Apagado pendiente de confirmar.',true);},
     });
     const data=completedResult||acceptedData;
     controlOutcomes.set(relay,data);
@@ -549,7 +549,7 @@ async function controlRelay(relay, desired, source = "manual") {
       const label=document.getElementById(`state${relay}`);label.textContent=data.autoOffPending?"APAGADO PENDIENTE DE CONFIRMAR":`ENCENDIDO · ${data.timerSeconds} s`;
       relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
     }
-    show(data.autoOffPending?(data.message||'Activación enviada. Apagado pendiente de confirmar.'):data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
+    show(data.autoOffPending?(data.message||'Activación enviada. Apagado pendiente de confirmar.'):data.autoOffConfirmed?`Actuador ${relay}: activación enviada.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
     return true;
   } catch (e) {
     show(e.message, true);
@@ -984,7 +984,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 88 · Deepgram en tiempo real':'Motor de voz · versión 88 · local';};
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 89 · Deepgram en tiempo real':'Motor de voz · versión 89 · local';};
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.onspeechactivity = () => {

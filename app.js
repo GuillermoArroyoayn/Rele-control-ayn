@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 97';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 98';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -581,6 +581,7 @@ let voiceEchoUntil = 0;
 let voiceWakeUntil = 0;
 let voiceCommandBusy = false;
 let voiceStarting = false;
+let voiceRetryCount=0;
 let voiceSessionGeneration = 0;
 let voicePhrase = "";
 let voiceInterimPhrase = "";
@@ -674,7 +675,7 @@ const collectVoicePhrase = (transcript) => {
 const scheduleVoiceListening = (delay = 350) => {
   clearTimeout(voiceRestartTimer);
   if (!voiceEnabled) return;
-  voiceRestartTimer = window.setTimeout(startVoiceListening, delay);
+  voiceRestartTimer = window.setTimeout(()=>{voiceRestartTimer=0;startVoiceListening();}, delay);
 };
 const speak = (text, onFinished) => {
   if (!("speechSynthesis" in window)) return false;
@@ -773,6 +774,7 @@ const removeWakeWord = (command) =>
 function startVoiceListening() {
   if (!voiceEnabled || voiceListening || voiceStarting || !recognition) return;
   try {
+    clearTimeout(voiceRestartTimer);voiceRestartTimer=0;
     voiceStarting = true;
     const started = recognition.start();
     started?.catch(() => { voiceStarting = false; });
@@ -970,7 +972,15 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 97 · Deepgram en tiempo real':'Motor de voz · versión 97 · local';};
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 98 · Deepgram en tiempo real':'Motor de voz · versión 98 · local';};
+  recognition.onrecovering=()=>{
+    voiceListening=false;voiceStarting=true;
+    clearTimeout(voiceCaptureTimer);
+    voiceCaptureUntil=voiceWakeUntil=0;
+    voicePhrase=voiceInterimPhrase=voiceLastTranscript='';
+    voiceFinalResults=new Map();
+    voiceCommand.classList.remove('listening');
+  };
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.onspeechactivity = () => {
@@ -986,6 +996,7 @@ if (!SpeechRecognition) {
     voiceStarting = false;
     if (!voiceEnabled) { recognition.abort(); return; }
     voiceListening = true;
+    voiceRetryCount=0;
     voiceFinalResults = new Map();
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
@@ -1036,6 +1047,16 @@ if (!SpeechRecognition) {
       "network": "El reconocimiento de voz perdió la conexión. Revisa Internet y vuelve a activar Ain.",
       "language-not-supported": "Este navegador no admite reconocimiento en español de Chile.",
     };
+    if(event.recoverable&&voiceEnabled){
+      voiceListening=voiceStarting=false;
+      voiceCaptureUntil=voiceWakeUntil=0;
+      voicePhrase=voiceInterimPhrase=voiceLastTranscript='';
+      clearTimeout(voiceCaptureTimer);
+      voiceCommand.classList.remove('listening');
+      setVoiceStatus('Recuperando la conexión de voz automáticamente…',true);
+      scheduleVoiceListening(Math.min(15000,1000*2**Math.min(voiceRetryCount++,4)));
+      return;
+    }
     if (messages[event.error]) {
       stopVoiceMode(messages[event.error] + " La selección queda guardada; toca Activar AIN por voz para reintentar.", false);
       voiceStatus.classList.add("error");
@@ -1083,8 +1104,14 @@ if (!SpeechRecognition) {
       startVoiceListening();
       return;
     }
-    if (!voiceListening && !voiceStarting) startVoiceListening();
+    if (!voiceListening && !voiceStarting && !voiceRestartTimer) startVoiceListening();
   }, 2000);
+  document.addEventListener('pointerdown',event=>{
+    if(event.target.closest?.('#voiceCommand')||!voiceEnabled)return;
+    recognition.resume?.();
+    if(!voiceListening&&!voiceStarting)startVoiceListening();
+  });
+  window.addEventListener('online',restoreVoiceSelection);
   window.addEventListener("pageshow", restoreVoiceSelection);
   document.addEventListener("visibilitychange", restoreVoiceSelection);
   window.addEventListener("focus", restoreVoiceSelection);

@@ -4,3 +4,17 @@
 body.panic-sos-visible{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .panic-trigger{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:1000;display:grid;place-items:center;width:80px;height:80px;min-height:80px;margin:0;padding:0;border:3px solid #fff;border-radius:50%;background:#d71920;color:#fff;font-family:system-ui,sans-serif;font-size:26px;font-weight:900;line-height:1;letter-spacing:1px;box-shadow:0 5px 20px #0006;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .panic-trigger:hover{background:#b80f16}.panic-trigger:active{transform:scale(.96)}.panic-trigger:focus-visible{outline:4px solid #ffda44;outline-offset:4px}.panic-trigger:disabled{background:#9d252b;cursor:default}.panic-trigger[hidden]{display:none!important}
+
+body.panic-screen-open{overflow:hidden}
+.panic-screen{position:fixed;inset:0;z-index:10000;isolation:isolate;display:grid;place-items:center;overflow:hidden;background:var(--theme-bg,#102332);color:#fff;padding:calc(24px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(20px + env(safe-area-inset-left,0px));box-sizing:border-box}
+.panic-screen[hidden]{display:none!important}
+.panic-watermark{position:absolute;inset:0;display:grid;place-items:center;font:900 clamp(120px,43vw,560px)/1 system-ui,sans-serif;letter-spacing:-.06em;color:#ff263d;opacity:.22;text-shadow:0 0 60px #f5263a66;animation:panic-watermark-pulse 2.4s ease-in-out infinite;pointer-events:none;z-index:-1}
+.panic-screen-content{width:min(100%,520px);text-align:center;display:grid;gap:18px}
+.panic-screen-content h2{font:900 clamp(56px,18vw,140px)/1 system-ui,sans-serif;margin:0;color:#fff;text-shadow:0 2px 12px #0009}
+.panic-screen-status{margin:0;font-size:1.2rem;background:#09121dcc;border-radius:16px;padding:18px;line-height:1.5}
+.panic-screen-content button{min-height:56px;border:2px solid #fff;border-radius:16px;padding:14px;font:700 1rem system-ui,sans-serif;cursor:pointer;background:#ab182b;color:#fff}
+.panic-screen-content .panic-screen-close{background:#102332}
+.panic-screen-content button:focus-visible{outline:4px solid #ffda44;outline-offset:4px}
+.panic-screen-content button[hidden]{display:none}
+@keyframes panic-watermark-pulse{0%,100%{opacity:.16;transform:scale(.94)}50%{opacity:.38;transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.panic-watermark{animation:none;opacity:.25}}

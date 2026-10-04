@@ -97,7 +97,7 @@
           })]);
         } finally { clearTimeout(resumeTimer); }
 
-        this.onloading?.("Voz 98: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
+        this.onloading?.("Voz 98: preparando la transcripción continua…");
         const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);if(generation!==this.generation)return null;return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();

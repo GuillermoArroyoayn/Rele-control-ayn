@@ -10,13 +10,13 @@ createMediaStreamSource(){return {connect(){},disconnect(){}}}
 async close(){this.state="closed";}
 }
 global.AudioWorkletNode=class {constructor(){this.port={};}connect(){}disconnect(){}};
-class Model{on(event,cb){if(event==="load")queueMicrotask(()=>cb({result:true}));}terminate(){}}
+class Model{on(event,cb){if(event==="load")setTimeout(()=>cb({result:true}),30);}terminate(){}}
 Model.prototype.KaldiRecognizer=class {constructor(){recognizer=this;this.handlers={};}on(e,cb){this.handlers[e]=cb;}acceptWaveformFloat(s,rate){forwarded.push({samples:Array.from(s),rate});}remove(){}};
 global.Vosk={Model};global.window={AudioContext:Context,Vosk};
 eval(require("node:fs").readFileSync(require("node:path").join(__dirname, "../ain-local-voice.js"), "utf8"));
 (async()=>{
 const engine=new window.AinLocalRecognition();engine.onstart=()=>starts++;engine.onresult=()=>emitted++;
-await engine.start();assert.equal(starts,1);assert.equal(captures,1);assert.equal(stops,0);
+const beginning=engine.start();await new Promise(r=>setTimeout(r,10));assert.equal(starts,0);assert(engine.node);engine.node.port.onmessage({data:new Float32Array([.1,.2])});assert.equal(forwarded.length,0);await beginning;assert.equal(forwarded.length,1);assert(Math.abs(forwarded[0].samples[0]-.1)<.0001);forwarded=[];assert.equal(starts,1);assert.equal(captures,1);assert.equal(stops,0);
 assert.deepEqual(options.audio,{autoGainControl:true,echoCancellation:true,noiseSuppression:true,channelCount:1});
 assert.equal(options.video,false);
 for(let i=0;i<3;i++){recognizer.handlers.partialresult({result:{partial:"ain activar actuador dos"}});recognizer.handlers.result({result:{text:"ain activar actuador dos"}});}

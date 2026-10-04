@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+(async()=>{let captures=0,stops=0,starts=0,recoveries=0,prepareResolve,prepared=[],forwarded=[];
+const track={addEventListener(){},stop(){stops++;}},stream={getTracks:()=>[track],getAudioTracks:()=>[track]};
+class Context{constructor(){this.state='suspended';this.sampleRate=48000;this.destination={};this.audioWorklet={addModule:async()=>{}};}async resume(){assert(captures>0,'capture must open before resuming blocked audio');this.state='running';}async close(){this.state='closed';}createMediaStreamSource(){return{connect(){},disconnect(){}};}}
+class Recognizer{constructor(){this.handlers={};}on(event,callback){this.handlers[event]=callback;}acceptWaveformFloat(samples){forwarded.push(Array.from(samples));}remove(){}}
+const model={KaldiRecognizer:Recognizer};
+const window={AudioContext:Context,AinVoiceProvider:{prepare:async engine=>{prepared.push(engine);return new Promise(resolve=>prepareResolve=resolve);}}};
+vm.runInNewContext(fs.readFileSync('ain-local-voice.js','utf8'),{window,navigator:{mediaDevices:{getUserMedia:async()=>{captures++;return stream;}}},AudioWorkletNode:class{constructor(){this.port={};}connect(){}disconnect(){}},DOMException,Date,setTimeout,clearTimeout});
+const engine=new window.AinLocalRecognition();engine.onstart=()=>starts++;engine.onrecovering=()=>recoveries++;
+const flush=()=>new Promise(r=>setTimeout(r,5));const beginning=engine.start();await flush();assert(engine.node);engine.node.port.onmessage({data:new Float32Array([.1])});assert.equal(starts,0);prepareResolve(model);await beginning;assert.equal(starts,1);assert.equal(forwarded.length,1);assert.equal(captures,1);
+engine.streamingModel={terminate(){}};const recovering=engine.recoverStreaming();assert.equal(recoveries,1);assert.equal(stops,0);assert.equal(engine.recognizer,null);engine.node.port.onmessage({data:new Float32Array([.2])});await engine.recoverStreaming();assert.equal(prepared.length,2,'one reconnection at a time');prepareResolve(model);await recovering;assert.equal(starts,2);assert.equal(captures,1);assert.equal(stops,0);assert.equal(forwarded.length,2);assert(Math.abs(forwarded[1][0]-.2)<.0001);
+engine.context.state='interrupted';engine.context.onstatechange();await flush();assert.equal(engine.context.state,'running');
+const cancelled=engine.recoverStreaming();engine.abort();prepareResolve(model);await cancelled;assert.equal(starts,2);assert.equal(engine.active,false);assert.equal(stops,1);console.log('Voz: micrófono antes de reanudar audio, primera entrada guardada, reconexión sin cerrar captura, audio durante reconexión, interrupción y cancelación verificadas.');})().catch(e=>{console.error(e);process.exitCode=1;});

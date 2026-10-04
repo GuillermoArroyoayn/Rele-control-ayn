@@ -47,8 +47,7 @@ module.exports=async(req,res)=>{
     let actuatorStatus='sent';
     try{
       const seconds=A.seconds(actuator.timerSeconds,actuator.timer);
-      const commands=[{code:actuator.code,value:true}];if(actuator.timer)commands.push({code:actuator.timer.code,value:seconds});
-      const token=await getToken();await tuyaFetch('POST',`/v1.0/iot-03/devices/${actuator.deviceId}/commands`,JSON.stringify({commands}),token);
+      await require('../lib/timed-command').runTimed(actuator.deviceId,actuator.code,true,seconds,actuator.timer);
     }catch{actuatorStatus='failed';}
     // Update only delivery status: an apology posted concurrently is preserved.
     await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); e.actuatorStatus=ARGV[1]; redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+id,actuatorStatus);

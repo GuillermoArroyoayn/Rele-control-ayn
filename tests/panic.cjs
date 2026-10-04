@@ -18,5 +18,5 @@ feed=await request({},'GET',{groupId:'group-A'});check(feed.value.events[0].apol
 login('user','user-B','group-B');feed=await request({},'GET',{groupId:'group-B'});check(feed.value.events.length===0);check((await request({action:'apologize',groupId:'group-B',eventId:first.value.eventId})).status===403);
 fail=true;const failure=await request({action:'trigger',groupId:'group-B',requestId:'request-0000000002'});check(failure.value.actuatorStatus==='failed');feed=await request({},'GET',{groupId:'group-B'});check(feed.value.events.length===1);
 login('super_master','master','');check((await request({action:'configure',groupId:'group-A',actuatorId:'act-B'})).status===400);check((await request({action:'configure',groupId:'group-A',actuatorId:'act-A'})).status===200);
-console.log(n+' comprobaciones de pánico, aislamiento, disculpas y fallo de actuador correctas');
+config.delete('group-A');login('user','user-A','group-A');const before=calls;const noSiren=await request({action:'trigger',groupId:'group-A',requestId:'no-siren-00000000001'});check(noSiren.status===200);check(noSiren.value.actuatorStatus==='not-configured');check(calls===before);console.log(n+' comprobaciones de pánico, aislamiento, disculpas y fallo de actuador correctas');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -541,7 +541,7 @@ async function controlRelay(relay, desired, source = "manual") {
       const label=document.getElementById(`state${relay}`);label.textContent=data.autoOffPending?"APAGADO PENDIENTE DE CONFIRMAR":`ENCENDIDO · ${data.timerSeconds} s`;
       relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
     }
-    show(data.autoOffPending?'Activación enviada. Apagado pendiente de confirmar.':data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
+    show(data.autoOffPending?(data.message||'Activación enviada. Apagado pendiente de confirmar.'):data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
     return true;
   } catch (e) {
     show(e.message, true);
@@ -904,7 +904,7 @@ async function runVoiceCommand(transcript) {
       if (!voiceEnabled) return;
       setVoiceStatus(
         success
-          ? controlOutcomes.get(relay)?.autoOffPending?`${voiceRelayNames[relay]}: activación enviada; apagado pendiente de confirmar.`:`${voiceRelayNames[relay]} activado correctamente.`
+          ? controlOutcomes.get(relay)?.autoOffPending?`${voiceRelayNames[relay]}: ${controlOutcomes.get(relay).message||'activación enviada; apagado pendiente de confirmar.'}`:`${voiceRelayNames[relay]} activado correctamente.`
           : `No fue posible activar ${voiceRelayNames[relay]}.`,
         !success,
         true,

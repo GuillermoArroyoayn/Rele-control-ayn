@@ -102,7 +102,7 @@
         this.model = model;
         this.noiseActivity = new AinNoiseActivity();
         this.resetDecoder();
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261003-voice49");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-voice79");
         if (generation !== this.generation) return;
         const node = new AudioWorkletNode(context, "ain-audio-capture");
         this.node = node;

@@ -780,7 +780,10 @@ function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = 
   setVoiceStatus(message);
 }
 
+// Índice de frases verificadas: coincidencia directa antes de analizar variantes.
+const savedVoiceCommands = new Map((window.AinVoicePhrases?.phrases || []).map(item => [normalizeVoice(item.phrase),item.relay]));
 const resolveVoiceRelay = (command) => {
+  if (savedVoiceCommands.has(command)) return savedVoiceCommands.get(command);
   const candidates = new Set();
   for (const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
     candidates.add(({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[match[1]]);
@@ -798,6 +801,7 @@ const resolveVoiceRelay = (command) => {
 
 const hasVoiceOpenIntent = command => {
   if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener|cerrar|cierra|cerrado|apagar|apaga|desactivar)\b/.test(command)) return false;
+  if (savedVoiceCommands.has(command)) return true;
   if (/(^| )(activar|activa|abrir|abre|encender|enciende|prender|prende)( |$)/.test(command)) return true;
   // También admite un destino directo después de Ain: "puerta" o "portón de entrada".
   return /^(?:el |la |los |las )?(?:porton|puerta|acceso|actuador|rele|qr)(?: (?:de|del|la|el|numero|entrada|salida|vehicular|peatonal|qr|1|2|3|uno|un|dos|tres|primero|segundo|tercero))*$/.test(command);

@@ -25,7 +25,9 @@ module.exports=async function handler(req,res){
       await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"error",error:error.message}).catch(()=>{});
       throw error;
     }
-    return res.status(200).json({ok:true,relay,state:finalState});
+    const {originalSeconds}=require("../lib/actuator-timers");
+    const timerSeconds=finalState?await originalSeconds(relay):0;
+    return res.status(200).json({ok:true,relay,state:finalState,timerSeconds});
   }catch(e){
     console.error(e);
     return res.status(500).json({error:e.message||"Error interno"});

@@ -17,7 +17,7 @@ module.exports=async(req,res)=>{
     if(req.method==='GET'){
       const ids=await A.redis('LRANGE',PREFIX+'feed:'+groupId,0,19);
       const values=ids?.length?await A.redis('MGET',...ids.map(id=>PREFIX+'event:'+id)):[];
-      const events=(values||[]).map(parse).filter(e=>e&&e.groupId===groupId).map(({creator,...e})=>({...e,canApologize:creator===auth.device.id||['super_master','admin'].includes(auth.role)}));
+      const events=(values||[]).map(parse).filter(e=>e&&e.groupId===groupId).map(({creator,...e})=>({...e,active:!e.apology&&Date.now()<Date.parse(e.expiresAt||new Date(Date.parse(e.createdAt)+300000).toISOString()),canApologize:creator===auth.device.id||['super_master','admin'].includes(auth.role)}));
       const groups=auth.role==='super_master'?[{id:'master',name:'Máster general'},...Object.values(auth.registry.devices).filter(d=>d.role==='admin').map(d=>({id:d.groupId,name:d.adminName||d.name}))]:[];
       return res.json({role:auth.role,groupId,groups,configured:Boolean(actuator),actuatorName:actuator?.name||'',timerSeconds:actuator?.timerSeconds||0,actuators:auth.role==='super_master'?all.filter(a=>a.groupId===groupId&&a.approved).map(a=>({id:a.id,name:a.name})):[],events});
     }
@@ -41,9 +41,9 @@ module.exports=async(req,res)=>{
     const id=A.hash(groupId+':'+auth.device.id+':'+b.requestId).slice(0,32);
     const now=new Date().toISOString();
     const person=auth.registry.devices[auth.device.id];
-    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,message:'ALERTA DE PÁNICO: se solicita ayuda en esta administración.',actuatorName:actuator.name,actuatorStatus:'pending',apology:null};
+    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,expiresAt:new Date(Date.parse(now)+300000).toISOString(),message:'ALERTA DE PÁNICO: se solicita ayuda en esta administración.',actuatorName:actuator.name,actuatorStatus:'pending',apology:null};
     const inserted=await A.redis('EVAL',"if redis.call('EXISTS',KEYS[1])==1 then return 0 end redis.call('SET',KEYS[1],ARGV[1],'EX',604800); redis.call('LPUSH',KEYS[2],ARGV[2]); redis.call('LTRIM',KEYS[2],0,99); redis.call('EXPIRE',KEYS[2],604800); return 1",2,PREFIX+'event:'+id,PREFIX+'feed:'+groupId,JSON.stringify(alert),id);
-    if(!inserted)return res.json({ok:true,eventId:id,duplicate:true});
+    if(!inserted)return res.json({ok:true,eventId:id,expiresAt:(await event(id))?.expiresAt,duplicate:true});
     let actuatorStatus='sent';
     try{
       const seconds=A.seconds(actuator.timerSeconds,actuator.timer);
@@ -51,6 +51,6 @@ module.exports=async(req,res)=>{
     }catch{actuatorStatus='failed';}
     // Update only delivery status: an apology posted concurrently is preserved.
     await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); e.actuatorStatus=ARGV[1]; redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+id,actuatorStatus);
-    return res.json({ok:true,eventId:id,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
+    return res.json({ok:true,eventId:id,expiresAt:alert.expiresAt,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
   }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'No se pudo procesar la alerta.'});}
 };

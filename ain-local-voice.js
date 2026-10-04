@@ -97,17 +97,16 @@
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
         this.onloading?.("Voz 35: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
-        const model = await loadModel();
-        if (generation !== this.generation) return;
-        this.model = model;
+        const preparingModel = loadModel();
+        preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
-        this.resetDecoder();
+        this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
         await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-voice79");
         if (generation !== this.generation) return;
         const node = new AudioWorkletNode(context, "ain-audio-capture");
         this.node = node;
         node.port.onmessage = event => {
-          if (!this.active || generation !== this.generation) return;
+          if (generation !== this.generation || (!this.active&&!this.starting)) return;
           try {
             this.lastAudioAt = Date.now();
             const samples = event.data;
@@ -120,6 +119,7 @@
                 this.onspeechactivity?.();
               }
             }
+            if(!this.recognizer){this.pendingAudio.push(samples.slice());this.pendingSamples+=samples.length;while(this.pendingSamples>context.sampleRate*5){this.pendingSamples-=this.pendingAudio.shift().length;}return;}
             this.recognizer.acceptWaveformFloat(samples, context.sampleRate);
           } catch (error) { this.fail(error); }
         };
@@ -133,10 +133,15 @@
         context.onstatechange = () => {
           if (this.active && context.state === "suspended") this.resume();
         };
+        const model=await preparingModel;
+        if(generation!==this.generation)return;
+        this.model=model;this.resetDecoder();
         this.lastAudioAt = Date.now();
         this.starting = false;
         this.active = true;
         this.onstart?.();
+        for(const samples of this.pendingAudio)this.recognizer.acceptWaveformFloat(samples,context.sampleRate);
+        this.pendingAudio=[];this.pendingSamples=0;
       } catch (error) {
         if (generation === this.generation) this.fail(error);
       }

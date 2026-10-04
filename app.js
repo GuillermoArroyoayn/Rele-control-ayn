@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 103';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 104';voiceStatus.after(voiceBuildLabel);
 const voiceHeardLabel=document.createElement('small');voiceHeardLabel.id='voiceHeard';voiceHeardLabel.textContent='Última frase escuchada: —';voiceBuildLabel.after(voiceHeardLabel);
 const voiceProviderNote=document.createElement('small');voiceProviderNote.id='voiceProviderNote';voiceProviderNote.hidden=true;voiceProviderNote.style.gridColumn='1 / -1';voiceHeardLabel.after(voiceProviderNote);
 const voiceRetryProvider=document.createElement('button');voiceRetryProvider.type='button';voiceRetryProvider.textContent='Reintentar motor de voz en línea';voiceRetryProvider.hidden=true;voiceProviderNote.after(voiceRetryProvider);
@@ -979,7 +979,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 103 · Deepgram en tiempo real':'Motor de voz · versión 103 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
+  recognition.onprovider=(provider,reason)=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 104 · Deepgram en tiempo real':'Motor de voz · versión 104 · local';voiceProviderNote.hidden=provider!=='local';voiceProviderNote.textContent=provider==='local'?'Motivo del motor local: '+(reason||'Motor en línea no disponible.') : '';voiceRetryProvider.hidden=provider!=='local';voiceRetryProvider.disabled=!recognition.active||recognition.recovering;};
   voiceRetryProvider.onclick=async()=>{if(!voiceEnabled||!recognition.active||recognition.recovering)return;voiceRetryProvider.disabled=true;try{await recognition.recoverStreaming?.();}finally{voiceRetryProvider.disabled=!voiceEnabled||!recognition.active;}};
   recognition.onutteranceend=()=>{
     if(!voiceEnabled||voiceSpeaking||Date.now()<voiceEchoUntil||!voiceCaptureUntil)return;

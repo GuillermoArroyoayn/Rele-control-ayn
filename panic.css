@@ -22,3 +22,5 @@ body.panic-screen-open{overflow:hidden}
 @media(max-height:600px){.panic-screen .panic-screen-content{gap:10px}.panic-screen .panic-screen-content h2,html[data-font-size] body .panic-screen .panic-screen-content h2{font-size:clamp(80px,22vh,130px)!important}}
 
 .panic-screen::backdrop{background:#071521}.panic-screen-countdown{font:700 1.2rem system-ui,sans-serif;margin:0;text-shadow:0 2px 6px #000}
+
+.panic-screen-ended .panic-watermark,.panic-screen-ended .panic-screen-content h2{animation:none!important}.panic-screen-ended .panic-watermark{opacity:.12}

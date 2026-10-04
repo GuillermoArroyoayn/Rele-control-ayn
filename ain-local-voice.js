@@ -80,14 +80,14 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 86: preparando audio local…");
+        this.onloading?.("Voz 87: preparando audio local…");
         let resumeTimer;
         try {
           await Promise.race([context.resume(), new Promise((_, reject) => {
             resumeTimer = setTimeout(() => reject(new DOMException("Toca Activar AIN por voz para habilitar el audio.", "NotAllowedError")), 2500);
           })]);
         } finally { clearTimeout(resumeTimer); }
-        this.onloading?.("Voz 86: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 87: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -96,18 +96,20 @@
         });
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
-        this.onloading?.("Voz 86: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
+        this.onloading?.("Voz 87: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
         const preparingModel = loadModel();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release86");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release87");
         if (generation !== this.generation) return;
+        let firstAudio;const firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");
         this.node = node;
         node.port.onmessage = event => {
           if (generation !== this.generation || (!this.active&&!this.starting)) return;
           try {
+            firstAudio();
             this.lastAudioAt = Date.now();
             const samples = event.data;
             if (this.suppressAudio) samples.fill(0);
@@ -136,6 +138,10 @@
         const model=await preparingModel;
         if(generation!==this.generation)return;
         this.model=model;this.resetDecoder();
+        await context.resume();
+        let firstAudioTimeout;
+        try{await Promise.race([firstAudioReady,new Promise((_,reject)=>{firstAudioTimeout=setTimeout(()=>reject(new Error('El micrófono no está entregando audio. Toca Activar AIN por voz para reintentar.')),5000);})]);}finally{clearTimeout(firstAudioTimeout);}
+        if(generation!==this.generation)return;
         this.lastAudioAt = Date.now();
         this.starting = false;
         this.active = true;

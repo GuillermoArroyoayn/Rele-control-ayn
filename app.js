@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 86';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 87';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -324,6 +324,7 @@ function pin() {
   return pinInput.value.trim();
 }
 const relayTimerChecks=new Map();
+const controlOutcomes=new Map();
 function show(text, error = false) {
   message.textContent = text;
   message.classList.toggle("is-error", error);
@@ -533,13 +534,14 @@ async function controlRelay(relay, desired, source = "manual") {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ relay, state: desired, source }),
     });
+    controlOutcomes.set(relay,data);
     paint(relay, data.state);
     clearTimeout(relayTimerChecks.get(relay));
-    if(data.state&&data.timerSeconds>0){
-      const label=document.getElementById(`state${relay}`);label.textContent=`ENCENDIDO · ${data.timerSeconds} s`;
+    if((data.state&&data.timerSeconds>0)||data.autoOffPending){
+      const label=document.getElementById(`state${relay}`);label.textContent=data.autoOffPending?"APAGADO PENDIENTE DE CONFIRMAR":`ENCENDIDO · ${data.timerSeconds} s`;
       relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
     }
-    show(data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
+    show(data.autoOffPending?(data.message||'Activación enviada. Apagado pendiente de confirmar.'):data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
     return true;
   } catch (e) {
     show(e.message, true);
@@ -850,7 +852,7 @@ async function runVoiceCommand(transcript) {
   const authorizedWake=woke||Date.now()<voiceWakeUntil;
   const commandSession=voiceSessionGeneration;
   // Recognition can become ready before the initial PIN/permission request.
-  if(!statusReady){setVoiceStatus('Orden recibida. Validando acceso…');const started=Date.now();voiceCommandBusy=true;try{while(voiceEnabled&&!statusReady&&Date.now()-started<8000)await new Promise(resolve=>setTimeout(resolve,50));}finally{voiceCommandBusy=false;}if(!voiceEnabled||commandSession!==voiceSessionGeneration)return;if(!statusReady){setVoiceStatus('No se pudo validar el acceso. Revisa la conexión y el PIN.',true);return;}}
+  if(!statusReady||startupResetInFlight){setVoiceStatus('Orden recibida. Validando acceso…');const started=Date.now();voiceCommandBusy=true;try{while(voiceEnabled&&(!statusReady||startupResetInFlight)&&Date.now()-started<30000)await new Promise(resolve=>setTimeout(resolve,50));}finally{voiceCommandBusy=false;}if(!voiceEnabled||commandSession!==voiceSessionGeneration)return;if(!statusReady||startupResetInFlight){setVoiceStatus('No se pudo validar el acceso. Revisa la conexión y el PIN.',true);return;}}
   if (!authorizedWake) {
     returnToVoiceListening();
     return;
@@ -902,7 +904,7 @@ async function runVoiceCommand(transcript) {
       if (!voiceEnabled) return;
       setVoiceStatus(
         success
-          ? `${voiceRelayNames[relay]} activado correctamente.`
+          ? controlOutcomes.get(relay)?.autoOffPending?`${voiceRelayNames[relay]}: ${controlOutcomes.get(relay).message||'activación enviada; apagado pendiente de confirmar.'}`:`${voiceRelayNames[relay]} activado correctamente.`
           : `No fue posible activar ${voiceRelayNames[relay]}.`,
         !success,
         true,
@@ -995,7 +997,7 @@ if (!SpeechRecognition) {
     voiceLastError = "";
     voiceCommand.classList.add("listening");
     if (!voiceCaptureUntil && !voiceLastTranscript && !voicePhrase && !voiceInterimPhrase)
-      setVoiceStatus("Escucha continua. Di Ain y la orden seguida, sin esperar.");
+      setVoiceStatus(!statusReady||startupResetInFlight?"Micrófono listo. Validando el acceso; conservaré tu primera orden.":"Escucha continua. Di Ain y la orden seguida, sin esperar.");
   };
   recognition.onresult = (event) => {
     if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;

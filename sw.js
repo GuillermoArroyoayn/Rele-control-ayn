@@ -1,26 +1,26 @@
-const CACHE = "reles-ayn-v86";
+const CACHE = "reles-ayn-v87";
 const ASSETS = [
   "/",
   "/index.html",
   "/administracion.html",
-  "/ain-audio-worklet.js?v=20261004-release86",
+  "/ain-audio-worklet.js?v=20261004-release87",
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261004-release86",
+  "/styles.css?v=20261004-release87",
   "/share.css",
-  "/booking.css?v=20261004-release86",
-  "/panic.css?v=20261004-release86",
-  "/reports.css?v=20261004-release86",
-  "/ui-feedback.css?v=20261004-release86",
-  "/ain-local-voice.js?v=20261004-release86",
-  "/ain-voice-phrases.js?v=20261004-release86",
-  "/app.js?v=20261004-release86",
-  "/panic.js?v=20261004-release86",
-  "/reports.js?v=20261004-release86",
-  "/ui-feedback.js?v=20261004-release86",
-  "/administracion.css?v=20261004-release86",
-  "/administracion.js?v=20261004-release86"
+  "/booking.css?v=20261004-release87",
+  "/panic.css?v=20261004-release87",
+  "/reports.css?v=20261004-release87",
+  "/ui-feedback.css?v=20261004-release87",
+  "/ain-local-voice.js?v=20261004-release87",
+  "/ain-voice-phrases.js?v=20261004-release87",
+  "/app.js?v=20261004-release87",
+  "/panic.js?v=20261004-release87",
+  "/reports.js?v=20261004-release87",
+  "/ui-feedback.js?v=20261004-release87",
+  "/administracion.css?v=20261004-release87",
+  "/administracion.js?v=20261004-release87"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

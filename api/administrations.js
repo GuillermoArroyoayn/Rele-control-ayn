@@ -81,7 +81,7 @@ module.exports=async(req,res)=>{
       const seconds=b.state?A.seconds(item.timerSeconds,item.timer):0;
       const delivery=await require('../lib/timed-command').runTimed(item.deviceId,item.code,b.state,seconds,item.timer);
       if(b.state)await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id].adminName||auth.device.name,role:auth.role,groupId:item.groupId,relay:item.id,state:true,result:'success'}).catch(()=>{});
-      return res.json({ok:true,state:delivery.state,timerSeconds:seconds,autoOffConfirmed:delivery.autoOffConfirmed,message:delivery.autoOffConfirmed?'Activado y apagado automáticamente, confirmado por el equipo.':'Orden enviada. Actualiza para confirmar el estado real.'});
+      return res.json({ok:true,state:delivery.state,timerSeconds:seconds,autoOffConfirmed:delivery.autoOffConfirmed,autoOffPending:Boolean(delivery.autoOffPending),message:delivery.message||(delivery.autoOffConfirmed?'Activado y apagado automáticamente, confirmado por el equipo.':'Orden enviada. Actualiza para confirmar el estado real.')});
     }
     throw A.error('Acción desconocida.');
   }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'Error interno.'});}

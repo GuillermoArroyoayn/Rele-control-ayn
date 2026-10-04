@@ -1,26 +1,26 @@
-const CACHE = "reles-ayn-v85";
+const CACHE = "reles-ayn-v86";
 const ASSETS = [
-  "/ui-feedback.js?v=20261004-voice85",
-  "/ui-feedback.css?v=20261004-voice85",
-  "/ain-voice-phrases.js?v=20261004-voice85",
   "/",
-  "/reports.css?v=20261003-reports57",
-  "/reports.js?v=20261003-reports57",
-  "/panic.css?v=20261003-sos56",
-  "/panic.js?v=20261004-voice85",
-  "/administracion.html",
-  "/administracion.js",
-  "/administracion.css",
   "/index.html",
-  "/styles.css?v=20261004-voice85",
-  "/app.js?v=20261004-voice85",
-  "/ain-local-voice.js?v=20261004-voice85",
-  "/ain-audio-worklet.js?v=20261004-voice85",
-  "/share.css",
-  "/booking.css?v=20261004-voice85",
+  "/administracion.html",
+  "/ain-audio-worklet.js?v=20261004-release86",
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
+  "/styles.css?v=20261004-release86",
+  "/share.css",
+  "/booking.css?v=20261004-release86",
+  "/panic.css?v=20261004-release86",
+  "/reports.css?v=20261004-release86",
+  "/ui-feedback.css?v=20261004-release86",
+  "/ain-local-voice.js?v=20261004-release86",
+  "/ain-voice-phrases.js?v=20261004-release86",
+  "/app.js?v=20261004-release86",
+  "/panic.js?v=20261004-release86",
+  "/reports.js?v=20261004-release86",
+  "/ui-feedback.js?v=20261004-release86",
+  "/administracion.css?v=20261004-release86",
+  "/administracion.js?v=20261004-release86"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(
@@ -36,7 +36,7 @@ self.addEventListener("activate", (e) =>
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)),
+          keys.filter((k) => k.startsWith("reles-ayn-") && k !== CACHE).map((k) => caches.delete(k)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -47,5 +47,7 @@ self.addEventListener("message", (e) => {
 });
 self.addEventListener("fetch", (e) => {
   if (new URL(e.request.url).pathname.startsWith("/api/")) return;
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+  const url=new URL(e.request.url);
+  const refresh=url.origin===self.location.origin&&(e.request.mode==='navigate'||/\.(js|css)$/.test(url.pathname));
+  e.respondWith(fetch(e.request,refresh?{cache:'no-store'}:undefined).catch(() => caches.open(CACHE).then(cache=>cache.match(e.request))));
 });

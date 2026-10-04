@@ -322,6 +322,7 @@ pinInput.value = localStorage.getItem("relayPin") || "";
 function pin() {
   return pinInput.value.trim();
 }
+const relayTimerChecks=new Map();
 function show(text, error = false) {
   message.textContent = text;
   message.classList.toggle("is-error", error);
@@ -531,6 +532,11 @@ async function controlRelay(relay, desired, source = "manual") {
       body: JSON.stringify({ relay, state: desired, source }),
     });
     paint(relay, Boolean(data.state));
+    clearTimeout(relayTimerChecks.get(relay));
+    if(data.state&&data.timerSeconds>0){
+      const label=document.getElementById(`state${relay}`);label.textContent=`ENCENDIDO · ${data.timerSeconds} s`;
+      relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
+    }
     show(`Actuador ${relay}: ${data.state ? "encendido" : "apagado"}.`);
     return true;
   } catch (e) {

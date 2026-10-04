@@ -9,7 +9,7 @@ async function request(body,method='POST',query={}){let value,status=200;const r
 (async()=>{let n=0;const check=v=>{assert(v);n++;};login('user','user-A','group-A');
 check((await request({action:'configure',groupId:'group-A',actuatorId:'act-A'})).status===403);
 check((await request({action:'trigger',groupId:'group-B',requestId:'request-0000000001'})).status===403);check(calls===0);
-const first=await request({action:'trigger',groupId:'group-A',requestId:'request-0000000001'});check(first.status===200);check(first.value.actuatorStatus==='sent');check(commands[0].value===true);check(commands[1].value===5);
+const first=await request({action:'trigger',groupId:'group-A',requestId:'request-0000000001'});check(first.status===200);check(Math.abs(Date.parse(first.value.expiresAt)-Date.now()-300000)<1000);check(first.value.actuatorStatus==='sent');check(commands[0].value===true);check(commands[1].value===5);
 check((await request({action:'trigger',groupId:'group-A',requestId:'request-0000000001'})).value.duplicate===true);check(calls===1);
 let feed=await request({},'GET',{groupId:'group-A'});check(feed.value.events.length===1);check(feed.value.events[0].canApologize===true);check(feed.value.events[0].name==='user-A');check(feed.value.events[0].phone==='56912345678');check(feed.value.events[0].apartment==='204');
 login('user','user-other','group-A');check((await request({action:'apologize',groupId:'group-A',eventId:first.value.eventId})).status===403);

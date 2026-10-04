@@ -20,14 +20,14 @@ module.exports=async function handler(req,res){
     try{
       finalState=await setRelay(relay,state);
       await setRelayState(relay,finalState).catch(error=>console.error("No se pudo sincronizar el estado:",error));
-      await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state:finalState,result:"success"}).catch(error=>console.error("No se pudo guardar el historial:",error));
+      await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"success"}).catch(error=>console.error("No se pudo guardar el historial:",error));
     }catch(error){
       await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"error",error:error.message}).catch(()=>{});
       throw error;
     }
     const {originalSeconds}=require("../lib/actuator-timers");
-    const timerSeconds=finalState?await originalSeconds(relay):0;
-    return res.status(200).json({ok:true,relay,state:finalState,timerSeconds});
+    const timerSeconds=state?await originalSeconds(relay):0;
+    return res.status(200).json({ok:true,relay,state:finalState,timerSeconds,autoOffConfirmed:state&&finalState===false});
   }catch(e){
     console.error(e);
     return res.status(500).json({error:e.message||"Error interno"});

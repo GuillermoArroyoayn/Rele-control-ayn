@@ -36,6 +36,7 @@ function environment(users,latency){
       if(cmd==='HGET')return (hashes.get(key)||{})[rest[0]]||null;
       if(cmd==='HMGET')return rest.map(k=>(hashes.get(key)||{})[k]||null);
       if(cmd==='HSET'){const h=hashes.get(key)||{};h[rest[0]]=rest[1];hashes.set(key,h);return 1;}
+      if(cmd==='EVAL'&&key.includes("redis.call('DEL'")){if(values.get(rest[1])===rest[2]){values.delete(rest[1]);return 1;}return 0;}
       if(cmd==='MGET')return [key,...rest].map(k=>values.get(k)||null);
       if(cmd==='LRANGE')return (lists.get(key)||[]).slice(Number(rest[0]),Number(rest[1])+1);
       if(cmd==='LPUSH'){lists.set(key,[rest[0],...(lists.get(key)||[])]);return lists.get(key).length;}

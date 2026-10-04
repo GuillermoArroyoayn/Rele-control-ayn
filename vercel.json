@@ -1,0 +1,1 @@
+{"functions":{"api/control.js":{"maxDuration":60},"api/administrations.js":{"maxDuration":60},"api/panic.js":{"maxDuration":60}}}

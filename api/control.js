@@ -5,6 +5,8 @@ const {setRelayState}=require("../lib/relay-state");
 
 module.exports=async function handler(req,res){
   if(req.method!=="POST") return res.status(405).json({error:"Método no permitido"});
+  let streaming=false;
+  const emit=payload=>res.write(JSON.stringify(payload)+"\n");
   try{
     const auth=await authorize(req);
     if(!auth.ok) return res.status(auth.status).json({error:auth.error,pending:Boolean(auth.pending),accessStatus:auth.accessStatus});
@@ -18,7 +20,7 @@ module.exports=async function handler(req,res){
     }
     let finalState,delivery={};
     try{
-      const result=await setRelay(relay,state);
+      const result=await setRelay(relay,state,req.body?.progressive===true&&typeof res.write==='function'?accepted=>{streaming=true;res.status(200);res.setHeader('Content-Type','application/x-ndjson');res.setHeader('Cache-Control','no-store');res.flushHeaders?.();emit({type:'activated',ok:true,relay,...accepted});}:undefined);
       delivery=typeof result==="object"&&result!==null?result:{state:result};finalState=delivery.state;
       await setRelayState(relay,finalState).catch(error=>console.error("No se pudo sincronizar el estado:",error));
       await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id]?.adminName||auth.device.name,phone:auth.registry.devices[auth.device.id]?.phone||"",role:auth.role,groupId:auth.groupId||"",relay,state,result:"success"}).catch(error=>console.error("No se pudo guardar el historial:",error));
@@ -28,9 +30,12 @@ module.exports=async function handler(req,res){
     }
     const {originalSeconds}=require("../lib/actuator-timers");
     const timerSeconds=state?await originalSeconds(relay):0;
-    return res.status(200).json({ok:true,relay,state:finalState,timerSeconds,autoOffConfirmed:state&&finalState===false,autoOffPending:Boolean(delivery.autoOffPending),message:delivery.message||""});
+    const payload={ok:true,relay,state:finalState,timerSeconds,autoOffConfirmed:state&&finalState===false,autoOffPending:Boolean(delivery.autoOffPending),message:delivery.message||""};
+    if(streaming){emit({type:'completed',...payload});return res.end();}
+    return res.status(200).json(payload);
   }catch(e){
     console.error(e);
+    if(streaming){emit({type:"error",error:e.message||"Error interno"});return res.end();}
     return res.status(500).json({error:e.message||"Error interno"});
   }
 };

@@ -80,14 +80,14 @@
           throw new Error("Este navegador no admite el motor local");
         context = new AudioContextClass();
         this.context = context;
-        this.onloading?.("Voz 87: preparando audio local…");
+        this.onloading?.("Voz 88: preparando audio local…");
         let resumeTimer;
         try {
           await Promise.race([context.resume(), new Promise((_, reject) => {
             resumeTimer = setTimeout(() => reject(new DOMException("Toca Activar AIN por voz para habilitar el audio.", "NotAllowedError")), 2500);
           })]);
         } finally { clearTimeout(resumeTimer); }
-        this.onloading?.("Voz 87: permite el micrófono. Preparando escucha local…");
+        this.onloading?.("Voz 88: permite el micrófono. Preparando escucha local…");
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           // Ask Android for automatic input gain while keeping noise and echo control.
@@ -96,12 +96,12 @@
         });
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
-        this.onloading?.("Voz 87: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
-        const preparingModel = loadModel();
+        this.onloading?.("Voz 88: cargando el motor español. Primera descarga: unos 40 MB. Mantén la app abierta.");
+        const preparingModel = (async()=>{const remote=await window.AinVoiceProvider?.prepare(this);return remote||loadModel();})();
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release87");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release88");
         if (generation !== this.generation) return;
         let firstAudio;const firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");
@@ -213,6 +213,7 @@
       this.source?.disconnect();
       this.stream?.getTracks().forEach(track => track.stop());
       this.recognizer?.remove();
+      this.streamingModel?.terminate();this.streamingModel=null;
       this.context?.close().catch(() => {});
       this.node = this.source = this.stream = this.recognizer = this.context = null;
       this.results = [];

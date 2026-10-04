@@ -38,7 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 87';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 88';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -377,6 +377,11 @@ async function api(url, options = {}) {
     "x-device-group": localStorage.getItem("relayGroupId") || "",
   };
   const res = await fetch(url, { ...options, headers });
+  if(res.ok&&res.headers?.get('content-type')?.includes('application/x-ndjson')&&res.body?.getReader){
+    return new Promise((resolve,reject)=>{let accepted=false;const reader=res.body.getReader(),decoder=new TextDecoder();let buffer='';const receive=line=>{if(!line.trim())return;const event=JSON.parse(line);if(event.type==='activated'){accepted=true;resolve(event);}else if(event.type==='completed'){if(!accepted)resolve(event);options.onCompleted?.(event);}else if(event.type==='error'){if(!accepted)reject(new Error(event.error));else options.onCompleted?.({state:null,autoOffPending:true,message:event.error});}};
+      (async()=>{try{while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let at;while((at=buffer.indexOf('\n'))>=0){receive(buffer.slice(0,at));buffer=buffer.slice(at+1);}}if(buffer.trim())receive(buffer);if(!accepted)reject(new Error('No llegó confirmación de activación.'));}catch(error){if(!accepted)reject(error);else options.onCompleted?.({state:null,autoOffPending:true,message:'Activación enviada; se perdió la confirmación final.'});}})();
+    });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const error = new Error(data.error || "No se pudo completar la operación");
@@ -529,15 +534,18 @@ async function controlRelay(relay, desired, source = "manual") {
   document.getElementById(`state${relay}`).textContent="ORDEN EN CURSO…";
   show(`${desired ? "Encendiendo" : "Apagando"} actuador ${relay}…`);
   try {
-    const data = await api("/api/control", {
+    let completedResult=null;
+    const acceptedData = await api("/api/control", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ relay, state: desired, source }),
+      body: JSON.stringify({ relay, state: desired, source,progressive:typeof TextDecoder==='function' }),
+      onCompleted:result=>{completedResult=result;clearTimeout(relayTimerChecks.get(relay));controlOutcomes.set(relay,result);paint(relay,result.state);if(result.autoOffPending)show(result.message||'Apagado pendiente de confirmar.',true);else if(result.autoOffConfirmed)show(`Actuador ${relay}: apagado automático confirmado.`);},
     });
+    const data=completedResult||acceptedData;
     controlOutcomes.set(relay,data);
     paint(relay, data.state);
     clearTimeout(relayTimerChecks.get(relay));
-    if((data.state&&data.timerSeconds>0)||data.autoOffPending){
+    if(!data.activationAccepted&&((data.state&&data.timerSeconds>0)||data.autoOffPending)){
       const label=document.getElementById(`state${relay}`);label.textContent=data.autoOffPending?"APAGADO PENDIENTE DE CONFIRMAR":`ENCENDIDO · ${data.timerSeconds} s`;
       relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
     }
@@ -588,10 +596,13 @@ let voiceCaptureUntil = 0;
 let voiceCaptureTimer = 0;
 let voiceCaptureStartedAt = 0;
 let voiceLastSpeechAt = 0;
+let voicePattern="",voicePatternAt=0;
 const voicePhraseDeadline = () => {
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
-  const minimum = isCompleteFastVoiceCommand(phrase) ? 0 : voiceCaptureStartedAt + 3000;
-  return Math.max(minimum, voiceLastSpeechAt + 800);
+  const complete=isCompleteFastVoiceCommand(phrase),normalized=normalizeVoice(phrase);
+  if(complete){if(voicePattern!==normalized){voicePattern=normalized;voicePatternAt=Date.now();}return voicePatternAt+250;}
+  voicePattern='';voicePatternAt=0;
+  return Math.max(voiceCaptureStartedAt+3000,voiceLastSpeechAt+800);
 };
 const scheduleVoicePhraseEnd = () => {
   if (!voiceCaptureUntil) return;
@@ -623,6 +634,7 @@ const beginVoiceCapture = (transcript) => {
   if (woke) voiceWakeUntil = Date.now() + 8000;
   if (voiceCaptureUntil || (!woke && Date.now() >= voiceWakeUntil)) return;
   if (recognition) recognition.captureActive = true;
+  voicePattern="";voicePatternAt=0;
   voiceCaptureStartedAt = Date.now();
   voiceLastSpeechAt = Math.max(voiceLastSpeechAt, voiceCaptureStartedAt);
   voiceCaptureUntil = voiceCaptureStartedAt + 8000;
@@ -972,6 +984,7 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 88 · Deepgram en tiempo real':'Motor de voz · versión 88 · local';};
   recognition.onloading = text => { if (voiceEnabled) setVoiceStatus(text); };
   recognition.onreset = () => { voiceFinalResults = new Map(); };
   recognition.onspeechactivity = () => {

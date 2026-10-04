@@ -9,7 +9,7 @@ async function call(method,query={},body={}){let status=200,data;await mod.expor
  assert.equal((await call('GET',{month:'2026-13'})).status,400);
  assert.equal((await call('DELETE',{}, {id:'r1',date:'2026-10-05'})).status,403);
  const date=new Date(Date.now()+86400000).toISOString().slice(0,10);
- r=await call('POST',{}, {spaceId:'estacionamiento',date,start:'10:00'});assert.equal(r.status,201);assert.equal(created.apartment,'101');rows.push(created);
+ r=await call('POST',{}, {spaceId:'estacionamiento',date,start:'10:00',parkingNumber:7});assert.equal(r.status,201);assert.equal(created.apartment,'101');assert.equal(created.parkingNumber,7);assert.equal((await call('POST',{}, {spaceId:'estacionamiento',date,start:'10:00'})).status,400);rows.push(created);
  assert.equal((await call('DELETE',{}, {id:created.id,date})).status,200);assert(!rows.some(r=>r.id===created.id));
  console.log('API calendario: aislamiento, departamento, privacidad, cancelación propia y liberación verificados.');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -40,7 +40,7 @@ module.exports=async function handler(req,res){
       const rows=month?await readMonthBookings(scope,month):(await readBookings(scope,date)).filter(item=>!item.cancelledAt);
       const bookings=rows.map(item=>{
         const apartment=String(item.apartment||auth.registry.devices[item.deviceId]?.apartment||"").slice(0,50);
-        const shared={id:item.id,spaceId:item.spaceId,date:item.date,start:item.start,end:item.end,startMinute:item.startMinute,endMinute:item.endMinute,apartment,own:item.deviceId===auth.device.id};
+        const shared={id:item.id,spaceId:item.spaceId,date:item.date,start:item.start,end:item.end,startMinute:item.startMinute,endMinute:item.endMinute,parkingNumber:item.parkingNumber||null,apartment,own:item.deviceId===auth.device.id};
         return isManager?{...item,...shared}:{...shared,userName:shared.own?item.userName:"Reservado"};
       });
       return res.status(200).json({date,month,scope,spaces,bookings,canManage:isManager});
@@ -57,7 +57,9 @@ module.exports=async function handler(req,res){
       const weekday=new Date(`${date}T12:00:00Z`).getUTCDay();if(!space.weekdays.includes(weekday))return res.status(400).json({error:"Este espacio no está disponible ese día."});
       const startMinute=minutes(start),endMinute=startMinute+space.slotMinutes;if(startMinute<minutes(space.open)||endMinute>minutes(space.close)||(startMinute-minutes(space.open))%space.slotMinutes!==0)return res.status(400).json({error:"Selecciona uno de los horarios disponibles."});
       if(date===chileToday()&&startMinute<=chileMinute())return res.status(400).json({error:"No puedes reservar un horario que ya comenzó."});
-      const record=auth.registry.devices[auth.device.id]||{};const booking={id:crypto.randomUUID(),spaceId,date,start,end:`${String(Math.floor(endMinute/60)).padStart(2,"0")}:${String(endMinute%60).padStart(2,"0")}`,startMinute,endMinute,deviceId:auth.device.id,userName:record.adminName||auth.device.name,apartment:String(record.apartment||"").slice(0,50),createdAt:new Date().toISOString()};
+      const parkingNumber=spaceId==="estacionamiento"?Number(req.body?.parkingNumber):null;
+      if(spaceId==="estacionamiento"&&(!Number.isInteger(parkingNumber)||parkingNumber<1||parkingNumber>9999))return res.status(400).json({error:"Indica un número de estacionamiento válido."});
+      const record=auth.registry.devices[auth.device.id]||{};const booking={id:crypto.randomUUID(),spaceId,date,start,parkingNumber,end:`${String(Math.floor(endMinute/60)).padStart(2,"0")}:${String(endMinute%60).padStart(2,"0")}`,startMinute,endMinute,deviceId:auth.device.id,userName:record.adminName||auth.device.name,apartment:String(record.apartment||"").slice(0,50),createdAt:new Date().toISOString()};
       await createBooking(scope,date,booking);await addHistory({...booking,id:crypto.randomUUID(),createdAt:new Date().toISOString(),kind:"agenda",groupId:scope,action:"Reserva creada"}).catch(()=>{});return res.status(201).json({ok:true,booking});
     }
     if(req.method==="DELETE"){

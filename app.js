@@ -513,8 +513,7 @@ setInterval(() => {
   if (
     currentView === "bookings" &&
     !document.hidden &&
-    !bookingsPanel.querySelector(".booking-settings[open]") &&
-    !bookingsPanel.contains(document.activeElement)
+    !bookingsPanel.querySelector(".booking-settings[open]")
   )
     refreshBookingsQuietly();
 }, 15000);
@@ -1618,16 +1617,20 @@ function bookingDepartment(item) {
   return item.apartment ? `Depto. ${item.apartment}` : "Departamento sin registrar";
 }
 
+function bookingActive(item) {
+  const now = new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
+  return !item.cancelledAt && (item.date > bookingToday() || (item.date === bookingToday() && item.endMinute > bookingMinutes(now)));
+}
 function renderMyBookingCancellations(space, rows) {
   const list = document.createElement("div");
   list.className = "booking-my-reservations";
-  const heading = document.createElement("h4"); heading.textContent = "Mis reservas de este mes";
+  const heading = document.createElement("h4"); heading.textContent = space.id === "estacionamiento" ? "Estacionamientos reservados" : "Mis reservas de este mes";
   list.append(heading);
-  const own = rows.filter(item => item.spaceId === space.id && item.own).sort((a,b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+  const own = rows.filter(item => item.spaceId === space.id && bookingActive(item) && (space.id === "estacionamiento" || item.own)).sort((a,b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
   if (!own.length) { const empty = document.createElement("p"); empty.textContent = "No tienes reservas en este mes."; list.append(empty); }
   for (const item of own) {
     const row = document.createElement("div"); row.className = "booking-slot occupied";
-    const label = document.createElement("strong"); label.textContent = `${item.date} · ${item.start}–${item.end}`;
+    const label = document.createElement("strong"); label.textContent = `${item.date} · ${item.start}–${item.end}${space.id === "estacionamiento" ? ` · Estacionamiento N° ${item.parkingNumber || "sin registrar"}` : ""}`;
     const cancel = document.createElement("button"); cancel.className = "booking-cancel"; cancel.textContent = "Cancelar mi reserva";
     cancel.addEventListener("click", async () => {
       if (!confirm(`¿Cancelar la reserva de ${space.name} el ${item.date} a las ${item.start}?`)) return;
@@ -1639,7 +1642,7 @@ function renderMyBookingCancellations(space, rows) {
       } catch(e) {show(e.message,true);}
       finally {cancel.disabled=false;}
     });
-    row.append(label,cancel);list.append(row);
+    row.append(label); if (item.own || ["super_master","admin"].includes(currentRole)) row.append(cancel); list.append(row);
   }
   return list;
 }
@@ -1671,7 +1674,7 @@ function renderBookingSpace(space, bookings, date) {
     try {
       const data = await api(`/api/bookings?month=${encodeURIComponent(month)}`);
       if (request !== generation) return;
-      calendarSignature = JSON.stringify(data.bookings || []);
+      calendarSignature = JSON.stringify((data.bookings || []).filter(bookingActive));
       ownReservations.replaceChildren(renderMyBookingCancellations(space,data.bookings || []));
       calendar.replaceChildren();
       const navigation = document.createElement("div");
@@ -1706,7 +1709,7 @@ function renderBookingSpace(space, bookings, date) {
       const count = new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,0)).getUTCDate();
       const accept = document.createElement("button");
       accept.className = "booking-accept";
-      accept.textContent = "Aceptar día y ver horarios";
+      accept.textContent = "Ver horarios"; accept.hidden = true;
       const selectedLabel = document.createElement("p");
       function selectDay(dayDate) {
         selected = dayDate;
@@ -1715,6 +1718,7 @@ function renderBookingSpace(space, bookings, date) {
         for (const button of grid.querySelectorAll("button")) button.setAttribute("aria-pressed",String(button.dataset.date===selected));
         hours.replaceChildren();
         acceptedDate = "";
+        accept.click();
       }
       accept.disabled = true;
       for(let day=1;day<=count;day++) {
@@ -1724,12 +1728,7 @@ function renderBookingSpace(space, bookings, date) {
         dayButton.dataset.date = dayDate;
         dayButton.setAttribute("aria-pressed",String(dayDate===selected));
         const number = document.createElement("strong");number.textContent=String(day);dayButton.append(number);
-        const reservations = (data.bookings||[]).filter(item=>item.spaceId===space.id&&item.date===dayDate).sort((a,b)=>a.startMinute-b.startMinute);
-        for(const item of reservations) {
-          const note=document.createElement("span");
-          note.textContent=`${item.start}–${item.end} · ${bookingDepartment(item)}`;
-          dayButton.append(note);
-        }
+        const reservations = (data.bookings||[]).filter(item=>item.spaceId===space.id&&item.date===dayDate&&bookingActive(item)).sort((a,b)=>a.startMinute-b.startMinute);
         if(reservations.length)dayButton.classList.add("has-bookings");
         const weekday=new Date(`${dayDate}T12:00:00Z`).getUTCDay();
         dayButton.disabled=dayDate<bookingToday()||dayDate>maxDate||!space.enabled||!space.weekdays.includes(weekday);
@@ -1760,21 +1759,16 @@ function renderBookingSpace(space, bookings, date) {
     else openBookingSpaces.delete(space.id);
   });
   bookingRefreshers.add(async (force = false) => {
-    if (!details.open || !loaded || calendar.textContent === "Cargando calendario…" || hours.querySelector("button:disabled")) return;
+    if (!details.open || !loaded || calendar.textContent === "Cargando calendario…" || hours.querySelector("form:not([hidden]) button:disabled")) return;
     const request = generation, currentMonth = month, currentAccepted = acceptedDate;
     const data = await api(`/api/bookings?month=${encodeURIComponent(currentMonth)}`);
-    if (request !== generation || !card.isConnected || !details.open || (!force && bookingsPanel.contains(document.activeElement))) return;
+    if (request !== generation || !card.isConnected || !details.open) return;
     const rows = data.bookings || [];
-    const signature = JSON.stringify(rows);
+    const signature = JSON.stringify(rows.filter(bookingActive));
     if (signature !== calendarSignature) {
       for (const button of calendar.querySelectorAll(".booking-day")) {
         for (const note of button.querySelectorAll("span")) note.remove();
-        const reservations = rows.filter(item => item.spaceId === space.id && item.date === button.dataset.date).sort((a,b) => a.startMinute-b.startMinute);
-        for (const item of reservations) {
-          const note = document.createElement("span");
-          note.textContent = `${item.start}–${item.end} · ${bookingDepartment(item)}`;
-          button.append(note);
-        }
+        const reservations = rows.filter(item => item.spaceId === space.id && item.date === button.dataset.date && bookingActive(item)).sort((a,b) => a.startMinute-b.startMinute);
         button.classList.toggle("has-bookings", reservations.length > 0);
       }
       calendarSignature = signature;
@@ -1785,7 +1779,7 @@ function renderBookingSpace(space, bookings, date) {
       const daySignature = JSON.stringify(dayRows);
       if (daySignature !== hoursSignature) {
         const heading = document.createElement("h4");heading.textContent = `Horarios del ${currentAccepted}`;
-        hours.replaceChildren(heading,renderBookingHours(space,dayRows,currentAccepted));
+        if (!hours.querySelector("form[hidden]")) hours.replaceChildren(heading,renderBookingHours(space,dayRows,currentAccepted));
         hoursSignature = daySignature;
       }
     }
@@ -1795,113 +1789,38 @@ function renderBookingSpace(space, bookings, date) {
 }
 
 function renderBookingHours(space, bookings, date) {
-  const details = document.createElement("div");
-  const card = details;
-  const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-  if (!space.enabled || !space.weekdays.includes(weekday)) {
-    const closed = document.createElement("p");
-    closed.className = "booking-closed";
-    closed.textContent = "No disponible este día";
-    details.append(closed);
-    return card;
-  }
-  const slots = document.createElement("div");
-  slots.className = "booking-slots";
-  const open = bookingMinutes(space.open),
-    close = bookingMinutes(space.close);
-  for (
-    let start = open;
-    start + space.slotMinutes <= close;
-    start += space.slotMinutes
-  ) {
-    const end = start + space.slotMinutes;
-    const existing = bookings.find(
-      (item) =>
-        item.spaceId === space.id &&
-        item.startMinute < end &&
-        item.endMinute > start,
-    );
-    const now = new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()),
-      past =
-        date === bookingToday() &&
-        start <= bookingMinutes(now);
-    const slot = document.createElement("div");
-    slot.className = `booking-slot ${existing || past ? "occupied" : "available"}`;
-    const label = document.createElement("strong");
-    label.textContent = `${bookingTime(start)}–${bookingTime(end)}`;
-    slot.append(label);
-    if (existing) {
-      const owner = document.createElement("span");
-      owner.textContent = bookingDepartment(existing);
-      slot.append(owner);
-      if (existing.own || ["super_master", "admin"].includes(currentRole)) {
-        const cancel = document.createElement("button");
-        cancel.className = "booking-cancel";
-        cancel.textContent = existing.own ? "Cancelar mi reserva" : "Cancelar reserva";
-        cancel.addEventListener("click", async () => {
-          if (
-            !confirm(
-              `¿Cancelar la reserva de ${space.name} a las ${bookingTime(start)}?`,
-            )
-          )
-            return;
-          cancel.disabled = true;
-          try {
-            await api("/api/bookings", {
-              method: "DELETE",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ id: existing.id, date }),
-            });
-            show("Reserva cancelada. El horario vuelve a estar disponible.");
-            await loadBookings(date);
-          } catch (e) {
-            show(e.message, true);
-          } finally {
-            cancel.disabled = false;
-          }
-        });
-        slot.append(cancel);
-      }
-    } else if (past) {
-      const finished = document.createElement("span");
-      finished.textContent = "Horario finalizado";
-      slot.append(finished);
-    } else {
-      const reserve = document.createElement("button");
-      reserve.className = "booking-reserve";
-      reserve.textContent = "Reservar";
-      reserve.addEventListener("click", async () => {
-        if (
-          !confirm(
-            `¿Reservar ${space.name} el ${date} de ${bookingTime(start)} a ${bookingTime(end)}?`,
-          )
-        )
-          return;
-        reserve.disabled = true;
-        try {
-          await api("/api/bookings", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              spaceId: space.id,
-              date,
-              start: bookingTime(start),
-            }),
-          });
-          show("Reserva confirmada.");
-          await loadBookings(date);
-        } catch (e) {
-          show(e.message, true);
-        } finally {
-          reserve.disabled = false;
-        }
-      });
-      slot.append(reserve);
+  const form = document.createElement("form"); form.className = "booking-hours-form";
+  const label = document.createElement("label"); label.textContent = "Horario";
+  const select = document.createElement("select"); select.className = "booking-time"; label.append(select);
+  const parking = document.createElement("input"); parking.type = "number"; parking.min = "1"; parking.max = "9999"; parking.step = "1"; parking.required = true; parking.value = "1";
+  const parkingLabel = document.createElement("label"); parkingLabel.textContent = "Número de estacionamiento"; parkingLabel.append(parking);
+  const save = document.createElement("button"); save.type = "submit"; save.className = "booking-reserve"; save.textContent = "Guardar reserva";
+  const now = bookingMinutes(new Intl.DateTimeFormat("en-GB", {timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()));
+  function updateTimes() {
+    const previous = select.value; select.replaceChildren();
+    for(let start=bookingMinutes(space.open);start+space.slotMinutes<=bookingMinutes(space.close);start+=space.slotMinutes) {
+      const end=start+space.slotMinutes;
+      const busy=bookings.some(item=>item.spaceId===space.id && !item.cancelledAt && item.startMinute<end && item.endMinute>start && (space.id!=="estacionamiento" || !item.parkingNumber || Number(item.parkingNumber)===Number(parking.value)));
+      if(date<bookingToday() || (date===bookingToday() && start<=now) || busy) continue;
+      const option=document.createElement("option"); option.value=bookingTime(start); option.textContent=`${bookingTime(start)}–${bookingTime(end)}`; select.append(option);
     }
-    slots.append(slot);
+    if([...select.options].some(option=>option.value===previous)) select.value=previous;
+    save.disabled=!select.options.length;
+    if(save.disabled) {const option=document.createElement("option");option.textContent="Sin horarios disponibles";select.append(option);}
   }
-  details.append(slots);
-  return card;
+  parking.addEventListener("input",updateTimes);
+  form.append(label); if(space.id==="estacionamiento") form.append(parkingLabel); form.append(save); updateTimes();
+  form.addEventListener("submit",async event=>{
+    event.preventDefault(); if(save.disabled || !form.reportValidity()) return;
+    save.disabled=true;
+    try {
+      await api("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({spaceId:space.id,date,start:select.value,...(space.id==="estacionamiento"?{parkingNumber:Number(parking.value)}:{})})});
+      show("Reserva confirmada.");
+      form.hidden=true;
+      await refreshBookingsQuietly(true);
+    } catch(e) {show(e.message,true); save.disabled=false;}
+  });
+  return form;
 }
 
 async function loadBookings(selectedDate) {
@@ -1922,7 +1841,7 @@ async function loadBookings(selectedDate) {
     bookingsPanel.append(header);
     const help = document.createElement("p");
     help.textContent =
-      "Abre Reservar, selecciona un día del calendario y pulsa Aceptar día para ver los horarios. Las reservas indican horario y departamento.";
+      "Selecciona un día, ajusta el horario y guarda tu reserva.";
     bookingsPanel.append(help);
     const settings = bookingSettingsEditor(data.spaces, date);
     if (settings) bookingsPanel.append(settings);

@@ -1,11 +1,14 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-let auth,blocked=false,rateLimit=false;const values=new Map(),feeds=new Map();
+let auth,blocked=false,rateLimit=false;const values=new Map(),feeds=new Map(),hidden=new Map();
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const A={error,hash:s=>crypto.createHash('sha256').update(s).digest('hex'),
   access:async()=>{if(blocked)throw error('Bloqueado',403);return auth;},
   manager:a=>{if(!['admin','super_master'].includes(a.role))throw error('Solo administradores',403);},
   group:(a,g)=>{if(!['master','group-A','group-B'].includes(g))throw error('Grupo inválido');return g;},
   redis:async(...args)=>{const [command,...a]=args;
+    if(command==='SMEMBERS')return [...(hidden.get(a[0])||[])];
+    if(command==='SADD'){const ids=hidden.get(a[0])||new Set();ids.add(a[1]);hidden.set(a[0],ids);return 1;}
+    if(command==='EXPIRE')return 1;
     if(command==='GET')return values.get(a[0]);
     if(command==='MGET')return a.map(k=>values.get(k)||null);
     if(command==='LRANGE')return (feeds.get(a[0])||[]).slice(0,50);
@@ -30,6 +33,11 @@ const image=await request(null,'GET',{photo:id});check(image.status===200);check
 login('super_master','master','');check((await request(null,'GET')).value.reports.length===1);check((await request(null,'GET',{photo:id})).status===200);
 login('user','user-A','group-A');for(const photo of ['data:image/svg+xml;base64,PHN2Zz4=', 'data:image/jpeg;base64,aGVsbG8=', 'data:image/jpeg;base64,'+'A'.repeat(200000)])check((await request({...body,photo,requestId:'request-0000000002'})).status===400);
 check((await request({...body,text:''})).status===400);check((await request({...body,text:'a'.repeat(3001)})).status===400);check((await request({...body,type:'unknown'})).status===400);
+check((await request({action:'dismiss',id})).status===403);
+login('admin','admin-B','group-B');check((await request({action:'dismiss',id})).status===404);
+login('admin','admin-A','group-A');check((await request({action:'dismiss',id})).status===200);check((await request(null,'GET')).value.reports.length===0);
+login('super_master','master','');check((await request(null,'GET')).value.reports.length===1);check((await request({action:'dismiss',id})).status===200);check((await request(null,'GET')).value.reports.length===0);check(values.has('ayn:reports:item:'+id));
+login('user','user-A','group-A');
 rateLimit=true;check((await request({...body,requestId:'request-0000000002'})).status===429);rateLimit=false;
 blocked=true;check((await request(body)).status===403);blocked=false;
 check((await request(null,'DELETE')).status===405);

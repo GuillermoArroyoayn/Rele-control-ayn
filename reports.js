@@ -36,6 +36,10 @@
           button.onclick=async()=>{button.disabled=true;try {const blob=await api(null,'?photo='+encodeURIComponent(item.id));if(!card.isConnected)return;const url=URL.createObjectURL(blob);urls.push(url);image.src=url;image.hidden=false;button.remove();}catch(e){status(e.message);button.disabled=false;}};
           card.append(button,image);
         }
+        if (['admin','super_master'].includes(role)) {
+          const remove=node('button','Eliminar');remove.type='button';remove.setAttribute('aria-label','Eliminar reporte de '+item.name);
+          remove.onclick=async()=>{remove.disabled=true;try{await api({action:'dismiss',id:item.id});card.remove();status('Reporte eliminado de tu bandeja.');await load();}catch(e){status(e.message);remove.disabled=false;}};card.append(remove);
+        }
         list.append(card);
       }
       if (!data.reports.length && !el('reportInbox').hidden) list.append(node('p','Todavía no hay reportes.'));

@@ -9,6 +9,17 @@ module.exports = async (req, res) => {
   try {
     if (!['GET', 'POST'].includes(req.method)) throw A.error('Método no permitido.', 405);
     const auth = await A.access(req);
+    const hiddenKey = PREFIX + 'hidden:' + auth.device.id;
+    if (req.method === 'POST' && req.body?.action === 'dismiss') {
+      A.manager(auth);
+      const id = req.body.id;
+      if (!validId(id)) throw A.error('Reporte inválido.');
+      const item = parse(await A.redis('GET', PREFIX + 'item:' + id));
+      if (!item || auth.role !== 'super_master' && item.groupId !== (auth.groupId || 'master')) throw A.error('Reporte no disponible.', 404);
+      await A.redis('SADD', hiddenKey, id);
+      await A.redis('EXPIRE', hiddenKey, TTL);
+      return res.json({ok:true});
+    }
     if (req.method === 'GET') {
       const isManager = ['admin', 'super_master'].includes(auth.role);
       if (req.query?.photo) {
@@ -25,10 +36,11 @@ module.exports = async (req, res) => {
         return res.send(Buffer.from(photo, 'base64'));
       }
       const key = auth.role === 'super_master' ? PREFIX + 'all' : PREFIX + 'group:' + (auth.groupId || 'master');
-      const ids = isManager ? await A.redis('LRANGE', key, 0, 49) : [];
+      const ids = isManager ? await A.redis('LRANGE', key, 0, 199) : [];
       const raw = ids?.length ? await A.redis('MGET', ...ids.map(id => PREFIX + 'item:' + id)) : [];
-      const reports = (raw || []).map(parse).filter(item => item &&
-        (auth.role === 'super_master' || item.groupId === (auth.groupId || 'master')));
+      const hidden = new Set(isManager ? await A.redis('SMEMBERS', hiddenKey) || [] : []);
+      const reports = (raw || []).map(parse).filter(item => item && !hidden.has(item.id) &&
+        (auth.role === 'super_master' || item.groupId === (auth.groupId || 'master'))).slice(0, 50);
       return res.json({ role: auth.role, reports, retentionDays: 30,
         groups: auth.role === 'super_master' ? [{id:'master',name:'Máster general'},
           ...Object.values(auth.registry.devices).filter(d => d.role === 'admin').map(d => ({id:d.groupId,name:d.adminName || d.name}))] : [] });

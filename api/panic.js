@@ -11,13 +11,23 @@ module.exports=async(req,res)=>{
     const requested=req.method==='GET'?req.query?.groupId:b.groupId;
     const groupId=auth.role==='super_master'?A.group(auth,requested||'master'):(auth.groupId||'master');
     if(auth.role!=='super_master'&&requested&&requested!==groupId)throw A.error('Alerta fuera de tu administración.',403);
+    const hiddenKey=PREFIX+'hidden:'+auth.device.id;
+    if(req.method==='POST'&&b.action==='dismiss'){
+      A.manager(auth);
+      if(!/^[a-f0-9]{32}$/.test(b.eventId||''))throw A.error('Alerta inválida.');
+      const old=await event(b.eventId);
+      if(!old||old.groupId!==groupId)throw A.error('Alerta fuera de esta administración.',403);
+      if(!old.apology&&Date.now()<Date.parse(old.expiresAt||new Date(Date.parse(old.createdAt)+300000).toISOString()))throw A.error('Cancela o espera que finalice la alerta antes de eliminar el aviso.',409);
+      await A.redis('SADD',hiddenKey,old.id);await A.redis('EXPIRE',hiddenKey,604800);return res.json({ok:true});
+    }
     const all=await A.records();
     const config=parse(await A.redis('HGET',PREFIX+'config',groupId));
     const actuator=all.find(a=>a.id===config?.actuatorId&&a.groupId===groupId&&a.approved);
     if(req.method==='GET'){
-      const ids=await A.redis('LRANGE',PREFIX+'feed:'+groupId,0,19);
+      const ids=await A.redis('LRANGE',PREFIX+'feed:'+groupId,0,99);
       const values=ids?.length?await A.redis('MGET',...ids.map(id=>PREFIX+'event:'+id)):[];
-      const events=(values||[]).map(parse).filter(e=>e&&e.groupId===groupId).map(({creator,...e})=>({...e,isOwn:creator===auth.device.id,active:!e.apology&&Date.now()<Date.parse(e.expiresAt||new Date(Date.parse(e.createdAt)+300000).toISOString()),canApologize:creator===auth.device.id||['super_master','admin'].includes(auth.role)}));
+      const hidden=new Set(['admin','super_master'].includes(auth.role)?await A.redis('SMEMBERS',hiddenKey)||[]:[]);
+      const events=(values||[]).map(parse).filter(e=>e&&e.groupId===groupId&&(!hidden.has(e.id)||!e.apology&&Date.now()<Date.parse(e.expiresAt||new Date(Date.parse(e.createdAt)+300000).toISOString()))).map(({creator,...e})=>({...e,isOwn:creator===auth.device.id,active:!e.apology&&Date.now()<Date.parse(e.expiresAt||new Date(Date.parse(e.createdAt)+300000).toISOString()),canApologize:creator===auth.device.id||['super_master','admin'].includes(auth.role)}));
       const groups=auth.role==='super_master'?[{id:'master',name:'Máster general'},...Object.values(auth.registry.devices).filter(d=>d.role==='admin').map(d=>({id:d.groupId,name:d.adminName||d.name}))]:[];
       return res.json({role:auth.role,groupId,groups,configured:Boolean(actuator),actuatorName:actuator?.name||'',timerSeconds:actuator?.timerSeconds||0,actuators:auth.role==='super_master'?all.filter(a=>a.groupId===groupId&&a.approved).map(a=>({id:a.id,name:a.name})):[],events});
     }

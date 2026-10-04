@@ -590,6 +590,7 @@ const releaseVoiceMicrophone = () => {
 };
 const returnToVoiceListening = () => {
   clearTimeout(voiceCaptureTimer);
+  if (recognition) recognition.captureActive = false;
   recognition?.consumeUtterance?.();
   voiceCaptureUntil = voiceWakeUntil = 0;
   voicePhrase = voiceInterimPhrase = voiceLastTranscript = "";
@@ -600,6 +601,7 @@ const beginVoiceCapture = (transcript) => {
   // Autorizar la orden desde la primera hipótesis de Ain, sin esperar su resultado final.
   if (woke) voiceWakeUntil = Date.now() + 8000;
   if (voiceCaptureUntil || (!woke && Date.now() >= voiceWakeUntil)) return;
+  if (recognition) recognition.captureActive = true;
   voiceCaptureStartedAt = Date.now();
   voiceLastSpeechAt = Math.max(voiceLastSpeechAt, voiceCaptureStartedAt);
   voiceCaptureUntil = voiceCaptureStartedAt + 8000;
@@ -610,6 +612,7 @@ const beginVoiceCapture = (transcript) => {
 };
 const finishVoiceCapture = () => {
   clearTimeout(voiceCaptureTimer);
+  if (recognition) recognition.captureActive = false;
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
   recognition?.consumeUtterance?.();
   voiceCaptureUntil = 0;

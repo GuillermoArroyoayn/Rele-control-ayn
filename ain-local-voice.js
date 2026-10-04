@@ -38,6 +38,28 @@
     return modelPromise;
   }
 
+  // Estima el ruido con los niveles bajos recientes; un golpe aislado no cuenta como voz.
+  class AinNoiseActivity {
+    constructor() { this.levels = []; this.noiseFloor = .003; this.voiceDuration = 0; }
+    accept(samples, sampleRate, capturing = false) {
+      let energy = 0;
+      for (const sample of samples) energy += sample * sample;
+      const rms = Math.sqrt(energy / Math.max(1, samples.length));
+      this.levels.push(rms);
+      if (this.levels.length > 128) this.levels.shift();
+      if (this.levels.length >= 24) {
+        const sorted = [...this.levels].sort((a,b)=>a-b);
+        const estimate = sorted[Math.floor(sorted.length * .2)];
+        if (!capturing || estimate < this.noiseFloor) this.noiseFloor = this.noiseFloor * .85 + estimate * .15;
+      }
+      const threshold = Math.max(.012, this.noiseFloor * 2.2 + .004);
+      if (rms > threshold) this.voiceDuration += samples.length / sampleRate;
+      else this.voiceDuration = 0;
+      return this.voiceDuration >= .075;
+    }
+  }
+  window.AinNoiseActivity = AinNoiseActivity;
+
   class AinLocalRecognition {
     constructor() {
       this.active = false;
@@ -80,6 +102,7 @@
         const recognizer = new model.KaldiRecognizer(context.sampleRate);
         this.recognizer = recognizer;
         this.results = [];
+        this.noiseActivity = new AinNoiseActivity();
         recognizer.on("result", message => this.emit(message.result?.text || "", true, generation));
         recognizer.on("partialresult", message => this.emit(message.result?.partial || "", false, generation));
         await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261003-voice49");
@@ -92,11 +115,9 @@
             const samples = event.data;
             if (this.suppressAudio) samples.fill(0);
             else {
-              let energy = 0;
-              for (const sample of samples) energy += sample * sample;
-              const rms = Math.sqrt(energy / Math.max(1, samples.length));
+              const voiceActive = this.noiseActivity.accept(samples, context.sampleRate, this.captureActive);
               const now = Date.now();
-              if (rms > .015 && (!this.lastSpeechActivity || now - this.lastSpeechActivity >= 100)) {
+              if (voiceActive && (!this.lastSpeechActivity || now - this.lastSpeechActivity >= 100)) {
                 this.lastSpeechActivity = now;
                 this.onspeechactivity?.();
               }

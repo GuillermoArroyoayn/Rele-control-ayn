@@ -1056,6 +1056,14 @@ if (!SpeechRecognition) {
   window.setInterval(() => {
     if (!voiceEnabled || document.hidden) return;
     recognition.resume?.();
+    if (recognition.active && recognition.audioStalled?.()) {
+      recognition.abort();
+      voiceListening = voiceStarting = false;
+      returnToVoiceListening();
+      setVoiceStatus("Recuperando la entrada de audio de Ain…");
+      startVoiceListening();
+      return;
+    }
     if (!voiceListening && !voiceStarting) startVoiceListening();
   }, 2000);
   window.addEventListener("pageshow", restoreVoiceSelection);

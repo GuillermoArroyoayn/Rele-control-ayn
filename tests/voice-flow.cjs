@@ -5,6 +5,7 @@ const w=dom.window;let engine,captures=0,orders=[],resumes=0;
 w.setInterval=()=>0;
 w.AinLocalRecognition=class {constructor(){engine=this;}start(){captures++;this.active=true;this.onstart();}abort(){this.active=false;}consumeUtterance(){}resume(){resumes++;}};
 w.fetch=async(url,options)=>{if(String(url).includes('/control'))orders.push(JSON.parse(options.body));return {ok:true,json:async()=>({state:true,spaces:[],bookings:[]})};};
+w.eval(fs.readFileSync(path.join(root,'ain-voice-phrases.js'),'utf8'));
 w.eval(fs.readFileSync(path.join(root,'app.js'),'utf8')+'\nwindow.testVoice={prepare(){statusReady=true;allowedRelays=[1,2,3];},complete:isCompleteFastVoiceCommand,normalize:normalizeVoice,resolve:resolveVoiceRelay,wake:hasWakeWord};');
 w.testVoice.prepare();
 w.document.getElementById("pin").value="test-pin";
@@ -12,6 +13,12 @@ function say(text,final){const r=[{transcript:text}];r.isFinal=final;engine.onre
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
 assert(w.testVoice.wake(w.testVoice.normalize('Hey Ain')));
+const phrases=require('../ain-voice-phrases.js').phrases;
+for(const {phrase,relay} of phrases){
+ assert(w.testVoice.complete('ain '+phrase),phrase);
+ assert.equal(w.testVoice.resolve(w.testVoice.normalize(phrase)),relay,phrase);
+}
+console.log(phrases.length+' frases guardadas verificadas para sus actuadores.');
 for(const phrase of [
  'ain abre porton entrada','ain abrir porton de entrada','ain abre el porton de salida',
  'ain abrime la puerta','ain abreme la puerta','ain puerta','ain porton entrada','ain porton salida',

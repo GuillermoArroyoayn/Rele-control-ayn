@@ -43,5 +43,6 @@ assert(w.testVoice.complete('hainabrir puerta'));
 assert(!w.testVoice.complete('ain no abrir puerta'));
 assert(!w.testVoice.complete('ain abrir actuador uno y dos'));
 say('ain palabra desconocida',true);await wait(30);assert.equal(orders.length,2);assert.equal(captures,1);assert(engine.active);
+say('ain abre actuador uno',false);await wait(150);assert.equal(orders.length,2);await wait(250);assert.equal(orders.length,3);assert.equal(orders[2].relay,1);
 console.log('Voz: Ain separado, frase natural, variante pain, órdenes parciales completas, negaciones, ambigüedad y micrófono continuo verificados.');dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1});

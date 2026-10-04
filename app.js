@@ -792,6 +792,8 @@ function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = 
   releaseVoiceMicrophone();
   voiceWakeUntil = 0;
   voiceSpeaking = false;
+  voiceEchoUntil = 0;
+  if(recognition)recognition.suppressAudio=false;
   voiceSpeechGeneration += 1;
   clearTimeout(voiceRestartTimer);
   clearTimeout(voiceSpeechTimer);
@@ -844,7 +846,11 @@ async function runVoiceCommand(transcript) {
   const normalized = normalizeVoice(transcript);
   if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil || voiceCommandBusy) return;
   const woke = hasWakeWord(normalized);
-  if (!woke && Date.now() >= voiceWakeUntil) {
+  const authorizedWake=woke||Date.now()<voiceWakeUntil;
+  const commandSession=voiceSessionGeneration;
+  // Recognition can become ready before the initial PIN/permission request.
+  if(!statusReady){setVoiceStatus('Orden recibida. Validando acceso…');const started=Date.now();voiceCommandBusy=true;try{while(voiceEnabled&&!statusReady&&Date.now()-started<8000)await new Promise(resolve=>setTimeout(resolve,50));}finally{voiceCommandBusy=false;}if(!voiceEnabled||commandSession!==voiceSessionGeneration)return;if(!statusReady){setVoiceStatus('No se pudo validar el acceso. Revisa la conexión y el PIN.',true);return;}}
+  if (!authorizedWake) {
     returnToVoiceListening();
     return;
   }

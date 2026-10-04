@@ -1,4 +1,5 @@
-const {authorize,writeRegistry}=require("../lib/devices");
+const {authorize,writeRegistry:saveRegistry}=require("../lib/devices");
+const {addHistory}=require('../lib/history');
 
 module.exports=async function handler(req,res){
   try{
@@ -6,6 +7,7 @@ module.exports=async function handler(req,res){
     if(!auth.ok) return res.status(auth.status).json({error:auth.error});
     if(!["super_master","admin"].includes(auth.role)) return res.status(403).json({error:"No tienes permisos para administrar usuarios."});
     const {registry}=auth;
+    const writeRegistry=async registry=>{await saveRegistry(registry);const id=String(req.body?.deviceId||'');const target=registry.devices[id]||registry.revoked?.[id]||{};await addHistory({kind:'permissions',groupId:target.groupId||'master',userName:target.adminName||target.name||id,actor:auth.device.name,action:req.method==='DELETE'?'Acceso eliminado':req.body?.action==='restore'?'Acceso reincorporado':req.body?.status?'Estado: '+req.body.status:'Permisos actualizados',relays:target.relays||[],accessStartsAt:target.accessStartsAt||'',accessEndsAt:target.accessEndsAt||''}).catch(()=>{});};
     const isSuper=auth.role==="super_master";
     const canManage=(id,item)=>isSuper||(item.role==="user"&&item.groupId===auth.groupId);
 

@@ -151,7 +151,10 @@ const menuDefinitions = [
 ];
 
 function buildMenu() {
+  const masterRoute=location.hash.slice(1);
+  if(currentRole==='super_master'&&statusReady&&!masterRoute){location.replace('/administracion.html');return;}
   mainMenu.innerHTML = "";
+  if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.textContent='☰ Menú Máster';mainMenu.append(back);}
   const allowed =
     currentRole === "super_master"
       ? menuDefinitions.filter(([id]) => !["settings", "panic"].includes(id))
@@ -175,13 +178,21 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools'};
+  if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
   );
 }
 
+const masterConfigLink=document.createElement('a');masterConfigLink.className='small-button';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;mainMenu.before(masterConfigLink);
 function showView(view) {
   currentView = view;
+  masterConfigLink.hidden=currentRole!=='super_master';
+  masterConfigLink.href=view==='control'?'/administracion.html#timers':view==='temporary'?'/#temporary':view==='bookings'?'/#bookings':view==='voice'?'/#voice':'/#tools';
+  if(currentRole==='super_master'){
+    for(const {node} of userSettingNodes)node.hidden=view==='voice'?!node.classList.contains('accessibility'):view==='tools'?node.classList.contains('accessibility'):true;
+  }
   const user = document.body.classList.contains("user-layout");
   document.body.dataset.userView = view;
   if (user) {
@@ -2093,3 +2104,7 @@ if (document.documentElement.dataset.bootLayout === "user") {
 delete document.documentElement.dataset.bootLayout;
 document.getElementById("bootHeader")?.remove();
 if (pin()) loadStatus(); });
+
+window.addEventListener('hashchange',()=>{if(currentRole==='super_master'&&statusReady)buildMenu();});
+
+masterConfigLink.addEventListener('click',event=>{if(currentView==='bookings'){event.preventDefault();const editor=bookingsPanel.querySelector('.booking-settings');if(editor){editor.open=true;editor.scrollIntoView({block:'start'});}}else if(currentView==='voice'||currentView==='tools'||currentView==='temporary'){event.preventDefault();const target=currentView==='temporary'?deviceList:document.querySelector(currentView==='voice'?'.accessibility':'.security');target?.scrollIntoView({block:'start'});}});

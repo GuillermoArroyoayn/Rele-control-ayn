@@ -48,11 +48,11 @@ module.exports=async(req,res)=>{
     if(b.action==='permissions'){
       A.manager(auth);const groupId=A.group(auth,b.groupId);const all=await A.records();const ids=[...new Set(Array.isArray(b.actuatorIds)?b.actuatorIds:[])];
       if(ids.some(id=>!all.some(d=>d.id===id&&d.groupId===groupId&&d.approved)))throw A.error('Actuadores inválidos.');
-      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId)throw A.error('Usuario fuera de esta administración.',403);user.actuatorIds=ids;if(b.apartment!==undefined)user.apartment=String(b.apartment).trim().slice(0,30);});return res.json({ok:true});
+      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId)throw A.error('Usuario fuera de esta administración.',403);user.actuatorIds=ids;if(b.apartment!==undefined)user.apartment=String(b.apartment).trim().slice(0,30);});await addHistory({kind:'permissions',groupId,userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Permisos de actuadores actualizados',actuatorIds:ids}).catch(()=>{});return res.json({ok:true});
     }
     if(b.action==='accountStatus'){
       A.manager(auth);if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado inválido.');
-      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||b.userId===registry.masterId||b.userId===auth.device.id)throw A.error('Cuenta no modificable.',403);if(auth.role!=='super_master'&&(user.role!=='user'||user.groupId!==auth.groupId))throw A.error('Cuenta fuera de tu administración.',403);user.status=b.status;user.statusChangedAt=new Date().toISOString();user.statusChangedBy=auth.device.id;});return res.json({ok:true});
+      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||b.userId===registry.masterId||b.userId===auth.device.id)throw A.error('Cuenta no modificable.',403);if(auth.role!=='super_master'&&(user.role!=='user'||user.groupId!==auth.groupId))throw A.error('Cuenta fuera de tu administración.',403);user.status=b.status;user.statusChangedAt=new Date().toISOString();user.statusChangedBy=auth.device.id;});await addHistory({kind:'permissions',groupId:auth.registry.devices[b.userId]?.groupId||'master',userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Estado de acceso: '+b.status}).catch(()=>{});return res.json({ok:true});
     }
     if(b.action==='add'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster general agrega y asigna actuadores.',403);const groupId=A.group(auth,b.groupId);const deviceId=String(b.deviceId||'').trim(),code=String(b.code||'switch_1');

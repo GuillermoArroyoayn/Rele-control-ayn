@@ -38,6 +38,7 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 86';voiceStatus.after(voiceBuildLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -2059,10 +2060,12 @@ shareContacts.addEventListener("click", async () => {
 });
 if ("serviceWorker" in navigator) {
   let reloading = false;
+  let hadController=Boolean(navigator.serviceWorker.controller);
+  const applyUpdateWhenIdle=()=>{if(reloading)return;const typing=document.activeElement?.matches('input,select,textarea');const speakingRecently=Date.now()-voiceLastSpeechAt<1200;const requestPending=document.querySelector('[data-feedback="pending"]');if(voiceCaptureUntil||voiceCommandBusy||voiceSpeaking||typing||speakingRecently||requestPending){setTimeout(applyUpdateWhenIdle,500);return;}reloading=true;location.reload();};
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (reloading) return;
-    reloading = true;
-    location.reload();
+    if(!hadController){hadController=true;return;}
+    applyUpdateWhenIdle();
   });
   navigator.serviceWorker
     .register("/sw.js")

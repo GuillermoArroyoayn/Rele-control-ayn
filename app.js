@@ -38,7 +38,8 @@ const roleLabels = {
 const fontSize = document.getElementById("fontSize"),
   voiceCommand = document.getElementById("voiceCommand"),
   voiceStatus = document.getElementById("voiceStatus");
-const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 98';voiceStatus.after(voiceBuildLabel);
+const voiceBuildLabel=document.createElement('small');voiceBuildLabel.id='voiceBuild';voiceBuildLabel.textContent='Motor de voz · versión 99';voiceStatus.after(voiceBuildLabel);
+const voiceHeardLabel=document.createElement('small');voiceHeardLabel.id='voiceHeard';voiceHeardLabel.textContent='Última frase escuchada: —';voiceBuildLabel.after(voiceHeardLabel);
 const savedFontSize = localStorage.getItem("aynFontSize") || "medium";
 fontSize.value = ["small", "medium", "large"].includes(savedFontSize) ? savedFontSize : "medium";
 document.documentElement.dataset.fontSize = fontSize.value;
@@ -595,7 +596,7 @@ let voicePattern="",voicePatternAt=0;
 const voicePhraseDeadline = () => {
   const phrase = mergeVoiceFragments(voicePhrase, voiceInterimPhrase);
   const complete=isCompleteFastVoiceCommand(phrase),normalized=normalizeVoice(phrase);
-  if(complete){if(voicePattern!==normalized){voicePattern=normalized;voicePatternAt=Date.now();}return voicePatternAt+250;}
+  if(complete){if(voicePattern!==normalized){voicePattern=normalized;voicePatternAt=Date.now();}return Math.max(voicePatternAt+250,voiceLastSpeechAt+800);}
   voicePattern='';voicePatternAt=0;
   return Math.max(voiceCaptureStartedAt+3000,voiceLastSpeechAt+800);
 };
@@ -742,7 +743,7 @@ const normalizeVoice = text => normalizeVoiceBase(text)
   .replace(/\bpor ton\b/g, "porton")
   .replace(/\bactua dor\b/g, "actuador")
   // Rapid speech can be transcribed without word boundaries.
-  .replace(/^(ain|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
+  .replace(/^(ain|auin|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen)(?=activar|activa|abrir|abre|encender|enciende|prender|prende)/, "$1 ")
   .replace(/\b(abrir|abre|activar|activa|encender|enciende|prender|prende)(puerta|porton|actuador|acceso|rele)\b/g, "$1 $2")
   .replace(/\b(actuador|porton|puerta|acceso|rele)(uno|dos|tres|1|2|3)\b/g, "$1 $2")
   .split(" ").map(word => {
@@ -763,7 +764,7 @@ const setVoiceStatus = (text, error = false, say = false) => {
   voiceStatus.classList.toggle("error", error);
   if (say && !speak(text)) startVoiceListening();};
 
-const wakeWordPattern = /^(?:(?:oye|hola|hey|ey) )?(?:ain|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
+const wakeWordPattern = /^(?:(?:oye|hola|hey|ey) )?(?:ain|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
 // This phone transcribes "Ain" as "ahí". Accept that spelling only at
 // the beginning, before a supported command; never as an arbitrary word.
 const misheardWakePattern = /^(?:ahi|hay|ay|ai|a|en|in)(?: (?:ahi|hay|ay|ai))*(?: (?=(?:activar|activa|abrir|abre|encender|enciende|prender|prende|actuador|confirmar|confirma|cancelar|cancela|detener|desactivar|reservar|ver|volver|inicio|agenda|historial)\b)|$)/;
@@ -972,7 +973,11 @@ if (!SpeechRecognition) {
   voiceStatus.classList.add("error");
 } else {
   recognition = new SpeechRecognition();
-  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 98 · Deepgram en tiempo real':'Motor de voz · versión 98 · local';};
+  recognition.onprovider=provider=>{voiceBuildLabel.textContent=provider==='deepgram'?'Motor de voz · versión 99 · Deepgram en tiempo real':'Motor de voz · versión 99 · local';};
+  recognition.onutteranceend=()=>{
+    if(!voiceEnabled||voiceSpeaking||Date.now()<voiceEchoUntil||!voiceCaptureUntil)return;
+    if(isCompleteFastVoiceCommand(mergeVoiceFragments(voicePhrase,voiceInterimPhrase)))finishVoiceCapture();
+  };
   recognition.onrecovering=()=>{
     voiceListening=false;voiceStarting=true;
     clearTimeout(voiceCaptureTimer);
@@ -1007,22 +1012,24 @@ if (!SpeechRecognition) {
     // Interim results are replaceable hypotheses, never final fragments.
     // Keep them separately so a browser end cannot silently discard speech.
     const interim = [];
-    let receivedFinal = false;
+    let receivedFinal = false,utteranceEnded=false;
     for (let index = event.resultIndex; index < event.results.length; index += 1) {
       const result = event.results[index];
       const alternatives = Array.from(result).map(item => item.transcript).filter(Boolean);
       const transcript = alternatives.find(text => hasWakeWord(normalizeVoice(text))) || alternatives[0];
       if (!transcript) continue;
+      voiceHeardLabel.textContent='Última frase escuchada: '+transcript.trim();
       const changed = voiceLastTranscript !== transcript.trim();
       voiceLastTranscript = transcript.trim();
       beginVoiceCapture(transcript);
       if (voiceCaptureUntil && changed) {
-        if (!recognition.providesSpeechActivity) voiceLastSpeechAt = Date.now();
+        voiceLastSpeechAt = Date.now();
         scheduleVoicePhraseEnd();
       }
       if (result.isFinal && voiceFinalResults.get(index) !== transcript) {
         voiceFinalResults.set(index, transcript);
         receivedFinal = true;
+        utteranceEnded=utteranceEnded||result.utteranceEnded===true;
         collectVoicePhrase(transcript);
       }
     }
@@ -1033,7 +1040,8 @@ if (!SpeechRecognition) {
     voiceInterimPhrase = voiceCaptureUntil ? interim.join(" ").trim() : "";
     if (voiceInterimPhrase || voicePhrase)
       setVoiceStatus("Ain está escuchando tu orden…");
-    if (voiceCaptureUntil) scheduleVoicePhraseEnd();
+    if(voiceCaptureUntil&&utteranceEnded&&isCompleteFastVoiceCommand(mergeVoiceFragments(voicePhrase,voiceInterimPhrase)))finishVoiceCapture();
+    else if (voiceCaptureUntil) scheduleVoicePhraseEnd();
 
     if (!voiceCaptureUntil && receivedFinal) returnToVoiceListening();
     // Do not cancel the final-fragment timer when only an interim arrives.

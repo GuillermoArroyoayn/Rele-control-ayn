@@ -524,6 +524,7 @@ async function controlRelay(relay, desired, source = "manual") {
   }
   const btn = document.querySelector(`.power[data-relay="${relay}"]`);
   btn.disabled = true;
+  document.getElementById(`state${relay}`).textContent="ORDEN EN CURSO…";
   show(`${desired ? "Encendiendo" : "Apagando"} actuador ${relay}…`);
   try {
     const data = await api("/api/control", {
@@ -531,13 +532,13 @@ async function controlRelay(relay, desired, source = "manual") {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ relay, state: desired, source }),
     });
-    paint(relay, Boolean(data.state));
+    paint(relay, data.state);
     clearTimeout(relayTimerChecks.get(relay));
     if(data.state&&data.timerSeconds>0){
       const label=document.getElementById(`state${relay}`);label.textContent=`ENCENDIDO · ${data.timerSeconds} s`;
       relayTimerChecks.set(relay,setTimeout(async()=>{try{const snapshot=await api('/api/status');const item=snapshot.relays.find(x=>x.relay===relay);if(item){paint(relay,item.state);if(item.state===true)show(`Actuador ${relay}: sigue encendido después del temporizador. Revisa la configuración del equipo.`,true);}}catch(e){show('No se pudo confirmar el apagado: '+e.message,true);}},(data.timerSeconds+1)*1000));
     }
-    show(`Actuador ${relay}: ${data.state ? "encendido" : "apagado"}.`);
+    show(data.autoOffConfirmed?`Actuador ${relay}: activado y apagado automáticamente, confirmado.`:`Actuador ${relay}: ${data.state===true?"encendido":data.state===false?"apagado":"nueva orden en curso"}.`);
     return true;
   } catch (e) {
     show(e.message, true);

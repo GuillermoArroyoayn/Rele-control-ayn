@@ -42,7 +42,7 @@ assert.equal(w.getComputedStyle(doc.querySelector('.main-menu')).overflow,'auto'
 for(const role of ['admin','super_master']) {
  w.location.hash='#bookings';w.setTestRole(role);
  for(const [view,panel] of [['bookings','.bookings-panel'],['reports','.reports-panel'],['users','#adminPanel'],['database','.database-panel'],['system','.system-panel']]) {
-  w.showView(view);assert.equal(w.getComputedStyle(doc.querySelector(panel)).position,'fixed');assert.equal(doc.querySelector('.function-toolbar').hidden,false);assert.equal(doc.querySelector('.main-menu').hidden,true);
+  w.showView(view);assert.equal(w.getComputedStyle(doc.querySelector(panel)).position,'fixed');assert.equal(doc.querySelector(panel).parentElement,doc.body);assert.equal(w.getComputedStyle(doc.querySelector('.main-menu')).display,'none');assert.equal(doc.querySelector('.function-toolbar').hidden,false);assert.equal(doc.querySelector('.main-menu').hidden,true);
  }
  w.showView('voice');assert(doc.querySelector('.function-screen').classList);assert.equal(doc.querySelector('.function-screen:not([hidden])')!==null,true);
  doc.querySelector('.function-toolbar button').click();assert.equal(doc.body.dataset.userView,'menu');assert.equal(doc.querySelector('.main-menu').hidden,false);

@@ -210,7 +210,8 @@ function prepareFunctionScreen(view) {
   functionConfig.hidden=currentRole!=="super_master"||view==="menu";
   if(!user && ready) mainMenu.hidden=view!=="menu";
   const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel];
-  for(const panel of panels) panel.classList.remove("function-screen");
+  for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
+  if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
   const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);

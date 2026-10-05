@@ -102,7 +102,7 @@
         preparingModel.catch(()=>{});
         this.noiseActivity = new AinNoiseActivity();
         this.recognizer=null;this.pendingAudio=[];this.pendingSamples=0;
-        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release109");
+        await context.audioWorklet.addModule("/ain-audio-worklet.js?v=20261004-release110");
         if (generation !== this.generation) return;
         let firstAudio;let firstAudioReady=new Promise(resolve=>{firstAudio=resolve;});
         const node = new AudioWorkletNode(context, "ain-audio-capture");

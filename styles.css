@@ -574,3 +574,9 @@ body .main-menu button.active{background:#ffffff18;color:inherit;box-shadow:inse
 @media(max-width:479px){body :is(.main-menu,#tabs){grid-template-columns:repeat(3,minmax(0,1fr))}}
 html[data-font-size="large"] body :is(.main-menu,#tabs){grid-template-columns:repeat(2,minmax(0,1fr))}
 html[data-font-size="large"] body :is(.main-menu,#tabs) .menu-label{font-size:17px!important}
+
+body.app-screen-mode{overflow-x:hidden}.app-screen-mode .app{width:100%;max-width:none;padding-top:calc(84px + env(safe-area-inset-top,0px))}.app-screen-mode .brand,.app-screen-mode footer{display:none}
+html body.app-screen-mode .function-screen,html body.app-screen-mode .community-panel:not([hidden]),html body.app-screen-mode .panic-panel:not([hidden]){position:fixed;inset:calc(74px + env(safe-area-inset-top,0px)) 0 0;z-index:900;width:100%;max-width:none;max-height:none;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;margin:0;border:0;border-radius:0;padding:20px 16px calc(110px + env(safe-area-inset-bottom,0px));background:var(--theme-bg,#071521)}
+html body .function-screen[hidden],html body .function-toolbar[hidden]{display:none!important}.function-toolbar{height:calc(74px + env(safe-area-inset-top,0px));box-sizing:border-box}.function-toolbar strong{flex:1;text-align:center}.app-screen-mode #message:not(:empty){position:fixed;top:calc(78px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:1100;pointer-events:none}.app-screen-mode #message:empty{display:none}.app-screen-mode .function-screen .admin-title{margin-top:0}
+
+html body.app-screen-mode #message:not(.function-toast){display:none!important}html body.app-screen-mode #message.function-toast{display:block!important;background:#0b2239;border:1px solid #6bdcf3;border-radius:12px;padding:12px;pointer-events:none}

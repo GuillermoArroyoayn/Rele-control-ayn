@@ -114,7 +114,7 @@ document.addEventListener("ayn-panic-feedback", () => {
   if (document.body.classList.contains("user-layout")) showView("panic");
 });
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && document.body.classList.contains("user-layout") && currentView !== "control") {
+  if (event.key === "Escape" && statusReady && currentView !== "control") {
     showView("control");userMenuButton.focus();
   }
 });
@@ -195,8 +195,33 @@ function buildMenu() {
 }
 
 const masterConfigLink=document.createElement('a');masterConfigLink.className='small-button';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;mainMenu.before(masterConfigLink);
+const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
+const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
+functionBack.onclick=()=>showView("menu");
+const functionTitle=document.createElement("strong");
+const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>masterConfigLink.click();
+functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
+const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);
+function prepareFunctionScreen(view) {
+  const user=document.body.classList.contains("user-layout"), ready=statusReady;
+  document.body.classList.toggle("app-screen-mode",ready);
+  functionToolbar.hidden=!ready||user;
+  functionTitle.textContent=menuDefinitions.find(([id])=>id===view)?.[1]||({voice:"Control de voz",tools:"Herramientas",menu:"Menú"})[view]||"AYN";
+  functionConfig.hidden=currentRole!=="super_master"||view==="menu";
+  if(!user && ready) mainMenu.hidden=view!=="menu";
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel];
+  for(const panel of panels) panel.classList.remove("function-screen");
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel})[view];
+  if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
+  functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
+  if(!user) for(const {node,marker} of userSettingNodes) {
+    if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility"))) functionSettings.append(node);
+    else marker.after(node);
+  }
+}
 function showView(view) {
   currentView = view;
+  prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));
   masterConfigLink.hidden=currentRole!=='super_master';
   masterConfigLink.href=view==='control'?'/administracion.html#timers':view==='temporary'?'/#temporary':view==='bookings'?'/#bookings':view==='voice'?'/#voice':'/#tools';
@@ -334,7 +359,11 @@ function pin() {
 }
 const relayTimerChecks=new Map();
 const controlOutcomes=new Map();
+let functionToastTimer;
 function show(text, error = false) {
+  message.classList.add("function-toast");
+  clearTimeout(functionToastTimer);
+  functionToastTimer=setTimeout(()=>message.classList.remove("function-toast"),5000);
   message.textContent = text;
   message.classList.toggle("is-error", error);
   message.style.color = error ? "#fecaca" : "#bfd3e2";
@@ -1655,7 +1684,9 @@ function renderBookingSpace(space, bookings, date) {
   const title = document.createElement("summary");
   title.textContent = `${space.name} · Reservar`;
   details.append(title);
-  card.append(details);
+  const back=document.createElement("button");back.type="button";back.className="booking-back";back.textContent="Volver a los lugares";back.hidden=true;
+  back.onclick=()=>{details.open=false;details.dispatchEvent(new Event("toggle"));title.focus();};
+  card.append(back,details);
   const calendar = document.createElement("div");
   calendar.className = "booking-calendar";
   details.append(calendar);
@@ -1754,7 +1785,20 @@ function renderBookingSpace(space, bookings, date) {
       calendar.append(grid,selectedLabel,accept);
     }catch(e){loaded=false;calendar.textContent=e.message;}
   }
+  function expandPlace() {
+    const grid=card.closest(".booking-grid"); if(!grid || (!details.open && !card.classList.contains("booking-place-selected")))return;
+    grid.classList.toggle("booking-place-open",details.open);
+    card.classList.toggle("booking-place-selected",details.open);back.hidden=!details.open;
+    for(const other of grid.children) if(other!==card) {
+      other.hidden=details.open;
+      if(details.open) {other.querySelector("details").open=false;openBookingSpaces.delete(other.querySelector("details")?.dataset.spaceId);}
+    }
+    for(const node of bookingsPanel.children) if(node!==grid) node.hidden=details.open;
+    if(details.open) bookingsPanel.scrollTop=0;
+  }
+  details.dataset.spaceId=space.id;
   details.addEventListener("toggle",()=>{
+    expandPlace();
     if(details.open){openBookingSpaces.add(space.id);if(!loaded)drawMonth();}
     else openBookingSpaces.delete(space.id);
   });
@@ -1792,7 +1836,7 @@ function renderBookingSpace(space, bookings, date) {
       }
     }
   });
-  if(details.open)drawMonth();
+  if(details.open) {drawMonth();queueMicrotask(expandPlace);}
   return card;
 }
 

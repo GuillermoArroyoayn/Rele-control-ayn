@@ -30,7 +30,7 @@ for(const [view,panel] of [['settings','.user-settings-panel'],['bookings','.boo
 w.eval('showView("control")');assert.equal(doc.querySelector('.relay-grid').hidden,false);
 doc.dispatchEvent(new w.Event('ayn-panic-feedback'));assert.equal(doc.body.dataset.userView,'panic');
 doc.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape'}));assert.equal(doc.body.dataset.userView,'control');
-w.setTestRole('admin');assert(!doc.body.classList.contains('user-layout'));assert(!doc.querySelector('.user-settings-panel').contains(doc.querySelector('.accessibility')));assert.equal(doc.querySelector('.main-menu').hidden,false);
+w.setTestRole('admin');assert(!doc.body.classList.contains('user-layout'));assert(!doc.querySelector('.user-settings-panel').contains(doc.querySelector('.accessibility')));assert.equal(doc.querySelector('.main-menu').hidden,true);
 const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');
 const style=doc.createElement('style');style.textContent=css;doc.head.append(style);
 w.setTestRole('user');w.showView('reports');
@@ -39,8 +39,16 @@ assert.equal(w.getComputedStyle(doc.querySelector('.brand')).display,'none');
 assert.equal(w.getComputedStyle(doc.querySelector('.relay-grid')).display,'none');
 assert.equal(w.getComputedStyle(doc.querySelector('.reports-panel')).maxHeight,'none');
 assert.equal(w.getComputedStyle(doc.querySelector('.main-menu')).overflow,'auto');
+for(const role of ['admin','super_master']) {
+ w.location.hash='#bookings';w.setTestRole(role);
+ for(const [view,panel] of [['bookings','.bookings-panel'],['reports','.reports-panel'],['users','#adminPanel'],['database','.database-panel'],['system','.system-panel']]) {
+  w.showView(view);assert.equal(w.getComputedStyle(doc.querySelector(panel)).position,'fixed');assert.equal(doc.querySelector('.function-toolbar').hidden,false);assert.equal(doc.querySelector('.main-menu').hidden,true);
+ }
+ w.showView('voice');assert(doc.querySelector('.function-screen').classList);assert.equal(doc.querySelector('.function-screen:not([hidden])')!==null,true);
+ doc.querySelector('.function-toolbar button').click();assert.equal(doc.body.dataset.userView,'menu');assert.equal(doc.querySelector('.main-menu').hidden,false);
+}
 console.log('Pantalla usuario: inicio limpio, menú y vistas completas, configuración conservada, SOS, retorno y administración verificados.');
-dom.window.close();
+setImmediate(()=>dom.window.close());
 const boot=new JSDOM(html,{url:'https://ayn.test/#reportes',runScripts:'outside-only',pretendToBeVisual:true});
 boot.window.localStorage.setItem('relayPin','test-pin');
 boot.window.document.documentElement.dataset.bootLayout='user';

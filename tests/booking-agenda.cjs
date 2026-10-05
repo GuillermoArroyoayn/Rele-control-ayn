@@ -7,9 +7,10 @@ vm.createContext(context);vm.runInContext(source.slice(source.indexOf('const boo
 (async()=>{
  const date=new Date(Date.now()+86400000).toISOString().slice(0,10);
  const space={id:'estacionamiento',name:'Estacionamiento',enabled:true,weekdays:[0,1,2,3,4,5,6],open:'10:00',close:'13:00',slotMinutes:60};
- const card=context.renderBookingSpace(space,[],date);dom.window.document.body.append(card);const details=card.querySelector('details');details.open=true;details.dispatchEvent(new dom.window.Event('toggle'));await new Promise(r=>setImmediate(r));
+ const grid=dom.window.document.createElement('div');grid.className='booking-grid';dom.window.document.body.append(grid);
+ const card=context.renderBookingSpace(space,[],date), otherCard=context.renderBookingSpace({...space,id:'quincho'},[],date);grid.append(card,otherCard);const details=card.querySelector('details');details.open=true;details.dispatchEvent(new dom.window.Event('toggle'));await new Promise(r=>setImmediate(r));
  card.querySelector(`[data-date="${date}"]`).click();await new Promise(r=>setImmediate(r));
- const form=card.querySelector('form');assert(form);assert.equal(form.querySelector('select').value,'10:00');
+ assert(grid.classList.contains('booking-place-open'));assert(otherCard.hidden);assert.equal(card.querySelector('.booking-back').hidden,false);const form=card.querySelector('form');assert(form);assert.equal(form.querySelector('select').value,'10:00');
  form.querySelector('.booking-end-time').value='12:00';form.querySelector('input').value='7';form.dispatchEvent(new dom.window.Event('submit',{cancelable:true}));await new Promise(r=>setImmediate(r));
  assert.equal(calls[0].parkingNumber,7);assert.equal(calls[0].end,'12:00');assert.equal(form.hidden,true);
  const day=card.querySelector(`[data-date="${date}"]`);assert(day.classList.contains('has-bookings'));assert.equal(day.querySelector('span'),null);
@@ -25,5 +26,6 @@ vm.createContext(context);vm.runInContext(source.slice(source.indexOf('const boo
   const conflict={spaceId:id,date,startMinute:660,endMinute:720,parkingNumber:1};
   const limited=context.renderBookingHours(config,[conflict],date);assert.equal(limited.querySelector('.booking-end-time').options.length,1);
  }
+ card.querySelector('.booking-back').click();assert.equal(otherCard.hidden,false);assert(!grid.classList.contains('booking-place-open'));
  console.log('Agenda: selección inmediata, hora por defecto, guardar sin recargar, solo color en calendario, estacionamiento visible, números independientes y vencimiento correctos.');
 })().catch(e=>{console.error(e);process.exitCode=1});

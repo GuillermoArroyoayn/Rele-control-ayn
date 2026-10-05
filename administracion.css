@@ -16,3 +16,5 @@ body .main-menu button.active{background:#ffffff18;color:inherit;box-shadow:inse
 @media(max-width:479px){body :is(.main-menu,#tabs){grid-template-columns:repeat(3,minmax(0,1fr))}}
 html[data-font-size="large"] body :is(.main-menu,#tabs){grid-template-columns:repeat(2,minmax(0,1fr))}
 html[data-font-size="large"] body :is(.main-menu,#tabs) .menu-label{font-size:17px!important}
+
+body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(safe-area-inset-top,0px)) 16px calc(100px + env(safe-area-inset-bottom,0px))}body[data-admin-view] #panelToolbar{position:fixed;inset:0 0 auto;z-index:950;min-height:74px;padding:12px 16px;background:#06172f}body[data-admin-view] main>h1,body[data-admin-view] main>.app-version,body[data-admin-view] main>a{display:none}body[data-admin-view] .panic-panel:not([hidden]){position:fixed;inset:74px 0 0;overflow:auto;padding:20px 16px 110px;margin:0;border:0;border-radius:0;background:#06172f;z-index:900}

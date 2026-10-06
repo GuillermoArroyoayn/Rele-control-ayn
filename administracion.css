@@ -171,3 +171,10 @@ body[data-admin-view="menu"] #viewTitle{font-size:16px}
   .home-wave i:nth-child(3){height:40px}
   .home-voice-text{font-size:18px}
 }
+
+
+/* Movimiento del aro eléctrico del logo A&N · v114 */
+.home-orbit-glow,.home-orbit-spark{animation:admin-home-orbit-shine 7s linear infinite}
+.home-control-glow{pointer-events:none}
+@keyframes admin-home-orbit-shine{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
+@media(prefers-reduced-motion:reduce){.home-orbit-glow,.home-orbit-spark{animation:none}}

@@ -20,7 +20,7 @@ html[data-font-size="large"] body :is(.main-menu,#tabs) .menu-label{font-size:17
 body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(safe-area-inset-top,0px)) 16px calc(100px + env(safe-area-inset-bottom,0px))}body[data-admin-view] #panelToolbar{position:fixed;inset:0 0 auto;z-index:950;min-height:74px;padding:12px 16px;background:#06172f}body[data-admin-view] main>h1,body[data-admin-view] main>.app-version,body[data-admin-view] main>a{display:none}body[data-admin-view] .panic-panel:not([hidden]){position:fixed;inset:74px 0 0;overflow:auto;padding:20px 16px 110px;margin:0;border:0;border-radius:0;background:#06172f;z-index:900}
 
 /* Menú de escritorio: opciones en una lista vertical, en el orden del menú. */
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   html body :is(.main-menu, #tabs) {
     display: flex;
     flex-direction: column;
@@ -30,18 +30,18 @@ body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(saf
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
-    min-height: 56px;
-    padding: 10px 14px;
+    min-height: 48px;
+    padding: 6px 12px;
     text-align: left;
     border: 1px solid #ffffff26;
     border-radius: 10px;
     background: #ffffff08;
   }
   html body :is(.main-menu, #tabs) .menu-icon {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     border-radius: 10px;
     font-size: 20px !important;
   }
@@ -53,9 +53,34 @@ body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(saf
   }
 }
 
-@media (min-width: 900px) {
-  body[data-admin-view] main { max-width: 900px; }
+@media (min-width: 720px) {
+  body[data-admin-view] main { max-width: 720px; }
   body[data-admin-view] #panelToolbar {
-    padding-inline: max(16px, calc((100vw - 900px) / 2 + 16px));
+    padding-inline: max(16px, calc((100vw - 720px) / 2 + 16px));
+  }
+}
+
+/* Formularios más compactos para el uso con mouse y teclado. */
+@media (min-width: 900px) {
+  body[data-admin-view] { font-size: 14px; }
+  body[data-admin-view] main {
+    padding-top: calc(76px + env(safe-area-inset-top, 0px));
+  }
+  body[data-admin-view] #panelToolbar {
+    min-height: 60px;
+    padding-block: 8px;
+  }
+  body[data-admin-view] main :is(form, article) {
+    padding: 12px;
+    margin-block: 12px;
+  }
+  body[data-admin-view] main label { margin-block: 8px; }
+  body[data-admin-view] main :is(input, select, button) {
+    min-height: 36px;
+    padding: 6px 10px;
+  }
+  body[data-admin-view] main input[type="checkbox"] {
+    min-height: 22px;
+    padding: 0;
   }
 }

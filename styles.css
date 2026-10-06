@@ -31,7 +31,7 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   margin: 14px 0 22px;
 }
 .brand img {
@@ -584,25 +584,25 @@ html body.app-screen-mode #message:not(.function-toast){display:none!important}h
 html body.app-screen-mode [hidden]{display:none!important}body.app-screen-mode .panel{backdrop-filter:none;-webkit-backdrop-filter:none}body.app-screen-mode:not([data-user-view="control"]){overflow:hidden}html body.app-screen-mode .function-screen{height:calc(100dvh - 74px - env(safe-area-inset-top,0px));min-height:0}html body.app-screen-mode .main-menu[hidden]{display:none!important}
 
 /* En escritorio, mantener los controles centrados y fáciles de recorrer. */
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   body.app-screen-mode .app {
-    width: 900px;
+    width: 720px;
     max-width: 100%;
   }
   html body.app-screen-mode .function-screen,
   html body.app-screen-mode .community-panel:not([hidden]),
   html body.app-screen-mode .panic-panel:not([hidden]) {
-    width: 900px;
+    width: 720px;
     max-width: 100%;
     margin: 0 auto;
   }
   body.app-screen-mode .function-toolbar {
-    padding-inline: max(14px, calc((100vw - 900px) / 2 + 18px));
+    padding-inline: max(14px, calc((100vw - 720px) / 2 + 18px));
   }
 }
 
 /* Menú de escritorio: opciones en una lista vertical, en el orden del menú. */
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   html body :is(.main-menu, #tabs) {
     display: flex;
     flex-direction: column;
@@ -612,18 +612,18 @@ html body.app-screen-mode [hidden]{display:none!important}body.app-screen-mode .
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
-    min-height: 56px;
-    padding: 10px 14px;
+    min-height: 48px;
+    padding: 6px 12px;
     text-align: left;
     border: 1px solid #ffffff26;
     border-radius: 10px;
     background: #ffffff08;
   }
   html body :is(.main-menu, #tabs) .menu-icon {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     border-radius: 10px;
     font-size: 20px !important;
   }

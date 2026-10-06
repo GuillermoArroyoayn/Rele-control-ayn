@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v114-logo-electric";
+const CACHE = "reles-ayn-v115-auth-session";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261004-release111",
@@ -22,8 +22,8 @@ const ASSETS = [
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261006-logo114",
-  "/administracion.js?v=20261006-home113"
+  "/administracion.css?v=20261006-auth115",
+  "/administracion.js?v=20261006-auth115"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

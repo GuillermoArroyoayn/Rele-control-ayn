@@ -18,3 +18,44 @@ html[data-font-size="large"] body :is(.main-menu,#tabs){grid-template-columns:re
 html[data-font-size="large"] body :is(.main-menu,#tabs) .menu-label{font-size:17px!important}
 
 body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(safe-area-inset-top,0px)) 16px calc(100px + env(safe-area-inset-bottom,0px))}body[data-admin-view] #panelToolbar{position:fixed;inset:0 0 auto;z-index:950;min-height:74px;padding:12px 16px;background:#06172f}body[data-admin-view] main>h1,body[data-admin-view] main>.app-version,body[data-admin-view] main>a{display:none}body[data-admin-view] .panic-panel:not([hidden]){position:fixed;inset:74px 0 0;overflow:auto;padding:20px 16px 110px;margin:0;border:0;border-radius:0;background:#06172f;z-index:900}
+
+/* Menú de escritorio: opciones en una lista vertical, en el orden del menú. */
+@media (min-width: 900px) {
+  html body :is(.main-menu, #tabs) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  html body :is(.main-menu, #tabs) > :is(button, a) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    width: 100%;
+    min-height: 56px;
+    padding: 10px 14px;
+    text-align: left;
+    border: 1px solid #ffffff26;
+    border-radius: 10px;
+    background: #ffffff08;
+  }
+  html body :is(.main-menu, #tabs) .menu-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 20px !important;
+  }
+  html body :is(.main-menu, #tabs) :is([data-tab="panic"], [data-view="panic"]) .menu-icon {
+    font-size: 14px !important;
+  }
+  html body :is(.main-menu, #tabs) .menu-label {
+    font-size: calc(16px * var(--accessibility-scale, 1)) !important;
+  }
+}
+
+@media (min-width: 900px) {
+  body[data-admin-view] main { max-width: 900px; }
+  body[data-admin-view] #panelToolbar {
+    padding-inline: max(16px, calc((100vw - 900px) / 2 + 16px));
+  }
+}

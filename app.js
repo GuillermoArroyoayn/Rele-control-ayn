@@ -70,6 +70,80 @@ const mainMenu = document.createElement("nav");
 mainMenu.className = "main-menu";
 mainMenu.hidden = true;
 message.after(mainMenu);
+
+const homeDashboard = document.createElement("section");
+homeDashboard.className = "home-dashboard";
+homeDashboard.hidden = true;
+homeDashboard.innerHTML = `
+  <div class="home-dashboard-top">
+    <div class="home-dashboard-brand" aria-label="A&N Control"></div>
+    <button type="button" class="home-overflow" aria-label="Más herramientas" title="Más herramientas">⋮</button>
+  </div>
+  <div class="home-quick-grid" aria-label="Funciones principales">
+    <button type="button" class="home-quick-card" data-home-view="access">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M11 52h42M15 49V17h34v32M21 17v32M29 17v32M37 17v32M45 17v32M12 14h40"/></svg>
+      </span><span>Accesos</span>
+    </button>
+    <button type="button" class="home-quick-card" data-home-view="bookings">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><rect x="11" y="15" width="42" height="38" rx="5"/><path d="M20 9v12M44 9v12M11 26h42"/><path d="M20 34h5M30 34h5M40 34h5M20 43h5M30 43h5M40 43h5"/></svg>
+      </span><span>Espacios<br>Comunes</span>
+    </button>
+    <button type="button" class="home-quick-card" data-home-view="reports">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M39 11a12 12 0 0 0-13 15L10 42l12 12 16-16a12 12 0 0 0 15-13l-9 9-8-2-2-8 9-9a12 12 0 0 0-4-4Z"/><path d="M15 49l5-5"/></svg>
+      </span><span>Reportes</span>
+    </button>
+    <button type="button" class="home-quick-card" data-home-view="wall">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="9"/><circle cx="15" cy="28" r="7"/><circle cx="49" cy="28" r="7"/><path d="M18 53v-5c0-8 6-14 14-14s14 6 14 14v5M5 52v-4c0-6 4-11 10-12M59 52v-4c0-6-4-11-10-12"/></svg>
+      </span><span>Comunidad</span>
+    </button>
+    <button type="button" class="home-quick-card home-quick-sos" data-home-view="panic">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M20 44h24M23 41V29a9 9 0 0 1 18 0v12M18 49h28"/><path d="M32 8v7M12 19l6 4M52 19l-6 4M8 34h7M49 34h7"/></svg>
+      </span><span>SOS</span>
+    </button>
+    <button type="button" class="home-quick-card" data-home-view="polls">
+      <span class="home-quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M13 52V37h10v15M27 52V27h10v25M41 52V15h10v37M9 52h46"/></svg>
+      </span><span>Encuestas</span>
+    </button>
+  </div>
+  <div class="home-voice-area">
+    <button type="button" class="home-voice-button" aria-label="Activar control por voz AYN">
+      <span class="home-wave home-wave-left" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="home-mic-ring" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><rect x="24" y="10" width="16" height="31" rx="8"/><path d="M17 31v3a15 15 0 0 0 30 0v-3M32 49v8M24 57h16"/></svg>
+      </span>
+      <span class="home-wave home-wave-right" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    </button>
+    <p class="home-voice-text">AYN está escuchando</p>
+  </div>
+`;
+mainMenu.after(homeDashboard);
+const homeOverflowButton = homeDashboard.querySelector(".home-overflow");
+const homeVoiceButton = homeDashboard.querySelector(".home-voice-button");
+const homeVoiceText = homeDashboard.querySelector(".home-voice-text");
+for (const button of homeDashboard.querySelectorAll("[data-home-view]")) {
+  button.addEventListener("click", () => showView(button.dataset.homeView));
+}
+homeOverflowButton.addEventListener("click", () => showView("menu"));
+homeVoiceButton.addEventListener("click", () => {
+  if (!voiceCommand.disabled) voiceCommand.click();
+});
+const homeWatermark = document.querySelector(".home-watermark");
+const homeWatermarkOrigin = document.createComment("Ubicación original del logo A&N");
+if (homeWatermark) homeWatermark.before(homeWatermarkOrigin);
+const homeBrandSlot = homeDashboard.querySelector(".home-dashboard-brand");
+const syncHomeVoice = () => {
+  const listening = voiceCommand.classList.contains("listening");
+  homeVoiceButton.classList.toggle("listening", listening);
+  homeVoiceText.textContent = listening ? "AYN está escuchando" : "Toca el micrófono para activar AYN";
+};
+new MutationObserver(syncHomeVoice).observe(voiceCommand, { attributes: true, attributeFilter: ["class", "disabled"] });
+syncHomeVoice();
 const databasePanel = document.createElement("section");
 databasePanel.className = "menu-panel database-panel";
 databasePanel.hidden = true;
@@ -100,12 +174,13 @@ userToolbar.className = "user-toolbar";
 userToolbar.hidden = true;
 const userMenuButton = document.createElement("button");
 userMenuButton.type = "button";
-userMenuButton.textContent = "☰ Menú";
-userMenuButton.setAttribute("aria-label", "Abrir menú");
+userMenuButton.textContent = "⋮";
+userMenuButton.setAttribute("aria-label", "Más herramientas");
+userMenuButton.title = "Más herramientas";
 const userViewTitle = document.createElement("strong");
 const userHomeButton = document.createElement("button");
 userHomeButton.type = "button";
-userHomeButton.textContent = "Volver al inicio";
+userHomeButton.textContent = "Inicio";
 userHomeButton.addEventListener("click", () => showView("control"));
 userMenuButton.addEventListener("click", () => showView(currentView === "menu" ? "control" : "menu"));
 userToolbar.append(userMenuButton,userViewTitle,userHomeButton);
@@ -121,8 +196,14 @@ document.addEventListener("keydown", event => {
 const userViewOrigins = new Map();
 function configureUserLayout(enabled) {
   document.body.classList.toggle("user-layout", enabled);
-  userToolbar.hidden = !enabled;
+  userToolbar.hidden = !enabled || currentView === "control";
   userMenuButton.disabled = !statusReady;
+  homeDashboard.hidden = !enabled;
+  mainMenu.classList.toggle("overflow-menu", enabled);
+  if (homeWatermark) {
+    if (enabled) homeBrandSlot.append(homeWatermark);
+    else if (homeWatermarkOrigin.parentNode) homeWatermarkOrigin.after(homeWatermark);
+  }
   for (const node of [mainMenu, bookingsPanel, reportsPanel, userSettingsPanel]) {
     if (enabled) {
       if (!userViewOrigins.has(node)) {
@@ -166,9 +247,7 @@ function buildMenu() {
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
-        : menuDefinitions.filter(([id]) =>
-            ["control", "bookings", "reports", "wall", "polls", "panic", "settings"].includes(id),
-          );
+        : menuDefinitions.filter(([id]) => ["settings"].includes(id));
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
     button.type = "button";
@@ -206,7 +285,7 @@ function prepareFunctionScreen(view) {
   const user=document.body.classList.contains("user-layout"), ready=statusReady;
   document.body.classList.toggle("app-screen-mode",ready);
   functionToolbar.hidden=!ready||user;
-  functionTitle.textContent=menuDefinitions.find(([id])=>id===view)?.[1]||({voice:"Control de voz",tools:"Herramientas",menu:"Menú"})[view]||"AYN";
+  functionTitle.textContent=menuDefinitions.find(([id])=>id===view)?.[1]||({access:"Accesos",voice:"Control de voz",tools:"Herramientas",menu:"Más herramientas"})[view]||"AYN";
   functionConfig.hidden=currentRole!=="super_master"||view==="menu";
   if(!user && ready) mainMenu.hidden=view!=="menu";
   const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel];
@@ -232,13 +311,19 @@ function showView(view) {
   const user = document.body.classList.contains("user-layout");
   document.body.dataset.userView = view;
   if (user) {
+    userToolbar.hidden = view === "control";
+    homeDashboard.hidden = view !== "control";
     mainMenu.hidden = view !== "menu";
     userSettingsPanel.hidden = view !== "settings";
     userHomeButton.hidden = view === "control";
     userViewTitle.hidden = view === "control";
     userMenuButton.setAttribute("aria-expanded", String(view === "menu"));
-    userViewTitle.textContent = view === "menu" ? "Menú" : (menuDefinitions.find(([id]) => id === view)?.[1] || "");
+    userViewTitle.textContent = view === "menu"
+      ? "Más herramientas"
+      : (menuDefinitions.find(([id]) => id === view)?.[1] || ({access:"Accesos"})[view] || "");
     document.body.classList.toggle("user-view-open", view !== "control");
+  } else {
+    homeDashboard.hidden = true;
   }
 
   reportsPanel.hidden = view !== "reports";
@@ -246,7 +331,7 @@ function showView(view) {
   for (const button of mainMenu.querySelectorAll("button"))
     button.classList.toggle("active", button.dataset.view === view);
   const control = view === "control";
-  relayGrid.hidden = !control;
+  relayGrid.hidden = user ? view !== "access" : !control;
   refresh.hidden = !control || user;
   shareSection.hidden = !control || user;
   adminPanel.hidden = !(

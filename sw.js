@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v111-desktop-compact";
+const CACHE = "reles-ayn-v112-home-reference";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261004-release111",
@@ -10,7 +10,7 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261006-desktop-compact",
+  "/styles.css?v=20261006-home112",
   "/share.css",
   "/booking.css?v=20261004-release111",
   "/panic.css?v=20261004-release111",
@@ -18,7 +18,7 @@ const ASSETS = [
   "/ui-feedback.css?v=20261004-release111",
   "/ain-local-voice.js?v=20261004-release111",
   "/ain-voice-phrases.js?v=20261004-release111",
-  "/app.js?v=20261004-release111",
+  "/app.js?v=20261006-home112",
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

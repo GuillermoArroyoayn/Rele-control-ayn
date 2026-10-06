@@ -84,3 +84,90 @@ body[data-admin-view] main{max-width:none;width:100%;padding:calc(90px + env(saf
     padding: 0;
   }
 }
+
+
+/* Portada Máster A&N basada en la referencia visual · v113 */
+body[data-admin-view="home"]{
+  min-height:100dvh;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(0,118,255,.30),transparent 28%),
+    linear-gradient(180deg,#071b3a 0%,#06162f 56%,#041127 100%);
+}
+body[data-admin-view="home"] main{
+  width:min(560px,100%);
+  max-width:560px;
+  min-height:100dvh;
+  padding:max(8px,env(safe-area-inset-top,0px)) 14px calc(28px + env(safe-area-inset-bottom,0px));
+}
+body[data-admin-view="home"] #panelToolbar{display:none!important}
+body[data-admin-view="home"] #message{display:none}
+body[data-admin-view="home"] #groupLabel{display:none!important}
+body[data-admin-view="home"] > .panic-trigger{display:none!important}
+.home-dashboard{width:100%;margin:0 auto;color:#fff}
+.home-dashboard[hidden]{display:none!important}
+.home-dashboard-top{position:relative;display:flex;justify-content:center;align-items:flex-start;min-height:158px;padding:0 46px 4px}
+.home-dashboard-brand{display:flex;align-items:center;justify-content:center;width:100%;min-height:154px}
+.home-logo{display:block;width:clamp(238px,72vw,355px);max-width:100%;height:auto;filter:drop-shadow(0 0 12px rgba(0,150,255,.58))}
+.home-overflow{position:absolute;right:0;top:34px;width:46px;height:54px;min-height:54px;padding:0;border:0;background:transparent;color:#f4f8ff;font-size:42px;line-height:1;font-weight:500}
+.home-overflow:active{background:#ffffff12}
+.home-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.home-quick-card{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:138px!important;margin:0!important;padding:14px 8px!important;border:1.5px solid rgba(113,205,255,.78)!important;border-radius:27px!important;background:linear-gradient(180deg,rgba(8,43,86,.82),rgba(5,27,59,.94))!important;color:#fff!important;text-align:center!important;text-decoration:none!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 7px 18px rgba(0,0,0,.14)!important}
+.home-quick-card:active{transform:scale(.985);background:linear-gradient(180deg,rgba(10,58,111,.94),rgba(5,30,67,.98))!important}
+.home-quick-icon{display:flex!important;align-items:center!important;justify-content:center!important;width:64px;height:60px;margin:0!important;color:#f6fbff!important}
+.home-quick-icon svg{width:58px;height:58px;fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 2px rgba(0,0,0,.28))}
+.home-quick-card>span:last-child{display:block!important;margin:0!important;color:#fff!important;font-size:clamp(18px,5vw,24px)!important;line-height:1.05!important;font-weight:500!important;letter-spacing:-.3px}
+.home-quick-sos{background:radial-gradient(circle at 50% 42%,rgba(224,0,59,.34),transparent 38%),linear-gradient(180deg,rgba(36,22,67,.92),rgba(11,26,64,.96))!important}
+.home-quick-sos .home-quick-icon{color:#fff!important;filter:drop-shadow(0 0 10px #ff174c) drop-shadow(0 0 20px rgba(255,0,68,.60))}
+.home-voice-button{display:flex!important;align-items:center!important;justify-content:center!important;gap:14px!important;width:100%!important;min-height:122px!important;margin:20px 0 0!important;padding:0!important;border:0!important;background:transparent!important;color:#63d8ff!important;text-decoration:none!important}
+.home-mic-ring{display:flex;align-items:center;justify-content:center;width:118px;height:118px;flex:0 0 118px;border:3px solid #68ddff;border-radius:50%;background:radial-gradient(circle,rgba(53,179,255,.12),rgba(4,31,68,.34) 68%);box-shadow:0 0 12px rgba(65,205,255,.95),0 0 31px rgba(0,109,255,.68),inset 0 0 18px rgba(50,185,255,.18)}
+.home-mic-ring svg{width:62px;height:62px;fill:none;stroke:#7bdfff;stroke-width:4.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px #1ebdff)}
+.home-wave{display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-width:76px;height:70px;margin:0!important;opacity:.95}
+.home-wave i{display:block;width:5px;border-radius:999px;background:#31c4ff;box-shadow:0 0 8px #1a9cff}
+.home-wave i:nth-child(1),.home-wave i:nth-child(5){height:16px}
+.home-wave i:nth-child(2),.home-wave i:nth-child(4){height:33px}
+.home-wave i:nth-child(3){height:54px}
+.home-voice-text{margin:0;text-align:center;color:#f7fbff;font-size:clamp(20px,5.3vw,26px);font-weight:500}
+
+/* Las herramientas secundarias viven detrás de los tres puntos. */
+body[data-admin-view="menu"] #tabs{display:flex!important;flex-direction:column!important;gap:10px!important;width:min(560px,100%);margin:0 auto!important}
+body[data-admin-view="menu"] #tabs>:is(button,a){display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;width:100%!important;min-height:62px!important;margin:0!important;padding:10px 14px!important;border:1px solid rgba(113,205,255,.34)!important;border-radius:16px!important;background:rgba(8,39,78,.84)!important;text-align:left!important}
+body[data-admin-view="menu"] #tabs .menu-icon{width:44px!important;height:44px!important;flex:0 0 44px!important;border-radius:13px!important;font-size:23px!important}
+body[data-admin-view="menu"] #tabs .menu-label{font-size:17px!important;font-weight:700!important;line-height:1.2!important;color:#edf4ff!important;margin:0!important}
+body[data-admin-view="menu"] #panelToolbar{background:#06172f}
+body[data-admin-view="menu"] #viewTitle{font-size:16px}
+
+/* Evita el antiguo mosaico de tres columnas en la portada y en el menú secundario. */
+@media(max-width:719px){
+  body[data-admin-view="menu"] #tabs{grid-template-columns:none!important}
+}
+@media(max-width:390px){
+  .home-dashboard-top{min-height:140px;padding-inline:42px}
+  .home-dashboard-brand{min-height:136px}
+  .home-logo{width:236px}
+  .home-quick-grid{gap:10px}
+  .home-quick-card{min-height:120px!important;border-radius:22px!important}
+  .home-quick-icon{width:54px;height:51px}
+  .home-quick-icon svg{width:49px;height:49px}
+  .home-quick-card>span:last-child{font-size:18px!important}
+  .home-mic-ring{width:104px;height:104px;flex-basis:104px}
+  .home-wave{min-width:58px;gap:4px!important}
+}
+@media(max-height:760px){
+  .home-dashboard-top{min-height:116px}
+  .home-dashboard-brand{min-height:112px}
+  .home-logo{width:220px}
+  .home-overflow{top:24px}
+  .home-quick-grid{gap:9px}
+  .home-quick-card{min-height:102px!important;padding:8px 6px!important}
+  .home-quick-icon{width:48px;height:44px}
+  .home-quick-icon svg{width:43px;height:43px}
+  .home-quick-card>span:last-child{font-size:17px!important}
+  .home-voice-button{min-height:94px!important;margin-top:12px!important}
+  .home-mic-ring{width:88px;height:88px;flex-basis:88px}
+  .home-mic-ring svg{width:48px;height:48px}
+  .home-wave{height:55px;min-width:58px}
+  .home-wave i:nth-child(1),.home-wave i:nth-child(5){height:12px}
+  .home-wave i:nth-child(2),.home-wave i:nth-child(4){height:25px}
+  .home-wave i:nth-child(3){height:40px}
+  .home-voice-text{font-size:18px}
+}

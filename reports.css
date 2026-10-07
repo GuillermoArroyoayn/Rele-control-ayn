@@ -6,3 +6,10 @@
 .reports-panel,.report-card{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel,#072954)!important}
 .reports-panel textarea,.reports-panel select,.reports-panel input{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel-strong,#051c3f)!important}
 .reports-panel button{background:var(--theme-accent,#5ee7ff)!important;color:#052538!important;border-color:var(--theme-border,#5ee7ff99)!important}
+
+
+/* Ventanas de reportes con tono uniforme A&N · v120 */
+.reports-panel,.report-card{
+  background:var(--theme-panel,#072954)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}

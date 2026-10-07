@@ -178,3 +178,21 @@ body[data-admin-view="menu"] #viewTitle{font-size:16px}
 .home-control-glow{pointer-events:none}
 @keyframes admin-home-orbit-shine{from{stroke-dashoffset:0}to{stroke-dashoffset:-100}}
 @media(prefers-reduced-motion:reduce){.home-orbit-glow,.home-orbit-spark{animation:none}}
+
+
+/* Estado real del micrófono de portada · v116 */
+.home-voice-button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.home-voice-button.listening .home-mic-ring{
+  box-shadow:0 0 16px rgba(104,221,255,1),0 0 44px rgba(0,115,255,.95),inset 0 0 22px rgba(50,185,255,.32);
+  animation:admin-voice-pulse 1.7s ease-in-out infinite;
+}
+.home-voice-button.listening .home-wave i{animation:admin-voice-wave .9s ease-in-out infinite alternate}
+.home-voice-button.listening .home-wave i:nth-child(2){animation-delay:.08s}
+.home-voice-button.listening .home-wave i:nth-child(3){animation-delay:.16s}
+.home-voice-button.listening .home-wave i:nth-child(4){animation-delay:.24s}
+.home-voice-button.listening .home-wave i:nth-child(5){animation-delay:.32s}
+.home-voice-button.voice-starting .home-mic-ring{opacity:.72}
+.home-voice-button.voice-error .home-mic-ring{box-shadow:0 0 12px rgba(255,93,120,.7)}
+@keyframes admin-voice-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes admin-voice-wave{from{transform:scaleY(.65);opacity:.6}to{transform:scaleY(1.2);opacity:1}}
+@media(prefers-reduced-motion:reduce){.home-voice-button.listening .home-mic-ring,.home-voice-button.listening .home-wave i{animation:none}}

@@ -22,3 +22,16 @@
 .booking-hours-form{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.booking-hours-form[hidden]{display:none}.booking-hours-form label{display:grid;gap:8px;font-size:16px}.booking-hours-form select,.booking-hours-form input{min-height:44px;font-size:16px}.booking-day{min-height:44px}.booking-slot span{font-size:14px}
 
 .booking-place-open{display:block;margin-top:0}.booking-place-selected{min-height:100%;border:0;border-radius:0;padding:0;background:transparent}.booking-back{min-height:44px;margin-bottom:12px;padding:10px 14px;border-radius:10px;background:var(--theme-accent,#22d3ee);color:#052538;font-size:16px}.booking-space[hidden],.booking-back[hidden]{display:none!important}.booking-place-selected .booking-month-grid{gap:6px}.booking-place-selected .booking-day{min-height:clamp(48px,9vh,82px)}
+
+
+/* Agenda integrada al tema A&N · v119 */
+.booking-space,.booking-settings,.booking-setting-row{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel,#072954)!important}
+.booking-slot.available,.booking-slot.occupied{
+  background:rgba(0,87,184,.22)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}
+.booking-reserve,.booking-cancel,.booking-save-settings,.booking-month-nav button,.booking-accept{
+  background:var(--theme-accent,#5ee7ff)!important;
+  color:#052538!important;
+}
+.booking-days label{background:var(--theme-soft,#0057b8)!important}

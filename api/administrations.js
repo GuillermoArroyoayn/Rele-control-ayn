@@ -2,6 +2,7 @@ const A=require('../lib/administrations');
 const {getToken,tuyaFetch,checkPin}=require('../lib/tuya');
 const {addHistory}=require('../lib/history');
 const T=require('../lib/actuator-timers');
+const WhatsApp=require('../lib/whatsapp');
 module.exports=async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   try{
@@ -41,10 +42,18 @@ module.exports=async(req,res)=>{
     }
     if(b.action==='invite'){
       A.manager(auth);const role=['user','admin','super_master'].includes(b.role)?b.role:'user';if(['admin','super_master'].includes(role)&&auth.role!=='super_master')throw A.error('Solo el Máster crea administradores o equipos Máster.',403);
-      const name=String(b.name||'').trim().slice(0,60),phone=String(b.phone||'').replace(/\D/g,'');if(!name||phone.length<9||phone.length>15)throw A.error('Indica nombre y teléfono válidos.');
+      const name=String(b.name||'').trim().slice(0,60),phone=WhatsApp.normalizePhone(b.phone);if(!name||phone.length<11||phone.length>15)throw A.error('Indica nombre y teléfono válidos. Usa número con código de país.');
       const groupId=role==='super_master'?'':role==='admin'?'group-'+A.uuid():A.group(auth,b.groupId);
-      const token=A.token();await A.redis('SET','ayn:managed:invite:'+A.hash(token),JSON.stringify({creator:auth.device.id,role,groupId,name,phone,apartment:String(b.apartment||'').trim().slice(0,30)}),'EX',86400);
-      return res.json({ok:true,token,expiresIn:86400});
+      const token=A.token();
+      const invitation={creator:auth.device.id,role,groupId,name,phone,apartment:String(b.apartment||'').trim().slice(0,30),createdAt:new Date().toISOString()};
+      await A.redis('SET','ayn:managed:invite:'+A.hash(token),JSON.stringify(invitation),'EX',86400);
+      const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
+      const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();
+      const base=String(process.env.APP_PUBLIC_URL||'').trim().replace(/\/$/,'')||proto+'://'+host;
+      const inviteUrl=base+'/administracion.html#invite='+token;
+      const whatsapp=await WhatsApp.sendInvitation({phone,name,role,inviteUrl});
+      await addHistory({kind:'invite',groupId:groupId||'master',userName:name,actor:auth.device.name,action:whatsapp.sent?'Invitación enviada automáticamente por WhatsApp':'Invitación creada; envío automático de WhatsApp pendiente'}).catch(()=>{});
+      return res.json({ok:true,token,expiresIn:86400,inviteUrl,whatsapp});
     }
     if(b.action==='permissions'){
       A.manager(auth);const groupId=A.group(auth,b.groupId);const all=await A.records();const ids=[...new Set(Array.isArray(b.actuatorIds)?b.actuatorIds:[])];

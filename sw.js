@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v124-app-matrix";
+const CACHE = "reles-ayn-v125-whatsapp-invites";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -26,7 +26,7 @@ const ASSETS = [
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261006-orbit123",
-  "/administracion.js?v=20261006-voice117",
+  "/administracion.js?v=20261007-whatsapp125",
   "/administracion-voice.js?v=20261006-voice118"
 ];
 self.addEventListener("install", (e) =>

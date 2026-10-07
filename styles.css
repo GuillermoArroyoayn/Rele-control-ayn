@@ -1016,3 +1016,51 @@ body[data-user-view="control"],.home-dashboard{
   background:linear-gradient(145deg,var(--theme-accent),var(--theme-soft))!important;
   box-shadow:0 5px 12px #0003,inset 0 1px 0 #ffffff70,0 0 14px var(--theme-glow)!important;
 }
+
+
+/* Identidad visual uniforme A&N · v120 */
+:root{
+  --theme-panel:color-mix(in srgb,var(--theme-soft,#0057b8) 42%,#031126 58%);
+  --theme-panel-strong:color-mix(in srgb,var(--theme-soft,#0057b8) 24%,#020b1a 76%);
+  --sos-red:#ff174c;
+  --sos-red-hot:#ff315f;
+  --sos-red-dark:#7d001d;
+  --sos-glow:rgba(255,23,76,.78);
+}
+.home-logo{filter:drop-shadow(0 0 12px rgba(0,150,255,.58))!important}
+.user-layout .home-dashboard-brand .home-logo{filter:drop-shadow(0 0 12px rgba(0,145,255,.55))!important}
+
+/* Todas las ventanas internas usan la misma familia tonal del tema seleccionado. */
+:is(.panel,.menu-panel,.user-settings-panel,.relay-card,.device-row,.metric-grid article,.health-list>div,
+.temporary-permissions,.history-row,.history-empty,.share-panel,.booking-space,.booking-settings,
+.booking-setting-row,.reports-panel,.report-card,.community-panel,.community-card){
+  background:var(--theme-panel)!important;
+  border-color:var(--theme-border)!important;
+}
+:is(.user-layout .main-menu,.user-layout .bookings-panel,.user-layout .reports-panel,.user-layout .user-settings-panel,
+html body.app-screen-mode .function-screen,html body.app-screen-mode .community-panel:not([hidden])){
+  background:var(--theme-panel-strong)!important;
+}
+
+/* SOS conserva siempre su identidad roja electrónica, independiente del tema. */
+.home-quick-sos{
+  border-color:rgba(255,49,95,.92)!important;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(255,23,76,.34),transparent 42%),
+    linear-gradient(180deg,rgba(61,9,33,.94),rgba(27,8,29,.98))!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035),0 0 18px rgba(255,23,76,.28)!important;
+  animation:ayn-sos-electronic-pulse 1.35s ease-in-out infinite!important;
+}
+.home-quick-sos .home-quick-icon{
+  color:#fff!important;
+  filter:drop-shadow(0 0 9px var(--sos-red)) drop-shadow(0 0 24px var(--sos-glow))!important;
+}
+html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .menu-icon{
+  background:linear-gradient(145deg,var(--sos-red-hot),#b8002d)!important;
+  box-shadow:0 0 10px var(--sos-red),0 0 24px var(--sos-glow)!important;
+  animation:ayn-sos-electronic-pulse 1.35s ease-in-out infinite!important;
+}
+@keyframes ayn-sos-electronic-pulse{
+  0%,100%{box-shadow:0 0 8px rgba(255,23,76,.45),0 0 16px rgba(255,23,76,.20)}
+  50%{box-shadow:0 0 16px rgba(255,49,95,1),0 0 34px rgba(255,23,76,.78)}
+}

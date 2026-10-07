@@ -24,3 +24,42 @@ body.panic-screen-open{overflow:hidden}
 .panic-screen::backdrop{background:#071521}.panic-screen-countdown{font:700 1.2rem system-ui,sans-serif;margin:0;text-shadow:0 2px 6px #000}
 
 .panic-screen-ended .panic-watermark,.panic-screen-ended .panic-screen-content h2{animation:none!important}.panic-screen-ended .panic-watermark{opacity:.12}
+
+
+/* SOS integrado al tema azul eléctrico A&N · v119 */
+.panic-panel{
+  border-color:var(--theme-border,#5ee7ff99)!important;
+  background:var(--theme-panel-strong,#051c3f)!important;
+}
+.panic-panel button,.panic-panel .panic-trigger{
+  background:var(--theme-accent,#5ee7ff)!important;
+  color:#052538!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}
+.panic-event,.panic-apology{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel,#072954)!important}
+.panic-trigger{
+  background:var(--theme-accent,#5ee7ff)!important;
+  color:#052538!important;
+  border-color:#fff!important;
+  box-shadow:0 5px 20px #0006,0 0 24px var(--theme-glow,#00a8ff66)!important;
+}
+.panic-trigger:hover,.panic-trigger:disabled{background:var(--theme-soft,#0057b8)!important;color:#fff!important}
+.panic-trigger:focus-visible{outline-color:var(--theme-accent,#5ee7ff)!important}
+.panic-screen{
+  background:var(--theme-panel-strong,#051c3f)!important;
+}
+.panic-watermark{
+  color:var(--theme-accent,#5ee7ff)!important;
+  text-shadow:0 0 60px var(--theme-glow,#00a8ff66)!important;
+}
+.panic-screen .panic-screen-content h2,html[data-font-size] body .panic-screen .panic-screen-content h2{
+  color:#fff!important;
+  text-shadow:0 4px 18px var(--theme-soft,#0057b8),0 0 28px var(--theme-glow,#00a8ff66)!important;
+}
+.panic-screen-content button{
+  background:var(--theme-accent,#5ee7ff)!important;
+  color:#052538!important;
+  border-color:#fff!important;
+}
+.panic-screen-content .panic-screen-close{background:var(--theme-soft,#0057b8)!important;color:#fff!important}
+.user-layout[data-user-view="panic"] .panic-panel{background:var(--theme-panel-strong,#051c3f)!important}

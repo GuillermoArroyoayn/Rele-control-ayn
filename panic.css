@@ -63,3 +63,62 @@ body.panic-screen-open{overflow:hidden}
 }
 .panic-screen-content .panic-screen-close{background:var(--theme-soft,#0057b8)!important;color:#fff!important}
 .user-layout[data-user-view="panic"] .panic-panel{background:var(--theme-panel-strong,#051c3f)!important}
+
+
+/* Identidad SOS oficial: rojo electrónico pulsante sobre ventanas uniformes · v120 */
+:root{
+  --sos-red:#ff174c;
+  --sos-red-hot:#ff315f;
+  --sos-red-dark:#7d001d;
+  --sos-glow:rgba(255,23,76,.78);
+}
+.panic-panel{
+  background:var(--theme-panel,#072954)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}
+.panic-event,.panic-apology{
+  background:var(--theme-panel,#072954)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}
+.panic-panel .panic-trigger,.panic-trigger{
+  background:radial-gradient(circle at 45% 35%,var(--sos-red-hot),#c90034 58%,var(--sos-red-dark))!important;
+  color:#fff!important;
+  border-color:#fff!important;
+  box-shadow:0 0 10px var(--sos-red),0 0 28px var(--sos-glow),0 5px 20px #0006!important;
+  animation:sos-electronic-pulse 1.25s ease-in-out infinite!important;
+}
+.panic-trigger:hover,.panic-trigger:disabled{
+  background:radial-gradient(circle at 45% 35%,var(--sos-red-hot),#c90034 58%,var(--sos-red-dark))!important;
+  color:#fff!important;
+}
+.panic-screen{
+  background:var(--theme-panel-strong,#051c3f)!important;
+}
+.panic-watermark{
+  color:var(--sos-red)!important;
+  text-shadow:0 0 24px var(--sos-red),0 0 62px var(--sos-glow)!important;
+  animation:sos-electronic-pulse-text 1.25s ease-in-out infinite!important;
+}
+.panic-screen .panic-screen-content h2,html[data-font-size] body .panic-screen .panic-screen-content h2{
+  color:#fff!important;
+  text-shadow:0 0 12px var(--sos-red),0 0 34px var(--sos-glow)!important;
+  animation:sos-electronic-pulse-text 1.25s ease-in-out infinite!important;
+}
+.panic-screen-content button:not(.panic-screen-close){
+  background:radial-gradient(circle at 45% 35%,var(--sos-red-hot),#c90034 58%,var(--sos-red-dark))!important;
+  color:#fff!important;
+  box-shadow:0 0 20px var(--sos-glow)!important;
+}
+.panic-screen-content .panic-screen-close{
+  background:var(--theme-panel,#072954)!important;
+  color:#fff!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}
+@keyframes sos-electronic-pulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 8px rgba(255,23,76,.55),0 0 18px rgba(255,23,76,.32),0 5px 20px #0006}
+  50%{transform:scale(1.035);box-shadow:0 0 18px rgba(255,49,95,1),0 0 38px rgba(255,23,76,.88),0 5px 20px #0006}
+}
+@keyframes sos-electronic-pulse-text{
+  0%,100%{opacity:.72;text-shadow:0 0 10px var(--sos-red),0 0 24px rgba(255,23,76,.45)}
+  50%{opacity:1;text-shadow:0 0 18px var(--sos-red-hot),0 0 48px var(--sos-glow)}
+}

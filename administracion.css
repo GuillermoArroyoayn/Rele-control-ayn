@@ -107,7 +107,7 @@ body[data-admin-view="home"] > .panic-trigger{display:none!important}
 .home-dashboard[hidden]{display:none!important}
 .home-dashboard-top{position:relative;display:flex;justify-content:center;align-items:flex-start;min-height:158px;padding:0 46px 4px}
 .home-dashboard-brand{display:flex;align-items:center;justify-content:center;width:100%;min-height:154px}
-.home-logo{display:block;width:clamp(238px,72vw,355px);max-width:100%;height:auto;filter:drop-shadow(0 0 12px rgba(0,150,255,.58))}
+.home-logo{display:block;width:clamp(238px,72vw,355px);max-width:100%;height:auto;filter:drop-shadow(0 0 12px rgba(0,100,253,.62))}
 .home-overflow{position:absolute;right:0;top:34px;width:46px;height:54px;min-height:54px;padding:0;border:0;background:transparent;color:#f4f8ff;font-size:42px;line-height:1;font-weight:500}
 .home-overflow:active{background:#ffffff12}
 .home-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -281,7 +281,7 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   --sos-red-hot:#ff315f;
   --sos-glow:rgba(255,23,76,.78);
 }
-.home-logo{filter:drop-shadow(0 0 12px rgba(0,150,255,.58))!important}
+.home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.62))!important}
 :is(form,article,#tabs>:is(button,a),body[data-admin-view="menu"] #tabs>:is(button,a),.panic-panel){
   background:var(--theme-panel)!important;
   border-color:var(--theme-border)!important;
@@ -358,3 +358,7 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   0%,100%{transform:scale(.96);box-shadow:0 0 8px rgba(255,23,76,.6),0 0 18px rgba(255,23,76,.35),inset 0 0 10px rgba(255,23,76,.18)}
   50%{transform:scale(1.04);box-shadow:0 0 15px rgba(255,49,95,1),0 0 34px rgba(255,23,76,.82),inset 0 0 18px rgba(255,23,76,.34)}
 }
+
+
+/* Logo oficial: azul eléctrico fijo · v122 */
+.home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.62)) drop-shadow(0 0 24px rgba(0,100,253,.28))!important}

@@ -239,9 +239,10 @@ const menuDefinitions = [
 ];
 
 const matrixViewMap={control:"access",access:"access",bookings:"bookings",reports:"reports",wall:"wall",polls:"polls",panic:"sos",history:"history",temporary:"temporary",voice:"voice"};
-function matrixEntry(view){const id=matrixViewMap[view];return id&&currentMatrix?.modules?.find(item=>item.id===id);}
-function matrixAllowed(view,role=currentRole){const item=matrixEntry(view);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
-function matrixLabel(view,fallback){return matrixEntry(view)?.label||fallback;}
+function matrixViewId(view,role=currentRole){if(view==="control"&&role==="user")return null;return matrixViewMap[view]||null;}
+function matrixEntry(view,role=currentRole){const id=matrixViewId(view,role);return id&&currentMatrix?.modules?.find(item=>item.id===id);}
+function matrixAllowed(view,role=currentRole){const item=matrixEntry(view,role);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
+function matrixLabel(view,fallback,role=currentRole){return matrixEntry(view,role)?.label||fallback;}
 function applyMatrixPresentation(){
   if(!currentMatrix)return;
   if(currentMatrix.branding?.appName)document.title=currentMatrix.branding.appName;
@@ -249,8 +250,10 @@ function applyMatrixPresentation(){
     const view=button.dataset.homeView;
     button.hidden=!matrixAllowed(view,currentRole);
     const label=button.querySelector(":scope > span:last-child");
-    if(label)label.textContent=matrixLabel(view,label.textContent);
+    if(label)label.textContent=matrixLabel(view,label.textContent,currentRole);
   }
+  const voiceArea=homeDashboard.querySelector(".home-voice-area");
+  if(voiceArea)voiceArea.hidden=!matrixAllowed("voice",currentRole);
 }
 
 function buildMenu() {
@@ -263,7 +266,7 @@ function buildMenu() {
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
-        : menuDefinitions.filter(([id]) => ["control","bookings","reports","wall","polls","panic","settings"].includes(id));
+        : menuDefinitions.filter(([id]) => ["settings"].includes(id));
   const allowed=roleMenu.filter(([id])=>id==="settings"||matrixAllowed(id,currentRole));
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
@@ -317,6 +320,7 @@ function prepareFunctionScreen(view) {
   }
 }
 function showView(view) {
+  if(statusReady&&currentRole!=="super_master"&&matrixViewId(view,currentRole)&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
   currentView = view;
   prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));

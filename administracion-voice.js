@@ -15,23 +15,48 @@
   let lastCommandAt=0;
   let allowedRelays=[];
   let statusReady=false;
+  let phraseBuffer='';
+  let phraseTimer=0;
+  let voiceSpeaking=false;
 
-  const normalize=text=>String(text||'')
+  const normalizeBase=text=>String(text||'')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9 ]/g,' ')
     .replace(/\s+/g,' ')
-    .trim()
-    .replace(/\b(habre|habrir|avre|avrir|abrime|abreme)\b/g,'abre')
-    .replace(/\b(pordon|porlon)\b/g,'porton')
-    .replace(/\b(atuador|actuadores|actualdor)\b/g,'actuador')
-    .replace(/\b(peatona|patonal)\b/g,'peatonal');
+    .trim();
 
-  const wakePattern=/^(?:(?:oye|hola|hey|ey) )?(?:ain|ains|auin|ayn|hain|aine|aing|pain|payn|pein|ein|einn|aen|a i n|a y n|ai n|ay n)(?= |$)/;
+  const aliases={
+    habre:'abre',habrir:'abrir',avre:'abre',avrir:'abrir',abrime:'abre',abreme:'abre',
+    pordon:'porton',porlon:'porton',atuador:'actuador',actuadores:'actuador',actualdor:'actuador',
+    peatona:'peatonal',patonal:'peatonal',vehiculo:'vehicular',reles:'rele'
+  };
+  const normalize=text=>normalizeBase(text)
+    .replace(/\bpeaton al\b/g,'peatonal')
+    .replace(/\bpor ton\b/g,'porton')
+    .replace(/\bactua dor\b/g,'actuador')
+    .split(' ').map(word=>aliases[word]||word).join(' ');
+
+  const wakePattern=/^(?:(?:oye|hola|hey|ey) )?(?:ain|ains|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
   const softWakePattern=/^(?:ahi|hay|ay|ai)(?= |$)/;
   const hasWake=text=>wakePattern.test(text)||softWakePattern.test(text);
   const removeWake=text=>text.replace(wakePattern,' ').replace(softWakePattern,' ').replace(/\s+/g,' ').trim();
+
+  const savedVoiceCommands=new Map((window.AinVoicePhrases?.phrases||[]).map(item=>[normalize(item.phrase),Number(item.relay)]));
+
+  function mergeFragments(previous,next){
+    const a=normalize(previous).split(' ').filter(Boolean);
+    const b=normalize(next).split(' ').filter(Boolean);
+    if(!a.length)return b.join(' ');
+    if(!b.length)return a.join(' ');
+    if(b.join(' ').startsWith(a.join(' ')+' ')||b.join(' ')===a.join(' '))return b.join(' ');
+    if(a.join(' ').startsWith(b.join(' ')+' '))return a.join(' ');
+    for(let overlap=Math.min(a.length,b.length);overlap>0;overlap--){
+      if(a.slice(-overlap).join(' ')===b.slice(0,overlap).join(' '))return [...a,...b.slice(overlap)].join(' ');
+    }
+    return [...a,...b].join(' ');
+  }
 
   function headers(){
     return {
@@ -52,6 +77,29 @@
     button.setAttribute('aria-pressed',String(enabled));
   }
 
+  function speak(text){
+    if(!('speechSynthesis' in window)||!text)return Promise.resolve();
+    return new Promise(resolve=>{
+      voiceSpeaking=true;
+      if(recognition)recognition.suppressAudio=true;
+      speechSynthesis.cancel();
+      const utterance=new SpeechSynthesisUtterance(text);
+      utterance.lang='es-CL';
+      let done=false;
+      const finish=()=>{
+        if(done)return;
+        done=true;
+        voiceSpeaking=false;
+        if(recognition)recognition.suppressAudio=false;
+        resolve();
+      };
+      utterance.onend=finish;
+      utterance.onerror=finish;
+      speechSynthesis.speak(utterance);
+      setTimeout(finish,Math.max(1800,text.length*90));
+    });
+  }
+
   async function refreshAccess(){
     const response=await fetch('/api/status',{headers:headers()});
     const data=await response.json().catch(()=>({}));
@@ -62,6 +110,7 @@
   }
 
   function resolveRelay(command){
+    if(savedVoiceCommands.has(command))return savedVoiceCommands.get(command);
     const direct=new Set();
     for(const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)){
       direct.add(({1:1,uno:1,un:1,primero:1,2:2,dos:2,segundo:2,3:3,tres:3,tercero:3})[match[1]]);
@@ -76,7 +125,8 @@
 
   function isOpenIntent(command){
     if(/\b(no|nunca|cancelar|cancela|detener|cerrar|apagar|desactivar)\b/.test(command))return false;
-    return /\b(activar|activa|abrir|abre|encender|enciende|prender|prende)\b/.test(command)
+    if(savedVoiceCommands.has(command))return true;
+    return /\b(activar|activa|abrir|abre|encender|enciende|prender|prende|accionar|acciona)\b/.test(command)
       || /^(?:el |la )?(?:porton|puerta|acceso|actuador|rele|qr)(?: |$)/.test(command);
   }
 
@@ -106,7 +156,7 @@
     return false;
   }
 
-  async function executeTranscript(raw){
+  async function executeCommand(raw){
     const normalized=normalize(raw);
     const woke=hasWake(normalized);
     if(woke)wakeUntil=Date.now()+7000;
@@ -123,22 +173,36 @@
 
     if(/\b(?:detener voz|desactivar voz|apagar voz)\b/.test(command)){
       stop(true);
+      await speak('AYN por voz desactivado');
       return;
     }
     if(routeByVoice(command))return;
 
     const relay=resolveRelay(command);
-    if(relay===-1){paint('Indica un solo acceso','listening');return;}
+    if(relay===-1){
+      paint('Indica un solo acceso','listening');
+      await speak('Indica un solo acceso');
+      return;
+    }
     if(relay&&isOpenIntent(command)){
-      const names={1:'Acceso QR',2:'Acceso vehicular',3:'Acceso peatonal'};
-      paint('Activando '+names[relay]+'…','listening');
+      const names={1:'Actuador uno',2:'Actuador dos',3:'Actuador tres'};
+      paint('Orden recibida: '+names[relay],'listening');
+      const activation=controlRelay(relay);
+      await speak('OK');
       try{
-        await controlRelay(relay);
-        paint(names[relay]+' activado','listening');
-        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1300);
+        const result=await activation;
+        if(result.autoOffPending){
+          paint(names[relay]+': activación enviada, apagado pendiente','listening');
+          await speak(names[relay]+' activado. Apagado pendiente de confirmar');
+        }else{
+          paint(names[relay]+' activado correctamente','listening');
+          await speak(names[relay]+' activado correctamente');
+        }
+        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},700);
       }catch(error){
         paint(error.message,'error');
-        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},2200);
+        await speak('No fue posible activar '+names[relay]);
+        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
       }
       return;
     }
@@ -146,7 +210,37 @@
       location.href='/administracion.html';
       return;
     }
-    paint('AYN está escuchando','listening');
+    paint('No entendí la orden. AYN sigue escuchando','listening');
+  }
+
+  function schedulePhrase(){
+    clearTimeout(phraseTimer);
+    const normalized=normalize(phraseBuffer);
+    const command=hasWake(normalized)?removeWake(normalized):normalized;
+    if(!command){
+      wakeUntil=Date.now()+7000;
+      paint('AYN está escuchando tu orden','listening');
+      return;
+    }
+    const hasExplicitNumber=/\b(?:1|2|3|uno|un|dos|tres|primero|segundo|tercero)\b/.test(command);
+    const genericAccess=/\b(?:porton|puerta|actuador|rele|acceso)\b/.test(command);
+    const delay=hasExplicitNumber?260:genericAccess?950:600;
+    phraseTimer=setTimeout(()=>{
+      phraseTimer=0;
+      const phrase=phraseBuffer;
+      phraseBuffer='';
+      executeCommand(phrase).catch(()=>{});
+    },delay);
+  }
+
+  function queueTranscript(raw){
+    const text=normalize(raw);
+    if(!text)return;
+    const authorized=hasWake(text)||Date.now()<wakeUntil||hasWake(phraseBuffer);
+    if(!authorized)return;
+    if(hasWake(text))wakeUntil=Date.now()+7000;
+    phraseBuffer=mergeFragments(phraseBuffer,text);
+    schedulePhrase();
   }
 
   function scheduleRestart(delay=500){
@@ -174,7 +268,10 @@
     starting=false;
     wakeUntil=0;
     retryCount=0;
+    phraseBuffer='';
+    clearTimeout(phraseTimer);
     clearTimeout(restartTimer);
+    window.speechSynthesis?.cancel();
     recognition?.abort();
     if(persist)localStorage.setItem('aynVoiceSelected','false');
     paint('Toca el micrófono para activar AYN','idle');
@@ -206,18 +303,19 @@
       paint('AYN está escuchando','listening');
     };
     recognition.onresult=event=>{
-      if(!enabled)return;
+      if(!enabled||voiceSpeaking)return;
       for(let i=event.resultIndex;i<event.results.length;i++){
         const result=event.results[i];
         const alternatives=Array.from(result).map(x=>x.transcript).filter(Boolean);
         const transcript=alternatives.find(x=>hasWake(normalize(x)))||alternatives[0];
         if(!transcript)continue;
         const normalized=normalize(transcript);
-        if(hasWake(normalized)&&!removeWake(normalized))wakeUntil=Date.now()+7000;
-        if(result.isFinal||result.utteranceEnded===true)executeTranscript(transcript).catch(()=>{});
+        if(hasWake(normalized))wakeUntil=Date.now()+7000;
+        if(!result.isFinal&&hasWake(normalized))paint('AYN escuchó la activación. Recibiendo orden…','listening');
+        if(result.isFinal||result.utteranceEnded===true)queueTranscript(transcript);
       }
     };
-    recognition.onutteranceend=()=>{};
+    recognition.onutteranceend=()=>{if(phraseBuffer)schedulePhrase();};
     recognition.onerror=event=>{
       listening=false;starting=false;
       if(!enabled)return;
@@ -239,6 +337,7 @@
   button.addEventListener('click',event=>{
     event.preventDefault();
     event.stopPropagation();
+    button.blur();
     if(enabled)stop(true);
     else enable(true);
   });
@@ -251,7 +350,7 @@
     }else if(!listening&&!starting&&!restartTimer)start();
   },2000);
 
-  window.addEventListener('pagehide',()=>{clearTimeout(restartTimer);recognition?.abort();listening=starting=false;});
+  window.addEventListener('pagehide',()=>{clearTimeout(restartTimer);clearTimeout(phraseTimer);recognition?.abort();listening=starting=false;});
   const restore=()=>{
     if(document.hidden||localStorage.getItem('aynVoiceSelected')!=='true'||enabled)return;
     enable(false);

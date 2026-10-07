@@ -1,17 +1,31 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#06172f"><meta name="ayn-build" content="118"><title>Administración AYN</title><script>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#06172f"><meta name="ayn-build" content="119"><title>Administración AYN</title><script>
 try{
   const savedPin=localStorage.getItem("relayPin");
   const hasInvite=location.hash.includes("invite=");
   if(savedPin&&!hasInvite)document.documentElement.dataset.adminAuth="restoring";
 }catch{}
+</script><script>
+try{
+  const themes={
+    azul:{bg:"radial-gradient(circle at 50% 0%,rgba(0,118,255,.30),transparent 28%),linear-gradient(180deg,#071b3a 0%,#06162f 56%,#041127 100%)",accent:"#5ee7ff",soft:"#0057b8",border:"#5ee7ff99",glow:"#00a8ff66"},
+    negro:{bg:"linear-gradient(135deg,#050505,#171717)",accent:"#9ca3af",soft:"#30343a",border:"#d1d5db88",glow:"#d1d5db44"},
+    celeste:{bg:"linear-gradient(135deg,#087f9d,#28c7e6)",accent:"#67e8f9",soft:"#155e75",border:"#67e8f988",glow:"#67e8f965"},
+    gris:{bg:"linear-gradient(135deg,#27313a,#65717c)",accent:"#cbd5e1",soft:"#475569",border:"#cbd5e188",glow:"#cbd5e144"},
+    morado:{bg:"linear-gradient(135deg,#24113f,#68409b)",accent:"#c084fc",soft:"#4c1d78",border:"#c084fc88",glow:"#c084fc55"},
+    verde:{bg:"linear-gradient(135deg,#06382f,#12866c)",accent:"#4ade80",soft:"#14532d",border:"#4ade8088",glow:"#4ade8055"},
+    rosado:{bg:"linear-gradient(135deg,#8f315a,#f08fba)",accent:"#f9a8d4",soft:"#831843",border:"#f9a8d488",glow:"#f9a8d455"}
+  };
+  const t=themes[localStorage.getItem("aynBackground")||"azul"]||themes.azul;
+  for(const [k,v] of Object.entries({"--theme-bg":t.bg,"--theme-accent":t.accent,"--theme-soft":t.soft,"--theme-border":t.border,"--theme-glow":t.glow}))document.documentElement.style.setProperty(k,v);
+}catch{}
 </script><style>
-html[data-admin-auth="restoring"] body{background:#06172f}
+html[data-admin-auth="restoring"] body{background:var(--theme-panel-strong,#051c3f)}
 html[data-admin-auth="restoring"] main{visibility:hidden}
 #authBoot{display:none}
-html[data-admin-auth="restoring"] #authBoot{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#06172f;color:#eef7ff;font:600 16px system-ui,sans-serif}
+html[data-admin-auth="restoring"] #authBoot{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--theme-panel-strong,#051c3f);color:#eef7ff;font:600 16px system-ui,sans-serif}
 #authBoot strong{font-size:34px;letter-spacing:.5px}
 #authBoot span{color:#8fceff}
-</style><link rel="stylesheet" href="/administracion.css?v=20261006-voice117"><link rel="stylesheet" href="/panic.css?v=20261004-release111"><link rel="stylesheet" href="/ui-feedback.css?v=20261004-release111"></head><body><div id="authBoot" aria-live="polite"><strong>A&N CONTROL</strong><span id="authBootStatus">Abriendo sistema…</span></div><main><a href="/">Volver a AYN Control</a><a href="/#reportes">Reportes</a><p class="app-version">AYN · versión 118</p><h1 id="title">Administración AYN</h1><p id="message" role="status" aria-live="polite"></p><form id="access"><label>PIN de acceso<input id="pin" type="password" autocomplete="off" required></label><button>Entrar</button></form><header id="panelToolbar" hidden><button id="openMenu" type="button">☰ Menú Máster</button><span id="viewTitle">Menú</span><button id="viewConfig" type="button" hidden>⚙ Configuración</button><a href="/#control">Control AYN</a></header><section id="homeDashboard" class="home-dashboard" hidden>
+</style><link rel="stylesheet" href="/administracion.css?v=20261006-theme119"><link rel="stylesheet" href="/panic.css?v=20261006-theme119"><link rel="stylesheet" href="/ui-feedback.css?v=20261006-theme119"></head><body><div id="authBoot" aria-live="polite"><strong>A&N CONTROL</strong><span id="authBootStatus">Abriendo sistema…</span></div><main><a href="/">Volver a AYN Control</a><a href="/#reportes">Reportes</a><p class="app-version">AYN · versión 119</p><h1 id="title">Administración AYN</h1><p id="message" role="status" aria-live="polite"></p><form id="access"><label>PIN de acceso<input id="pin" type="password" autocomplete="off" required></label><button>Entrar</button></form><header id="panelToolbar" hidden><button id="openMenu" type="button">☰ Menú Máster</button><span id="viewTitle">Menú</span><button id="viewConfig" type="button" hidden>⚙ Configuración</button><a href="/#control">Control AYN</a></header><section id="homeDashboard" class="home-dashboard" hidden>
 <div class="home-dashboard-top">
   <div class="home-dashboard-brand" role="img" aria-label="A&N Control">
     <svg class="home-logo" viewBox="0 0 360 230" aria-hidden="true" focusable="false">

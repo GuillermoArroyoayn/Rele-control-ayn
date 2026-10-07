@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v116-home-voice";
+const CACHE = "reles-ayn-v117-voice-confirm";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261004-release111",
@@ -22,9 +22,9 @@ const ASSETS = [
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261006-voice116",
-  "/administracion.js?v=20261006-voice116",
-  "/administracion-voice.js?v=20261006-voice116"
+  "/administracion.css?v=20261006-voice117",
+  "/administracion.js?v=20261006-voice117",
+  "/administracion-voice.js?v=20261006-voice117"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

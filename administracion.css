@@ -196,3 +196,31 @@ body[data-admin-view="menu"] #viewTitle{font-size:16px}
 @keyframes admin-voice-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 @keyframes admin-voice-wave{from{transform:scaleY(.65);opacity:.6}to{transform:scaleY(1.2);opacity:1}}
 @media(prefers-reduced-motion:reduce){.home-voice-button.listening .home-mic-ring,.home-voice-button.listening .home-wave i{animation:none}}
+
+
+/* Corrección visual del micrófono inferior · v117 */
+.home-voice-button,
+.home-voice-button:focus,
+.home-voice-button:focus-visible,
+.home-voice-button:active{
+  width:auto!important;
+  max-width:390px!important;
+  margin:18px auto 0!important;
+  padding:0 10px!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  appearance:none;
+  -webkit-appearance:none;
+}
+.home-voice-text{
+  position:relative;
+  z-index:2;
+  margin:8px 0 0!important;
+  padding:0 12px;
+  line-height:1.2;
+}
+.home-voice-button .home-mic-ring{position:relative;z-index:2}
+.home-voice-button .home-wave{position:relative;z-index:1}

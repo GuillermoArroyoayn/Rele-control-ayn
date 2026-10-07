@@ -9,7 +9,8 @@ const refreshDevices = document.getElementById("refreshDevices");
 const states = { 1: null, 2: null, 3: null };
 let allowedRelays = [];
 let currentRole = "user",
-  currentGroupId = "";
+  currentGroupId = "",
+  currentMatrix = null;
 let currentView = "control";
 let startupResetAttempted = false;
 let startupResetInFlight = false;
@@ -237,22 +238,38 @@ const menuDefinitions = [
   ["system", "Estado del sistema", "📊"],
 ];
 
+const matrixViewMap={control:"access",access:"access",bookings:"bookings",reports:"reports",wall:"wall",polls:"polls",panic:"sos",history:"history",temporary:"temporary",voice:"voice"};
+function matrixEntry(view){const id=matrixViewMap[view];return id&&currentMatrix?.modules?.find(item=>item.id===id);}
+function matrixAllowed(view,role=currentRole){const item=matrixEntry(view);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
+function matrixLabel(view,fallback){return matrixEntry(view)?.label||fallback;}
+function applyMatrixPresentation(){
+  if(!currentMatrix)return;
+  if(currentMatrix.branding?.appName)document.title=currentMatrix.branding.appName;
+  for(const button of homeDashboard.querySelectorAll("[data-home-view]")){
+    const view=button.dataset.homeView;
+    button.hidden=!matrixAllowed(view,currentRole);
+    const label=button.querySelector(":scope > span:last-child");
+    if(label)label.textContent=matrixLabel(view,label.textContent);
+  }
+}
+
 function buildMenu() {
   const masterRoute=location.hash.slice(1);
   if(currentRole==='super_master'&&statusReady&&!masterRoute){location.replace('/administracion.html');return;}
   mainMenu.innerHTML = "";
   if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.dataset.view='master';back.innerHTML='<span class="menu-icon" aria-hidden="true">👑</span><span class="menu-label">Menú Máster</span>';mainMenu.append(back);}
-  const allowed =
+  const roleMenu =
     currentRole === "super_master"
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
-        : menuDefinitions.filter(([id]) => ["settings"].includes(id));
+        : menuDefinitions.filter(([id]) => ["control","bookings","reports","wall","polls","panic","settings"].includes(id));
+  const allowed=roleMenu.filter(([id])=>id==="settings"||matrixAllowed(id,currentRole));
   for (const [id, label, icon] of allowed) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.view = id;
-    button.innerHTML = `<span class="menu-icon" aria-hidden="true">${icon}</span><span class="menu-label">${label}</span>`;
+    button.innerHTML = `<span class="menu-icon" aria-hidden="true">${icon}</span><span class="menu-label">${matrixLabel(id,label)}</span>`;
     button.addEventListener("click", () => showView(id));
     mainMenu.append(button);
   }
@@ -565,7 +582,9 @@ async function loadStatus() {
     currentRole = data.role || "user";
     localStorage.setItem("aynLastRole",currentRole);
     currentGroupId = data.groupId || "";
+    currentMatrix = data.appMatrix || null;
     statusReady = true;
+    applyMatrixPresentation();
     if (currentRole === "admin" && currentGroupId)
       localStorage.setItem("relayGroupId", currentGroupId);
     adminPanel.hidden = !["super_master", "admin"].includes(currentRole);

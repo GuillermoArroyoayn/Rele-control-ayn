@@ -686,7 +686,7 @@ html body.app-screen-mode [hidden]{display:none!important}body.app-screen-mode .
   width:clamp(230px,72vw,350px);
   max-width:100%;
   opacity:1;
-  filter:drop-shadow(0 0 12px rgba(0,145,255,.55));
+  filter:drop-shadow(0 0 12px rgba(0,100,253,.60));
 }
 .home-overflow{
   position:absolute;
@@ -1027,8 +1027,8 @@ body[data-user-view="control"],.home-dashboard{
   --sos-red-dark:#7d001d;
   --sos-glow:rgba(255,23,76,.78);
 }
-.home-logo{filter:drop-shadow(0 0 12px rgba(0,150,255,.58))!important}
-.user-layout .home-dashboard-brand .home-logo{filter:drop-shadow(0 0 12px rgba(0,145,255,.55))!important}
+.home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.62))!important}
+.user-layout .home-dashboard-brand .home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.60))!important}
 
 /* Todas las ventanas internas usan la misma familia tonal del tema seleccionado. */
 :is(.panel,.menu-panel,.user-settings-panel,.relay-card,.device-row,.metric-grid article,.health-list>div,
@@ -1114,3 +1114,7 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   0%,100%{transform:scale(.96);box-shadow:0 0 8px rgba(255,23,76,.6),0 0 18px rgba(255,23,76,.35),inset 0 0 10px rgba(255,23,76,.18)}
   50%{transform:scale(1.04);box-shadow:0 0 15px rgba(255,49,95,1),0 0 34px rgba(255,23,76,.82),inset 0 0 18px rgba(255,23,76,.34)}
 }
+
+
+/* Logo oficial: azul eléctrico fijo · v122 */
+.home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.62)) drop-shadow(0 0 24px rgba(0,100,253,.28))!important}

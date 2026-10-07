@@ -1,8 +1,8 @@
-const CACHE = "reles-ayn-v115-auth-session";
+const CACHE = "reles-ayn-v116-home-voice";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261004-release111",
-  "/ain-streaming-provider.js?v=20261004-release111",
+  "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
   "/index.html",
   "/administracion.html",
@@ -16,14 +16,15 @@ const ASSETS = [
   "/panic.css?v=20261004-release111",
   "/reports.css?v=20261004-release111",
   "/ui-feedback.css?v=20261004-release111",
-  "/ain-local-voice.js?v=20261004-release111",
-  "/ain-voice-phrases.js?v=20261004-release111",
+  "/ain-local-voice.js?v=20261006-voice116",
+  "/ain-voice-phrases.js?v=20261006-voice116",
   "/app.js?v=20261006-home112",
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261006-auth115",
-  "/administracion.js?v=20261006-auth115"
+  "/administracion.css?v=20261006-voice116",
+  "/administracion.js?v=20261006-voice116",
+  "/administracion-voice.js?v=20261006-voice116"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

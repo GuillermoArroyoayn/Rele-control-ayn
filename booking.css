@@ -35,3 +35,10 @@
   color:#052538!important;
 }
 .booking-days label{background:var(--theme-soft,#0057b8)!important}
+
+
+/* Ventanas de agenda con tono uniforme A&N · v120 */
+.bookings-panel,.booking-space,.booking-settings,.booking-setting-row,.booking-slot{
+  background:var(--theme-panel,#072954)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}

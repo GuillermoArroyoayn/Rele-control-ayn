@@ -1,7 +1,7 @@
-const CACHE = "reles-ayn-v121-harmonic-theme-sos-ring";
+const CACHE = "reles-ayn-v122-logo-electric-blue";
 const ASSETS = [
   "/community.js?v=20261004-release111",
-  "/community.css?v=20261006-theme121",
+  "/community.css?v=20261006-theme122",
   "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
   "/index.html",
@@ -10,19 +10,19 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261006-theme121",
-  "/share.css?v=20261006-theme121",
-  "/booking.css?v=20261006-theme121",
-  "/panic.css?v=20261006-theme121",
-  "/reports.css?v=20261006-theme121",
-  "/ui-feedback.css?v=20261006-theme121",
+  "/styles.css?v=20261006-theme122",
+  "/share.css?v=20261006-theme122",
+  "/booking.css?v=20261006-theme122",
+  "/panic.css?v=20261006-theme122",
+  "/reports.css?v=20261006-theme122",
+  "/ui-feedback.css?v=20261006-theme122",
   "/ain-local-voice.js?v=20261006-voice116",
   "/ain-voice-phrases.js?v=20261006-voice116",
   "/app.js?v=20261006-home112",
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261006-theme121",
+  "/administracion.css?v=20261006-theme122",
   "/administracion.js?v=20261006-voice117",
   "/administracion-voice.js?v=20261006-voice118"
 ];

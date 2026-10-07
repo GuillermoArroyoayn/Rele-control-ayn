@@ -11,3 +11,10 @@
 }
 .community-alert{border:1px solid var(--theme-border,#5ee7ff99)!important}
 .community-panel fieldset{border-color:var(--theme-border,#5ee7ff99)!important}
+
+
+/* Ventanas de comunidad con tono uniforme A&N · v120 */
+.community-panel,.community-card,.community-card.emergency,.community-card.poll{
+  background:var(--theme-panel,#072954)!important;
+  border-color:var(--theme-border,#5ee7ff99)!important;
+}

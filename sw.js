@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v123-logo-aurora-orbit";
+const CACHE = "reles-ayn-v124-app-matrix";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -6,6 +6,9 @@ const ASSETS = [
   "/",
   "/index.html",
   "/administracion.html",
+  "/matrix.html",
+  "/matrix.css?v=20261007-matrix1",
+  "/matrix.js?v=20261007-matrix1",
   "/ain-audio-worklet.js?v=20261004-release111",
   "/app-icon-192.png",
   "/app-icon-512.png",
@@ -18,7 +21,7 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261006-voice116",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261006-home112",
+  "/app.js?v=20261007-matrix124",
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

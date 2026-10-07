@@ -7,7 +7,7 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#06172f" />
-    <meta name="ayn-build" content="120"><title>Sistema de Control AYN</title>
+    <meta name="ayn-build" content="121"><title>Sistema de Control AYN</title>
     <script>
       try {
         const savedPin = localStorage.getItem("relayPin");
@@ -27,9 +27,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261006-theme120" />
-    <link rel="stylesheet" href="/share.css?v=20261006-theme120" />
-    <link rel="stylesheet" href="/booking.css?v=20261006-theme120" />
+    <link rel="stylesheet" href="/styles.css?v=20261006-theme121" />
+    <link rel="stylesheet" href="/share.css?v=20261006-theme121" />
+    <link rel="stylesheet" href="/booking.css?v=20261006-theme121" />
     <style>
       .appearance {
         display: flex;
@@ -89,7 +89,7 @@
         }
       }
     </style>
-  <link rel="stylesheet" href="/panic.css?v=20261006-theme120"><link rel="stylesheet" href="/reports.css?v=20261006-theme120"><link rel="stylesheet" href="/ui-feedback.css?v=20261006-theme120"><link rel="stylesheet" href="/community.css?v=20261006-theme120"></head>
+  <link rel="stylesheet" href="/panic.css?v=20261006-theme121"><link rel="stylesheet" href="/reports.css?v=20261006-theme121"><link rel="stylesheet" href="/ui-feedback.css?v=20261006-theme121"><link rel="stylesheet" href="/community.css?v=20261006-theme121"></head>
   <body>
     <header id="bootHeader" aria-busy="true"><button type="button" disabled>⋮</button></header>
     <main class="app">
@@ -262,52 +262,38 @@
         const themes = {
           azul: {
             bg: "radial-gradient(circle at 50% 0%,rgba(0,118,255,.30),transparent 28%),linear-gradient(180deg,#071b3a 0%,#06162f 56%,#041127 100%)",
-            accent: "#5ee7ff",
-            soft: "#0057b8",
-            border: "#5ee7ff99",
-            glow: "#00a8ff66",
+            accent: "#5ee7ff", soft: "#0057b8", border: "#5ee7ff99", glow: "#00a8ff66",
+            panel: "#083b78", panelStrong: "#051c3f",
           },
           negro: {
             bg: "linear-gradient(135deg,#050505,#171717)",
-            accent: "#9ca3af",
-            soft: "#30343a",
-            border: "#d1d5db88",
-            glow: "#d1d5db44",
+            accent: "#9ca3af", soft: "#30343a", border: "#d1d5db88", glow: "#d1d5db44",
+            panel: "#252a31", panelStrong: "#111419",
           },
           celeste: {
             bg: "linear-gradient(135deg,#087f9d,#28c7e6)",
-            accent: "#67e8f9",
-            soft: "#155e75",
-            border: "#67e8f988",
-            glow: "#67e8f965",
+            accent: "#67e8f9", soft: "#155e75", border: "#67e8f988", glow: "#67e8f965",
+            panel: "#176f82", panelStrong: "#0d4656",
           },
           gris: {
             bg: "linear-gradient(135deg,#27313a,#65717c)",
-            accent: "#cbd5e1",
-            soft: "#475569",
-            border: "#cbd5e188",
-            glow: "#cbd5e144",
+            accent: "#cbd5e1", soft: "#475569", border: "#cbd5e188", glow: "#cbd5e144",
+            panel: "#53606b", panelStrong: "#313a43",
           },
           morado: {
             bg: "linear-gradient(135deg,#24113f,#68409b)",
-            accent: "#c084fc",
-            soft: "#4c1d78",
-            border: "#c084fc88",
-            glow: "#c084fc55",
+            accent: "#c084fc", soft: "#4c1d78", border: "#c084fc88", glow: "#c084fc55",
+            panel: "#59337c", panelStrong: "#321b4d",
           },
           verde: {
             bg: "linear-gradient(135deg,#06382f,#12866c)",
-            accent: "#4ade80",
-            soft: "#14532d",
-            border: "#4ade8088",
-            glow: "#4ade8055",
+            accent: "#4ade80", soft: "#14532d", border: "#4ade8088", glow: "#4ade8055",
+            panel: "#17614f", panelStrong: "#0b3a30",
           },
           rosado: {
             bg: "linear-gradient(135deg,#8f315a,#f08fba)",
-            accent: "#f9a8d4",
-            soft: "#831843",
-            border: "#f9a8d488",
-            glow: "#f9a8d455",
+            accent: "#f9a8d4", soft: "#831843", border: "#f9a8d488", glow: "#f9a8d455",
+            panel: "#a64b76", panelStrong: "#74304f",
           },
         };
         const select = document.getElementById("backgroundColor");
@@ -323,6 +309,8 @@
             t.accent,
           );
           document.documentElement.style.setProperty("--theme-soft", t.soft);
+          document.documentElement.style.setProperty("--theme-panel", t.panel);
+          document.documentElement.style.setProperty("--theme-panel-strong", t.panelStrong);
           document.documentElement.style.setProperty(
             "--theme-border",
             t.border,

@@ -18,6 +18,8 @@
   let phraseBuffer='';
   let phraseTimer=0;
   let voiceSpeaking=false;
+  let fastDispatchKey='';
+  let fastDispatchAt=0;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -136,10 +138,41 @@
     const response=await fetch('/api/control',{
       method:'POST',
       headers:headers(),
-      body:JSON.stringify({relay,state:true,source:'voice',progressive:false})
+      body:JSON.stringify({relay,state:true,source:'voice',progressive:true})
     });
+    if(!response.ok){
+      const data=await response.json().catch(()=>({}));
+      throw new Error(data.error||'No fue posible activar el acceso.');
+    }
+    if(response.headers.get('content-type')?.includes('application/x-ndjson')&&response.body?.getReader){
+      const reader=response.body.getReader(),decoder=new TextDecoder();
+      let buffer='';
+      while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        buffer+=decoder.decode(value,{stream:true});
+        let at;
+        while((at=buffer.indexOf('\n'))>=0){
+          const line=buffer.slice(0,at).trim();
+          buffer=buffer.slice(at+1);
+          if(!line)continue;
+          const event=JSON.parse(line);
+          if(event.type==='activated'){
+            reader.cancel().catch(()=>{});
+            return {...event,activationAccepted:true};
+          }
+          if(event.type==='error')throw new Error(event.error||'No fue posible activar el acceso.');
+          if(event.type==='completed')return event;
+        }
+      }
+      if(buffer.trim()){
+        const event=JSON.parse(buffer);
+        if(event.type==='activated'||event.type==='completed')return event;
+        if(event.type==='error')throw new Error(event.error||'No fue posible activar el acceso.');
+      }
+      throw new Error('No llegó confirmación de activación.');
+    }
     const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data.error||'No fue posible activar el acceso.');
     return data;
   }
 
@@ -191,14 +224,9 @@
       await speak('OK');
       try{
         const result=await activation;
-        if(result.autoOffPending){
-          paint(names[relay]+': activación enviada, apagado pendiente','listening');
-          await speak(names[relay]+' activado. Apagado pendiente de confirmar');
-        }else{
-          paint(names[relay]+' activado correctamente','listening');
-          await speak(names[relay]+' activado correctamente');
-        }
-        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},700);
+        paint(names[relay]+' activado correctamente','listening');
+        await speak(names[relay]+' activado correctamente');
+        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},350);
       }catch(error){
         paint(error.message,'error');
         await speak('No fue posible activar '+names[relay]);
@@ -223,8 +251,9 @@
       return;
     }
     const hasExplicitNumber=/\b(?:1|2|3|uno|un|dos|tres|primero|segundo|tercero)\b/.test(command);
+    const namedAccess=/\b(?:qr|vehicular|peatonal)\b/.test(command);
     const genericAccess=/\b(?:porton|puerta|actuador|rele|acceso)\b/.test(command);
-    const delay=hasExplicitNumber?260:genericAccess?950:600;
+    const delay=(hasExplicitNumber||namedAccess)?120:genericAccess?500:350;
     phraseTimer=setTimeout(()=>{
       phraseTimer=0;
       const phrase=phraseBuffer;
@@ -312,7 +341,20 @@
         const normalized=normalize(transcript);
         if(hasWake(normalized))wakeUntil=Date.now()+7000;
         if(!result.isFinal&&hasWake(normalized))paint('AYN escuchó la activación. Recibiendo orden…','listening');
-        if(result.isFinal||result.utteranceEnded===true)queueTranscript(transcript);
+        if(!result.isFinal){
+          const interimCommand=hasWake(normalized)?removeWake(normalized):normalized;
+          const relay=resolveRelay(interimCommand);
+          const specificTarget=/\b(?:1|2|3|uno|un|dos|tres|primero|segundo|tercero|qr|vehicular|peatonal)\b/.test(interimCommand);
+          const key=relay>0&&specificTarget&&isOpenIntent(interimCommand)?relay+':'+interimCommand:'';
+          if(key&&key!==fastDispatchKey&&Date.now()-fastDispatchAt>900){
+            fastDispatchKey=key;fastDispatchAt=Date.now();
+            phraseBuffer='';clearTimeout(phraseTimer);
+            executeCommand(transcript).catch(()=>{});
+          }
+        }
+        if(result.isFinal||result.utteranceEnded===true){
+          if(Date.now()-fastDispatchAt>900)queueTranscript(transcript);
+        }
       }
     };
     recognition.onutteranceend=()=>{if(phraseBuffer)schedulePhrase();};

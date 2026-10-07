@@ -310,3 +310,51 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   0%,100%{box-shadow:0 0 8px rgba(255,23,76,.45),0 0 16px rgba(255,23,76,.20)}
   50%{box-shadow:0 0 16px rgba(255,49,95,1),0 0 34px rgba(255,23,76,.78)}
 }
+
+
+/* Armonía dinámica del tema + SOS independiente · v121 */
+.home-quick-card,
+.home-quick-sos{
+  background:linear-gradient(180deg,var(--theme-panel),var(--theme-panel-strong))!important;
+  border-color:var(--theme-border)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 7px 18px rgba(0,0,0,.16),0 0 10px var(--theme-glow)!important;
+}
+.home-quick-card:active,
+.home-quick-sos:active{
+  background:linear-gradient(180deg,var(--theme-panel),var(--theme-panel-strong))!important;
+  filter:brightness(1.08);
+}
+.home-quick-sos{animation:none!important}
+.home-quick-sos .home-quick-icon{
+  width:72px!important;
+  height:72px!important;
+  border:3px solid #ff174c;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,23,76,.16),transparent 68%);
+  color:#ff315f!important;
+  box-shadow:0 0 10px rgba(255,23,76,.8),0 0 26px rgba(255,23,76,.58),inset 0 0 13px rgba(255,23,76,.28);
+  filter:none!important;
+  animation:admin-sos-ring-pulse 1.25s ease-in-out infinite!important;
+}
+.home-quick-sos .home-quick-icon svg{
+  width:52px;
+  height:52px;
+  stroke:#ff315f!important;
+  filter:drop-shadow(0 0 7px #ff174c)!important;
+}
+.home-quick-sos>span:last-child{
+  color:#ff5578!important;
+  text-shadow:0 0 8px #ff174c,0 0 18px rgba(255,23,76,.6);
+}
+html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .menu-icon{
+  border:3px solid #ff174c!important;
+  border-radius:50%!important;
+  background:var(--theme-panel-strong)!important;
+  color:#ff5578!important;
+  box-shadow:0 0 10px #ff174c,0 0 24px rgba(255,23,76,.7)!important;
+  animation:admin-sos-ring-pulse 1.25s ease-in-out infinite!important;
+}
+@keyframes admin-sos-ring-pulse{
+  0%,100%{transform:scale(.96);box-shadow:0 0 8px rgba(255,23,76,.6),0 0 18px rgba(255,23,76,.35),inset 0 0 10px rgba(255,23,76,.18)}
+  50%{transform:scale(1.04);box-shadow:0 0 15px rgba(255,49,95,1),0 0 34px rgba(255,23,76,.82),inset 0 0 18px rgba(255,23,76,.34)}
+}

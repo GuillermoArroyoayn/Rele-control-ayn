@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06172f">
+<title>Constructor de App · A&N Control</title>
+<link rel="stylesheet" href="/matrix.css?v=20261007-matrix1">
+</head>
+<body>
+<main class="matrix-shell">
+<header class="matrix-header">
+  <div><a href="/administracion.html">← Administración general</a><h1>Constructor de App</h1><p>Arma la aplicación de cada administrador sin modificar el código base de A&N Control.</p></div>
+  <span class="matrix-badge">MÁSTER</span>
+</header>
+<p id="message" role="status" aria-live="polite"></p>
+<section class="matrix-card matrix-select">
+  <label>Administrador / comunidad
+    <select id="group"></select>
+  </label>
+  <a class="secondary" href="/administracion.html#people">Crear administrador</a>
+</section>
+<section id="editor" hidden>
+  <div class="matrix-grid">
+    <section class="matrix-card">
+      <h2>Identidad</h2>
+      <label>Nombre de la app<input id="appName" maxlength="60" value="A&N Control"></label>
+      <label>Nombre de la comunidad<input id="communityName" maxlength="80"></label>
+      <div class="state-line"><span>Estado</span><strong id="adminStatus"></strong></div>
+    </section>
+    <section class="matrix-card preview-card">
+      <h2>Vista previa</h2>
+      <div class="preview-switch"><button type="button" data-preview="admin" class="active">Administrador</button><button type="button" data-preview="user">Usuario</button></div>
+      <div id="preview" class="preview"></div>
+    </section>
+  </div>
+  <section class="matrix-card">
+    <div class="section-title"><div><h2>Ventanas y funciones</h2><p>Define qué módulos existen y quién puede verlos.</p></div></div>
+    <div class="table-head"><span>Ventana</span><span>Activa</span><span>Admin</span><span>Usuario</span><span>Orden</span></div>
+    <div id="modules"></div>
+  </section>
+  <section class="matrix-card">
+    <h2>Actuadores de esta administración</h2>
+    <p>Selecciona cuáles formarán parte de esta app y el nombre con que aparecerán.</p>
+    <div id="actuators"></div>
+  </section>
+  <section class="matrix-actions matrix-card">
+    <button id="saveDraft" type="button">Guardar borrador</button>
+    <button id="publish" type="button" class="primary">Publicar cambios</button>
+    <button id="deleteAdmin" type="button" class="danger">Eliminar administrador</button>
+    <button id="restoreAdmin" type="button" class="secondary" hidden>Restaurar administrador</button>
+  </section>
+</section>
+</main>
+<script src="/matrix.js?v=20261007-matrix1" defer></script>
+</body>
+</html>

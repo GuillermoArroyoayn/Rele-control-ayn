@@ -1,1 +1,5 @@
 button:active,a.small-button:active{transform:scale(.97)}[data-feedback=selected]{outline:3px solid #7dd3fc!important;outline-offset:2px;box-shadow:0 0 14px #38bdf880!important}[data-feedback=pending]{outline:3px solid #fbbf24!important;filter:brightness(1.15)}[data-feedback=success]{outline:3px solid #4ade80!important;outline-offset:2px}[data-feedback=error]{outline:3px solid #fb7185!important;outline-offset:2px}#message[data-result=error]{color:#fecaca}#message[data-result=success]{color:#bbf7d0}#message{scroll-margin-top:120px}@media(prefers-reduced-motion:reduce){button:active,a.small-button:active{transform:none}}
+
+
+/* Retroalimentación visual del tema A&N · v119 */
+[data-feedback=selected]{outline-color:var(--theme-accent,#5ee7ff)!important;box-shadow:0 0 14px var(--theme-glow,#00a8ff66)!important}

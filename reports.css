@@ -1,2 +1,8 @@
 .reports-panel{padding:20px;border:1px solid var(--border,#7992ad);border-radius:18px;margin:20px 0;background:var(--panel,#102b3b);color:var(--text,#fff)}
 .reports-panel label{display:block;margin:16px 0;font-weight:650}.reports-panel textarea,.reports-panel select,.reports-panel input{display:block;width:100%;box-sizing:border-box;margin-top:8px;border:1px solid #8da6bb;border-radius:10px;padding:12px;font:inherit;background:#101f30;color:#fff}.reports-panel textarea{resize:vertical;min-height:130px}.reports-panel button{min-height:48px;padding:12px 18px;border:1px solid #8da6bb;border-radius:12px;font:inherit;font-weight:700;background:#0867a8;color:#fff;cursor:pointer}.reports-panel button:disabled{opacity:.6;cursor:default}.reports-panel img{max-width:100%;max-height:360px;object-fit:contain;border-radius:12px;margin:12px 0;display:block}.reports-panel [hidden]{display:none!important}.report-card{border:1px solid #8da6bb;border-radius:12px;padding:16px;margin:16px 0}.report-card p{white-space:pre-wrap;overflow-wrap:anywhere}.report-card small{display:block}.reports-panel #reportStatus{min-height:24px}
+
+
+/* Reportes integrados al tema A&N · v119 */
+.reports-panel,.report-card{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel,#072954)!important}
+.reports-panel textarea,.reports-panel select,.reports-panel input{border-color:var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel-strong,#051c3f)!important}
+.reports-panel button{background:var(--theme-accent,#5ee7ff)!important;color:#052538!important;border-color:var(--theme-border,#5ee7ff99)!important}

@@ -952,3 +952,67 @@ html body.app-screen-mode [hidden]{display:none!important}body.app-screen-mode .
   .home-voice-button.listening .home-mic-ring,
   .home-voice-button.listening .home-wave i{animation:none}
 }
+
+
+/* Tema global A&N · color aplicado a toda la app · v119 */
+:root{
+  --theme-accent:#5ee7ff;
+  --theme-soft:#0057b8;
+  --theme-border:#5ee7ff99;
+  --theme-glow:#00a8ff66;
+  --theme-panel:#072954;
+  --theme-panel-strong:#051c3f;
+  --theme-text:#eef9ff;
+}
+body{background:var(--theme-bg,radial-gradient(circle at 50% 0%,rgba(0,118,255,.30),transparent 28%),linear-gradient(180deg,#071b3a 0%,#06162f 56%,#041127 100%))!important}
+.panel,.relay-card,.device-row,.metric-grid article,.health-list>div,.temporary-permissions,.history-row,.history-empty,.share-panel{
+  border-color:var(--theme-border)!important;
+}
+.secondary,.refresh,.small-button,.save-permissions,.reactivate-device,.master-badge,.voice-command,
+.main-menu button.active,.user-toolbar button{
+  background:var(--theme-accent)!important;
+  color:#052538!important;
+}
+.relay-card.on{border-color:var(--theme-border)!important;box-shadow:0 0 0 1px var(--theme-glow) inset!important}
+.relay-card.on .power{background:var(--theme-accent)!important;box-shadow:0 0 28px var(--theme-glow)!important}
+.device-permissions input{accent-color:var(--theme-accent)!important}
+.metric-grid strong{color:var(--theme-accent)!important}
+.user-toolbar{background:var(--theme-panel-strong)!important;border-bottom-color:var(--theme-border)!important}
+.user-layout :is(.main-menu,.bookings-panel,.reports-panel,.user-settings-panel,.function-screen,.community-panel:not([hidden]),.panic-panel:not([hidden])){
+  background:var(--theme-panel-strong)!important;
+}
+body[data-user-view="control"],.home-dashboard{
+  color:var(--theme-text)!important;
+}
+.home-quick-card{
+  border-color:var(--theme-border)!important;
+  background:
+    radial-gradient(circle at 50% -20%,var(--theme-glow),transparent 58%),
+    linear-gradient(180deg,rgba(8,42,83,.88),rgba(5,28,61,.96))!important;
+}
+.home-quick-card:active{
+  background:linear-gradient(180deg,rgba(10,65,125,.96),rgba(5,31,68,.99))!important;
+}
+.home-quick-sos{
+  background:
+    radial-gradient(circle at 50% 42%,var(--theme-glow),transparent 42%),
+    linear-gradient(180deg,rgba(8,43,86,.93),rgba(5,27,59,.98))!important;
+}
+.home-quick-sos .home-quick-icon{
+  color:#fff!important;
+  filter:drop-shadow(0 0 10px var(--theme-accent)) drop-shadow(0 0 22px var(--theme-glow))!important;
+}
+.home-voice-button{color:var(--theme-accent)!important}
+.home-mic-ring{
+  border-color:var(--theme-accent)!important;
+  box-shadow:0 0 12px var(--theme-accent),0 0 31px var(--theme-glow),inset 0 0 18px var(--theme-glow)!important;
+}
+.home-mic-ring svg{stroke:var(--theme-accent)!important;filter:drop-shadow(0 0 5px var(--theme-accent))!important}
+.home-wave i{background:var(--theme-accent)!important;box-shadow:0 0 8px var(--theme-glow)!important}
+.home-voice-button.listening .home-mic-ring{
+  box-shadow:0 0 16px var(--theme-accent),0 0 42px var(--theme-glow),inset 0 0 22px var(--theme-glow)!important;
+}
+.main-menu .menu-icon{
+  background:linear-gradient(145deg,var(--theme-accent),var(--theme-soft))!important;
+  box-shadow:0 5px 12px #0003,inset 0 1px 0 #ffffff70,0 0 14px var(--theme-glow)!important;
+}

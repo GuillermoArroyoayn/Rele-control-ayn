@@ -362,3 +362,49 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
 
 /* Logo oficial: azul eléctrico fijo · v122 */
 .home-logo{filter:drop-shadow(0 0 12px rgba(0,100,253,.62)) drop-shadow(0 0 24px rgba(0,100,253,.28))!important}
+
+
+/* Aro orbital aurora del logo oficial · v123 */
+.home-orbit-base{
+  filter:drop-shadow(0 0 2px #0064fd) drop-shadow(0 0 7px rgba(0,80,255,.72));
+}
+.home-orbit-haze{
+  animation:admin-orbit-haze-pulse 2.7s ease-in-out infinite;
+}
+.home-orbit-aurora{
+  transform-box:fill-box;
+  transform-origin:center;
+}
+.home-orbit-aurora-a{
+  animation:admin-orbit-flow-a 4.6s linear infinite,admin-orbit-breathe 2.4s ease-in-out infinite;
+}
+.home-orbit-aurora-b{
+  animation:admin-orbit-flow-b 6.1s linear infinite,admin-orbit-breathe 3.1s ease-in-out infinite reverse;
+}
+.home-orbit-spark{
+  animation:admin-orbit-spark-run 3.25s linear infinite,admin-orbit-spark-pulse 1.05s ease-in-out infinite;
+}
+@keyframes admin-orbit-flow-a{
+  from{stroke-dashoffset:0}
+  to{stroke-dashoffset:-100}
+}
+@keyframes admin-orbit-flow-b{
+  from{stroke-dashoffset:-18}
+  to{stroke-dashoffset:82}
+}
+@keyframes admin-orbit-spark-run{
+  from{stroke-dashoffset:4}
+  to{stroke-dashoffset:-96}
+}
+@keyframes admin-orbit-breathe{
+  0%,100%{opacity:.68}
+  50%{opacity:1}
+}
+@keyframes admin-orbit-haze-pulse{
+  0%,100%{opacity:.18}
+  50%{opacity:.38}
+}
+@keyframes admin-orbit-spark-pulse{
+  0%,100%{opacity:.78;stroke-width:3}
+  50%{opacity:1;stroke-width:5.2}
+}

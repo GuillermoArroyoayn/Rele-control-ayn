@@ -30,7 +30,7 @@ module.exports=async(req,res)=>{
     }
     const auth=await A.access(req);
     if(req.method==='GET'){
-      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
+      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
       const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       return res.json({masters:auth.role==='super_master'?Object.entries(auth.registry.devices).filter(([id,d])=>id===auth.registry.masterId||(auth.registry.masterIds||[]).includes(id)).map(([id,d])=>({id,name:d.adminName||d.name,status:d.status,primary:id===auth.registry.masterId,current:id===auth.device.id})):[],originalActuators:auth.role==='super_master'?await T.originalList():[],role:auth.role,groupId:auth.groupId,groups:auth.role==='user'?[]:groups,users:auth.role==='user'?[]:users,actuators:all.filter(d=>A.visible(auth,d)).map(({deviceId,...publicItem})=>publicItem)});
     }

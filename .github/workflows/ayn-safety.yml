@@ -1,0 +1,36 @@
+name: AYN Safety Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    name: Scope + core safety
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verificar alcance declarado
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/check-change-scope.cjs
+
+      - name: Verificar contratos críticos AYN
+        run: node scripts/safety-check.cjs

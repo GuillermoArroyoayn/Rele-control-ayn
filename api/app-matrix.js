@@ -14,6 +14,8 @@ async function validateActuators(groupId,config){
   return assigned;
 }
 async function groupExists(registry,groupId){
+  if(await A.redis('HGET','ayn:matrix:deleted-groups',groupId))
+    throw A.error('Esta comunidad fue eliminada. Crea una nueva en lugar de restaurar sus accesos.',410);
   const owner=ownerFor(registry,groupId);
   const published=await M.getPublished(groupId);
   if(!owner&&!published)throw A.error('Selecciona una administración válida.');
@@ -292,6 +294,10 @@ module.exports=async(req,res)=>{
       }
       for(const [relay,reservedGroup] of Object.entries(reservationsBefore))
         if(reservedGroup===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
+      // Registro de baja irreversible: bloquea restauraciones e invitaciones
+      // antiguas incluso si otra ruta intenta volver a crear la carpeta.
+      await A.redis('HSET','ayn:matrix:deleted-groups',groupId,
+        JSON.stringify({deletedAt:new Date().toISOString(),by:auth.device.id,complete:cascade}));
       await M.clearFolder(groupId);
       if(preparedRaw)await A.redis('HDEL',preparedKey,groupId);
       await addHistory({kind:'permissions',groupId,

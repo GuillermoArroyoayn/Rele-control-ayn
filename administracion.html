@@ -71,7 +71,7 @@ html[data-admin-auth="restoring"] #authBoot{position:fixed;inset:0;z-index:21474
   <button id="homeOverflow" type="button" class="home-overflow" aria-label="Más herramientas" title="Más herramientas">⋮</button>
 </div>
 <div class="home-quick-grid" aria-label="Funciones principales">
-  <a class="home-quick-card" href="/#control">
+  <a class="home-quick-card" href="/#control" data-admin-module="access">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M11 52h42M15 49V17h34v32M21 17v32M29 17v32M37 17v32M45 17v32M12 14h40"/></svg></span>
     <span>Accesos</span>
   </a>
@@ -79,23 +79,23 @@ html[data-admin-auth="restoring"] #authBoot{position:fixed;inset:0;z-index:21474
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="25" cy="22" r="9"/><path d="M9 53v-5c0-9 7-16 16-16s16 7 16 16v5M47 20v18M38 29h18"/></svg></span>
     <span>Incorporar<br>usuarios</span>
   </button>
-  <a class="home-quick-card" href="/#bookings">
+  <a class="home-quick-card" href="/#bookings" data-admin-module="bookings">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="11" y="15" width="42" height="38" rx="5"/><path d="M20 9v12M44 9v12M11 26h42"/><path d="M20 34h5M30 34h5M40 34h5M20 43h5M30 43h5M40 43h5"/></svg></span>
     <span>Espacios<br>Comunes</span>
   </a>
-  <a class="home-quick-card" href="/#reportes">
+  <a class="home-quick-card" href="/#reportes" data-admin-module="reports">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M39 11a12 12 0 0 0-13 15L10 42l12 12 16-16a12 12 0 0 0 15-13l-9 9-8-2-2-8 9-9a12 12 0 0 0-4-4Z"/><path d="M15 49l5-5"/></svg></span>
     <span>Reportes</span>
   </a>
-  <a class="home-quick-card" href="/#wall">
+  <a class="home-quick-card" href="/#wall" data-admin-module="wall">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="9"/><circle cx="15" cy="28" r="7"/><circle cx="49" cy="28" r="7"/><path d="M18 53v-5c0-8 6-14 14-14s14 6 14 14v5M5 52v-4c0-6 4-11 10-12M59 52v-4c0-6-4-11-10-12"/></svg></span>
     <span>Comunidad</span>
   </a>
-  <button type="button" class="home-quick-card home-quick-sos" data-home-tab="panic">
+  <button type="button" class="home-quick-card home-quick-sos" data-home-tab="panic" data-admin-module="sos">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M20 44h24M23 41V29a9 9 0 0 1 18 0v12M18 49h28"/><path d="M32 8v7M12 19l6 4M52 19l-6 4M8 34h7M49 34h7"/></svg></span>
     <span>SOS</span>
   </button>
-  <a class="home-quick-card" href="/#polls">
+  <a class="home-quick-card" href="/#polls" data-admin-module="polls">
     <span class="home-quick-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M13 52V37h10v15M27 52V27h10v25M41 52V15h10v37M9 52h46"/></svg></span>
     <span>Encuestas</span>
   </a>

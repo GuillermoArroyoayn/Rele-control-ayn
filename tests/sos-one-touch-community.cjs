@@ -9,6 +9,7 @@ assert(admin.includes("b.dataset.homeTab==='panic'&&data?.role==='admin'&&window
 assert(panic.includes("const showSOS=()=>{trigger.hidden=true;"),'El botón SOS flotante no debe aparecer duplicado');
 assert(panic.includes("['panicSound','panicSoundStatus','panicPush','panicPushStatus']"),'Ocultar controles técnicos al usuario');
 assert(panic.includes("window.AynSosSiren?.play?.();openScreen()"),'Sirena inmediata al pulsar SOS');
+assert(panic.includes("if(!role&&!accessRestricted){trigger.disabled=false;trigger.click();return true;}"),'SOS inmediato incluso antes de cargar la configuración');
 assert(info.includes("if(item.kind==='sos'){\n      window.AynSosSiren?.play?.();"),'Los receptores oyen sirena SOS diferente de información');
 assert(info.includes("role!=='user'&&['sos','sos-cancelled'].includes(item?.kind)"),'Residentes pueden ver SOS de su comunidad');
 assert(panic.includes("defaultSOSPush=async(requestPermission=false)"),'Autoregistro si hay permiso para notificaciones');

@@ -468,3 +468,18 @@ html body #people[hidden]{display:none!important}
 #backAdministrators{display:block;width:auto;margin:0 0 18px;padding:10px 16px}
 #backAdministrators[hidden]{display:none!important}
 body[data-admin-view="people"] #users[hidden],body[data-admin-view="people"] #usersTitle[hidden],body[data-admin-view="people"] #peopleTitle[hidden],body[data-admin-view="people"] #peopleHelp[hidden],body[data-admin-view="people"] #invite[hidden]{display:none!important}
+
+
+/* Usuarios compactos desplegables · v140 */
+#users .resident-card{padding:0!important;overflow:hidden}
+#users .resident-summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;width:100%!important;margin:0!important;padding:18px 20px!important;border:0!important;border-radius:18px!important;background:transparent!important;text-align:left!important;box-shadow:none!important;color:var(--theme-text,#eef9ff)!important}
+#users .resident-summary strong{font-size:20px;line-height:1.2}
+#users .resident-summary small{font-size:15px;white-space:nowrap;color:#bfe0ff}
+#users .resident-summary::after{content:'⌄';font-size:22px;margin-left:4px;transition:transform .18s ease}
+#users .resident-summary[aria-expanded="true"]::after{transform:rotate(180deg)}
+#users .resident-details{padding:0 20px 20px;border-top:1px solid rgba(255,255,255,.12)}
+#users .resident-details[hidden]{display:none!important}
+#users .resident-phone{margin:14px 0;color:#dcecff}
+#users .resident-permissions{display:grid;gap:8px;margin:12px 0}
+#users .resident-details>button{margin:8px 8px 0 0}
+@media(max-width:520px){#users .resident-summary{padding:16px}#users .resident-summary strong{font-size:18px}#users .resident-details{padding:0 16px 16px}}

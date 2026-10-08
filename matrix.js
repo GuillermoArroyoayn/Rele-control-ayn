@@ -316,8 +316,8 @@ $('assignActuator').onclick=async()=>{
 $('deleteAdmin').onclick=async()=>{
   const group=selected();if(!group)return;
   const adminName=group.prepared?.name||group.name;
-  const warned='¿Eliminar a '+adminName+' y VACÍAR su carpeta?\\n\\n'+
-    'Se anulará la invitación (si está pendiente), se quitarán las autorizaciones y los relés quedarán libres para otro administrador.\\n\\n'+
+  const warned='¿Eliminar a '+adminName+' y VACIAR su carpeta?\n\n'+
+    'Se anulará la invitación (si está pendiente), se quitarán las autorizaciones y los relés quedarán libres para otro administrador.\n\n'+
     'Esta operación no se puede restaurar. El historial de seguridad se conserva.';
   if(!confirm(warned))return;
   const button=$('deleteAdmin');button.disabled=true;

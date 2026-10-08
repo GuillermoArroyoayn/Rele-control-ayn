@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8'),css=fs.readFileSync('styles.css','utf8'),html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
+assert(app.includes('managedAccessPanel.className="access-controls-page"'));
+assert(app.includes('class="managed-access-grid access-activation-grid"'));
+assert(!app.includes('class="relay-grid managed-access-grid"'),'No heredar el grid de relés antiguos');
+assert(css.includes('section.access-controls-page.function-screen:not([hidden])'));
+assert(css.includes('.access-controls-page .access-activation-grid'));
+assert(css.includes('.access-controls-page .access-button-card'));
+assert(app.includes('title.textContent=profile?.voiceName?.trim()||profile?.name||fallbackName'),
+  'El botón se llamará Puerta cuando voz sea Puerta');
+assert(app.includes("const accessProfilesJustSaved=new Set()"));
+assert(app.includes("save.textContent='✓ Configuración lista'"));
+assert(app.includes("save.classList.add('access-save-ready')"));
+assert(app.includes("form.addEventListener('input',markModified)"));
+assert(app.includes("form.addEventListener('change',markModified)"));
+assert(app.includes("accessProfilesJustSaved.add(profile.id)"));
+assert(app.includes("if(!accessProfilesJustSaved.has(profile.id))"),'El botón mantiene éxito tras finally');
+assert(app.includes("accessSettingsFeedback.hidden=true"),'No duplicar la confirmación arriba');
+assert(css.includes('.access-settings-panel button.access-save-ready'));
+assert(sw.includes('reles-ayn-v170-door-controls'));
+assert(html.includes('/app.js?v=20261008-access170')&&html.includes('/styles.css?v=20261008-access170'));
+console.log('Accesos v170: pantalla aislada visible, botón Puerta y confirmación dentro del botón sin avisos duplicados.');

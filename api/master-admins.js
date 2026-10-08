@@ -18,13 +18,14 @@ function replaceWithExisting(registry,oldId,userId,by){
   const old=adminIn(registry,oldId);
   if(oldId===userId)throw A.error('Selecciona otro integrante.');
   const user=registry.devices[String(userId||'')];
-  if(!user||user.role!=='user'||user.groupId!==old.groupId||user.status!=='active')
-    throw A.error('El reemplazante debe ser un usuario activo de la misma comunidad.',403);
+  if(!user||!['user','admin'].includes(user.role)||user.groupId!==old.groupId||user.status!=='active')
+    throw A.error('El reemplazante debe ser un usuario o administrador activo de la misma comunidad.',403);
   const now=new Date().toISOString();
+  const wasUser=user.role==='user';
   user.role='admin';
   user.adminName=user.adminName||user.name||'Administrador';
-  user.relays=[...(old.relays||[])];
-  user.actuatorIds=[];
+  user.relays=[...new Set([...(user.relays||[]),...(old.relays||[])])].sort();
+  if(wasUser)user.actuatorIds=[];
   user.roleChangedAt=now;
   user.roleChangedBy=by;
   user.replacesAdminId=oldId;

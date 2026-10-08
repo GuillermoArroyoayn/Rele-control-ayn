@@ -57,6 +57,24 @@ module.exports=async(req,res)=>{
       await addHistory({kind:'invite',groupId:groupId||'master',userName:name,actor:auth.device.name,action:whatsapp.sent?'Invitación enviada automáticamente por WhatsApp':'Invitación creada; envío automático de WhatsApp pendiente'}).catch(()=>{});
       return res.json({ok:true,token,expiresIn:86400,inviteUrl,whatsapp});
     }
+    if(b.action==='promoteUser'){
+      if(auth.role!=='super_master')throw A.error('Solo el Máster general puede convertir usuarios en administradores.',403);
+      const userId=String(b.userId||'').trim();
+      let promoted=null;
+      await A.updateRegistry(registry=>{
+        const user=registry.devices[userId];
+        if(!user||user.role!=='user'||!user.groupId)throw A.error('Selecciona un usuario válido de una administración.',404);
+        user.role='admin';
+        user.status='active';
+        user.adminName=user.adminName||user.name||'Administrador';
+        user.promotedAt=new Date().toISOString();
+        user.promotedBy=auth.device.id;
+        promoted={groupId:user.groupId,name:user.adminName};
+      });
+      await Matrix.ensure(promoted.groupId,promoted.name,'active');
+      await addHistory({kind:'permissions',groupId:promoted.groupId,userName:promoted.name,actor:auth.device.name,action:'Usuario convertido en administrador'}).catch(()=>{});
+      return res.json({ok:true,groupId:promoted.groupId});
+    }
     if(b.action==='permissions'){
       A.manager(auth);const groupId=A.group(auth,b.groupId);const all=await A.records();const ids=[...new Set(Array.isArray(b.actuatorIds)?b.actuatorIds:[])];
       if(ids.some(id=>!all.some(d=>d.id===id&&d.groupId===groupId&&d.approved)))throw A.error('Actuadores inválidos.');

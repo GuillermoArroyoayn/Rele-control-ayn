@@ -18,10 +18,10 @@ for(const path of files){
 }
 const index=fs.readFileSync('index.html','utf8'),admin=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
 assert(index.includes('/styles.css?v=20261008-frame157'));
-assert(admin.includes('/administracion.css?v=20261008-compact160'));
-assert(sw.includes('reles-ayn-v160-relay-compact'));
+assert(admin.includes('/administracion.css?v=20261008-nav161'));
+assert(sw.includes('reles-ayn-v161-back-home'));
 assert(sw.includes('/styles.css?v=20261008-frame157'));
-assert(sw.includes('/administracion.css?v=20261008-compact160'));
+assert(sw.includes('/administracion.css?v=20261008-nav161'));
 assert(fs.readFileSync('app.js','utf8').includes('home-quick-card home-quick-sos'));
 assert(admin.includes('id="homeVoiceToggle"'));
 assert(fs.readFileSync('app.js','utf8').includes('home-voice-button'));
@@ -49,8 +49,9 @@ assert(aj.includes("history.scrollRestoration='manual'")&&aj.includes('resetHome
 assert(aj.includes("window.addEventListener('pageshow'"));
 assert(uj.includes('history.scrollRestoration="manual"'));
 assert(uj.includes('window.addEventListener("pageshow",()=>'));
-assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v160-relay-compact'));
+assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v161-back-home'));
 console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');
 
 // Comprobación adicional: alta segura y sin conmutación de los relés.
 require('./relay-installations.cjs');
+require('./navigation-back-home.cjs');

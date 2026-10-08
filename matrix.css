@@ -14,3 +14,9 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
 .preview-switch{display:flex;gap:8px;margin-bottom:12px}.preview-switch button.active{background:#0b78ff}.preview{min-height:180px;border:1px solid #ffffff1f;border-radius:16px;padding:14px;background:#031024}.preview-title{font-weight:900;font-size:18px;margin-bottom:12px}.preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.preview-item{padding:12px;border-radius:12px;background:#0a2b57;border:1px solid #5ee7ff44;text-align:center;font-weight:800}
 .matrix-actions{display:flex;flex-wrap:wrap;gap:10px;position:sticky;bottom:8px;backdrop-filter:blur(14px)}
 @media(max-width:760px){.matrix-grid{grid-template-columns:1fr}.matrix-header{align-items:center}.matrix-badge{display:none}.matrix-select{align-items:stretch;flex-direction:column}.assign-row{grid-template-columns:1fr}.table-head,.actuator-head{display:none}.module-row{grid-template-columns:1fr repeat(4,55px)}.module-row .module-label{grid-column:1/-1}.actuator-row{grid-template-columns:34px 1fr repeat(3,55px)}.actuator-row .actuator-label{grid-column:2/-1}.actuator-row .actuator-remove{grid-column:1/-1}.matrix-actions{position:static}}
+/* v161: constructor con Atrás e Inicio en la cabecera. */
+.matrix-navigation{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px}
+.matrix-navigation button{min-width:106px;min-height:46px;background:#0b65cc;border:1px solid #5ee7ff99;box-shadow:none}
+.matrix-header{margin-bottom:16px}
+.matrix-shell>h1{font-size:clamp(23px,5vw,36px);margin:0 0 6px}
+.matrix-shell>p{color:#b7cce0;margin:0 0 16px}

@@ -74,11 +74,36 @@ async function loadManagedAccess(){
   managedAccessGrid.replaceChildren();
   const loading=document.createElement("p");loading.textContent="Cargando actuadores asignados…";managedAccessGrid.append(loading);
   try{
-    const data=await managedAccessApi();
+    const [data,originalStatus]=await Promise.all([managedAccessApi(),api("/api/status").catch(()=>({relays:[]}))]);
     managedAccessGrid.replaceChildren();
     const items=data.actuators||[];
-    if(!items.length){
+    const originals=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
+    if(!items.length&&!originals.length){
       const empty=document.createElement("p");empty.textContent="No hay actuadores asignados a esta cuenta.";managedAccessGrid.append(empty);return;
+    }
+    // Los relés originales son compartidos mediante permisos del Máster, nunca duplicados.
+    for(const original of originals){
+      const card=document.createElement("article");card.className="relay-card managed-relay-card";
+      const info=document.createElement("div"),name=document.createElement("span"),state=document.createElement("strong");
+      name.className="relay-label";name.textContent="Actuador "+original.relay;
+      state.textContent=original.state===true?"ENCENDIDO":original.state===false?"APAGADO":"Estado pendiente";
+      info.append(name,state);
+      const controls=document.createElement("div");controls.className="managed-relay-actions";
+      const on=document.createElement("button"),off=document.createElement("button"),refreshState=document.createElement("button");
+      for(const [el,text] of [[on,'ON'],[off,'OFF'],[refreshState,'Actualizar']]){el.type="button";el.className="small-button";el.textContent=text;}
+      const busy=value=>{on.disabled=value;off.disabled=value;refreshState.disabled=value;};
+      const read=async()=>{const status=await api("/api/status"),current=(status.relays||[]).find(x=>x.relay===original.relay);
+        state.textContent=current?.state===true?"ENCENDIDO":current?.state===false?"APAGADO":"Estado pendiente";
+        card.classList.toggle("on",current?.state===true);};
+      const send=async value=>{busy(true);state.textContent="ORDEN EN CURSO…";
+        try{const result=await api("/api/control",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({relay:original.relay,state:value})});
+          state.textContent=result.autoOffConfirmed?"APAGADO":result.state===true?"ENCENDIDO":result.state===false?"APAGADO":"Estado pendiente";
+          card.classList.toggle("on",result.state===true&&!result.autoOffConfirmed);
+          if(result.timerSeconds&&!result.autoOffConfirmed)setTimeout(()=>read().catch(()=>{}),(result.timerSeconds+1)*1000);
+        }catch(error){state.textContent=error.message;}finally{busy(false);}};
+      on.onclick=()=>send(true);off.onclick=()=>send(false);
+      refreshState.onclick=async()=>{busy(true);try{await read();}catch(error){state.textContent=error.message;}finally{busy(false);}};
+      controls.append(on,off,refreshState);card.append(info,controls);managedAccessGrid.append(card);
     }
     for(const item of items){
       const card=document.createElement("article");card.className="relay-card managed-relay-card";

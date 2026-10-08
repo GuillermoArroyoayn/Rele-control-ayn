@@ -765,3 +765,8 @@ body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar .ayn-nav-butto
  color:#fff!important;font-weight:700!important;box-shadow:none!important
 }
 @media(max-width:360px){body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar .ayn-nav-button{min-width:95px;padding-inline:10px!important}}
+/* v164: equipos ya enrolados, sin exigir ID nuevamente ni crear duplicados. */
+#relayAddManualFields[hidden]{display:none!important}
+#enrolledRelaySelect{width:100%;min-height:48px;font-size:16px}
+#enrolledRelayStatus{margin:8px 0 10px;font-size:14px;line-height:1.4}
+#relayAddSubmit:disabled{opacity:.55;cursor:not-allowed}

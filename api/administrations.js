@@ -41,7 +41,9 @@ module.exports=async(req,res)=>{
       const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
       const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       const matrix=auth.role==='admin'?Matrix.publicConfig(await Matrix.ensure(auth.groupId,auth.device.adminName||auth.device.name||'Administración'),'admin'):null;
-      return res.json({masters:auth.role==='super_master'?Object.entries(auth.registry.devices).filter(([id,d])=>id===auth.registry.masterId||(auth.registry.masterIds||[]).includes(id)).map(([id,d])=>({id,name:d.adminName||d.name,status:d.status,primary:id===auth.registry.masterId,current:id===auth.device.id})):[],originalActuators:auth.role==='super_master'?await T.originalList():[],role:auth.role,groupId:auth.groupId,groups:auth.role==='user'?[]:groups,users:auth.role==='user'?[]:users,actuators:all.filter(d=>A.visible(auth,d)).map(({deviceId,...publicItem})=>publicItem),appMatrix:matrix});
+      const originals=auth.role==='super_master'?(await T.originalList()).map(item=>({...item,
+        assignedGroup:Object.values(auth.registry.devices).find(d=>d.role==='admin'&&d.status==='active'&&(d.relays||[]).includes(item.relay))?.groupId||'master'})):[];
+      return res.json({masters:auth.role==='super_master'?Object.entries(auth.registry.devices).filter(([id,d])=>id===auth.registry.masterId||(auth.registry.masterIds||[]).includes(id)).map(([id,d])=>({id,name:d.adminName||d.name,status:d.status,primary:id===auth.registry.masterId,current:id===auth.device.id})):[],originalActuators:originals,role:auth.role,groupId:auth.groupId,groups:auth.role==='user'?[]:groups,users:auth.role==='user'?[]:users,actuators:all.filter(d=>A.visible(auth,d)).map(({deviceId,...publicItem})=>publicItem),appMatrix:matrix});
     }
     if(b.action==='originalSettings'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster configura temporizadores.',403);
@@ -108,6 +110,28 @@ module.exports=async(req,res)=>{
     if(b.action==='accountStatus'){
       A.manager(auth);if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado inválido.');
       await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||b.userId===registry.masterId||b.userId===auth.device.id)throw A.error('Cuenta no modificable.',403);if(auth.role!=='super_master'&&(user.role!=='user'||user.groupId!==auth.groupId))throw A.error('Cuenta fuera de tu administración.',403);user.status=b.status;user.statusChangedAt=new Date().toISOString();user.statusChangedBy=auth.device.id;});await addHistory({kind:'permissions',groupId:auth.registry.devices[b.userId]?.groupId||'master',userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Estado de acceso: '+b.status}).catch(()=>{});return res.json({ok:true});
+    }
+    if(b.action==='assignOriginal'){
+      if(auth.role!=='super_master')throw A.error('Solo el Máster asigna los actuadores originales.',403);
+      const relay=Number(b.relay);
+      if(!Number.isInteger(relay)||![1,2,3].includes(relay)||!process.env['TUYA_DEVICE_'+relay])throw A.error('Actuador original no disponible.',400);
+      const groupId=A.group(auth,b.groupId);
+      if(!['master','unassigned'].includes(groupId)&&!Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
+        throw A.error('La administración seleccionada debe estar activa.',409);
+      await A.updateRegistry(registry=>{
+        let destinationFound=['master','unassigned'].includes(groupId);
+        for(const record of Object.values(registry.devices||{})){
+          if(record.role!=='admin')continue;
+          if(groupId===record.groupId&&record.status==='active')destinationFound=true;
+          const assigned=Array.isArray(record.relays)?record.relays.filter(r=>[1,2,3].includes(Number(r))).map(Number):[];
+          record.relays=assigned.filter(r=>r!==relay);
+          if(record.groupId===groupId&&record.status==='active')record.relays.push(relay);
+          record.relays=[...new Set(record.relays)].sort((x,y)=>x-y);
+        }
+        if(!destinationFound)throw A.error('Administrador no disponible.',409);
+      });
+      await addHistory({kind:'permissions',groupId,userName:'Actuador '+relay,actor:auth.device.name,action:'Asignación de actuador original '+relay}).catch(()=>{});
+      return res.json({ok:true,relay,groupId});
     }
     if(b.action==='add'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster general agrega y asigna actuadores.',403);const groupId=A.group(auth,b.groupId);const deviceId=String(b.deviceId||'').trim(),code=String(b.code||'switch_1');

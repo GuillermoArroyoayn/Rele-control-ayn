@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v191-no-emergency-labels";
+const CACHE = "reles-ayn-v192-sos-community-only";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -29,7 +29,7 @@ const ASSETS = [
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
   "/app.js?v=20261008-labels190",
-  "/panic.js?v=20261008-audience189",
+  "/panic.js?v=20261008-sos192",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-mic182",

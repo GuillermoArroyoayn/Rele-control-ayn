@@ -27,7 +27,7 @@ function timerMode(input){const label=node('label','Modo de funcionamiento'),sel
 function groups(select,value){select.replaceChildren();if(data.role==='super_master'){const own=node('option','Máster general');own.value='master';select.append(own);}for(const g of data.groups){const option=node('option',g.name+' · '+g.status);option.value=g.id;select.append(option);}select.value=value||select.options[0]?.value||'';}
 function matrixModule(id){return data?.appMatrix?.modules?.find(item=>item.id===id)||null;}
 function adminModuleAllowed(id){if(id==='community-hub')return adminModuleAllowed('wall')||adminModuleAllowed('polls');const item=matrixModule(id);return !item||item.visible!==false;}
-function adminModuleLabel(id,fallback){if(id==='reports')return 'Reporte de emergencia';if(id==='community-hub')return 'Muro informativo';return matrixModule(id)?.label||fallback;}
+function adminModuleLabel(id,fallback){if(id==='reports')return 'Reportes emergencia';if(id==='community-hub')return 'Muro informativo';return matrixModule(id)?.label||fallback;}
 function adminItemModule(item){
   if(item.id==='peopleTab'||item.dataset.tab==='people')return 'users';
   if(item.dataset.tab==='equipment')return 'access';

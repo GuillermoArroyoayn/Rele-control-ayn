@@ -1328,3 +1328,21 @@ body[data-user-view="settings"] #refresh{display:none!important}
     margin:2px 0 0!important;
   }
 }
+
+/* v157 · Reencuadre inicial: centrar el inicio sin desplazar su parte superior. */
+@media (max-width:719px){
+  .home-dashboard:not([hidden]){
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:calc(100dvh - 38px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    width:100%;
+    box-sizing:border-box;
+    padding-block:clamp(4px,.75dvh,8px);
+  }
+  .home-dashboard > .home-dashboard-top,
+  .home-dashboard > .home-quick-grid,
+  .home-dashboard > .home-voice-area,
+  .home-dashboard > .home-voice-button,
+  .home-dashboard > .home-voice-text{flex-shrink:0}
+}

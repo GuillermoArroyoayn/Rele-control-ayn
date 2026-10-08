@@ -404,6 +404,11 @@ function showView(view) {
       ? "Más herramientas"
       : (menuDefinitions.find(([id]) => id === view)?.[1] || ({access:"Accesos"})[view] || "");
     document.body.classList.toggle("user-view-open", view !== "control");
+    if(view==="control"){
+      try{if("scrollRestoration" in history)history.scrollRestoration="manual";}catch{}
+      window.scrollTo(0,0);
+      window.requestAnimationFrame?.(()=>{if(document.body.dataset.userView==="control")window.scrollTo(0,0);});
+    }
   } else {
     homeDashboard.hidden = true;
   }
@@ -1365,6 +1370,9 @@ if (!SpeechRecognition) {
   });
   window.addEventListener('online',restoreVoiceSelection);
   window.addEventListener("pageshow", restoreVoiceSelection);
+  window.addEventListener("pageshow",()=>{
+    if(document.body.classList.contains("user-layout") && document.body.dataset.userView==="control") window.scrollTo(0,0);
+  });
   document.addEventListener("visibilitychange", restoreVoiceSelection);
   window.addEventListener("focus", restoreVoiceSelection);
   restoreVoiceSelection();

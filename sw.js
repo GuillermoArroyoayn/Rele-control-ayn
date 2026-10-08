@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v156-home-fit";
+const CACHE = "reles-ayn-v157-home-frame";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -15,7 +15,7 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-fit156",
+  "/styles.css?v=20261008-frame157",
   "/share.css?v=20261006-orbit123",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
@@ -23,12 +23,12 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-btaudio154",
+  "/app.js?v=20261008-frame157",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-fit156",
-  "/administracion.js?v=20261008-menu153",
+  "/administracion.css?v=20261008-frame157",
+  "/administracion.js?v=20261008-frame157",
   "/administracion-voice.js?v=20261008-btaudio154"
 ];
 self.addEventListener("install", (e) =>

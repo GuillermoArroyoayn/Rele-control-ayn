@@ -17,11 +17,11 @@ for(const path of files){
   assert(!section.includes('aspect-ratio:1 / 1'),'No convertir las tarjetas en cuadrados grandes');
 }
 const index=fs.readFileSync('index.html','utf8'),admin=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
-assert(index.includes('/styles.css?v=20261008-fit156'));
-assert(admin.includes('/administracion.css?v=20261008-fit156'));
-assert(sw.includes('reles-ayn-v156-home-fit'));
-assert(sw.includes('/styles.css?v=20261008-fit156'));
-assert(sw.includes('/administracion.css?v=20261008-fit156'));
+assert(index.includes('/styles.css?v=20261008-frame157'));
+assert(admin.includes('/administracion.css?v=20261008-frame157'));
+assert(sw.includes('reles-ayn-v157-home-frame'));
+assert(sw.includes('/styles.css?v=20261008-frame157'));
+assert(sw.includes('/administracion.css?v=20261008-frame157'));
 assert(fs.readFileSync('app.js','utf8').includes('home-quick-card home-quick-sos'));
 assert(admin.includes('id="homeVoiceToggle"'));
 assert(fs.readFileSync('app.js','utf8').includes('home-voice-button'));
@@ -36,3 +36,18 @@ for(const h of [560,640,720,800,880]){
   assert(budgetUser<=h,'Usuario '+h+'px: overflow '+budgetUser);
 }
 console.log('Portada v156: 2 columnas compactas, logo y micrófono visibles. Pruebas de alturas 560-880 px para usuario y administraciones OK.');
+
+for(const css of files){
+  const rules=fs.readFileSync(css,'utf8');
+  assert(rules.includes('/* v157 · Reencuadre inicial:'));
+  assert(rules.includes('justify-content:center;'));
+  assert(rules.includes('.home-dashboard:not([hidden])'));
+}
+const aj=fs.readFileSync('administracion.js','utf8');
+const uj=fs.readFileSync('app.js','utf8');
+assert(aj.includes("history.scrollRestoration='manual'")&&aj.includes('resetHomeScroll()'));
+assert(aj.includes("window.addEventListener('pageshow'"));
+assert(uj.includes('history.scrollRestoration="manual"'));
+assert(uj.includes('window.addEventListener("pageshow",()=>'));
+assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v157-home-frame'));
+console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');

@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v174-resident-roles";
+const CACHE = "reles-ayn-v175-phone-priority";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -22,9 +22,11 @@ const ASSETS = [
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
   "/ui-feedback.css?v=20261006-orbit123",
-  "/ain-local-voice.js?v=20261008-btaudio154",
+  "/ayn-call-priority.js?v=20261008-phone175",
+  "/ayn-call-priority.css?v=20261008-phone175",
+  "/ain-local-voice.js?v=20261008-phone175",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-access174",
+  "/app.js?v=20261008-phone175",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
@@ -32,7 +34,7 @@ const ASSETS = [
   "/administracion.js?v=20261008-access167",
   "/relay-installer.js?v=20261008-compact160",
   "/actuator-voice.js?v=20261008-access165",
-  "/administracion-voice.js?v=20261008-access165"
+  "/administracion-voice.js?v=20261008-phone175"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

@@ -1,0 +1,14 @@
+/* Botón manual para llamadas que Android no anuncia a una PWA. */
+#aynCallPriority{
+  position:fixed;left:12px;bottom:calc(17px + env(safe-area-inset-bottom,0px));
+  z-index:1205;min-height:42px;max-width:min(66vw,235px);
+  border:1px solid rgba(135,207,255,.66);border-radius:16px;
+  background:rgba(5,29,64,.94);color:#e6f5ff;
+  font:700 13px/1.25 system-ui,sans-serif;padding:9px 13px;
+  box-shadow:0 0 12px rgba(0,106,255,.17);cursor:pointer;
+  white-space:normal;text-align:center;
+}
+#aynCallPriority.is-paused{
+  border-color:#ffd283;color:#fff7e4;background:rgba(99,56,14,.95);
+}
+#aynCallPriority:focus-visible{outline:3px solid #bfe8ff;outline-offset:3px}

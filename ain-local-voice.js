@@ -161,9 +161,12 @@
         this.source = source;
         source.connect(node);
         node.connect(context.destination); // Worklet renders silence; the AudioContext sink is set to "none" where supported.
-        stream.getAudioTracks().forEach(track=>track.addEventListener('mute',()=>{
-          if(!document.hidden&&(this.active||this.starting))window.AynCallPriority?.interrupt();
-        }));
+        stream.getAudioTracks().forEach(track=>{
+          track.addEventListener('mute',()=>{
+            if(!document.hidden&&(this.active||this.starting))window.AynCallPriority?.interrupt();
+          });
+          if(track.muted&&!document.hidden)window.AynCallPriority?.interrupt();
+        });
         stream.getAudioTracks().forEach(track => track.addEventListener("ended", () => {
           if (this.active) this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
         }));

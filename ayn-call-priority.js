@@ -49,10 +49,9 @@
     button=document.createElement('button');
     button.id='aynCallPriority';
     button.type='button';
-    button.addEventListener('click',()=>setManual(!(manual||interrupted||reportedCall)));
-    // No desactivar un reporte nativo de llamada activa.
     button.addEventListener('click',()=>{
-      if(reportedCall){manual=true;notify();}
+      if(reportedCall){notify();return;}
+      setManual(!(manual||interrupted));
     });
     document.body.append(button);
     paint();

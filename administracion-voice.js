@@ -430,6 +430,11 @@
   window.addEventListener('pageshow',restore);
   window.addEventListener('focus',restore);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)restore();});
-  if(localStorage.getItem('aynVoiceSelected')==='true')enable(false);
-  else paint('Toca el micrófono para activar AYN','idle');
+  if(localStorage.getItem('aynVoiceSelected')!=='false'){
+    localStorage.setItem('aynVoiceSelected','true');
+    if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
+      enabled=true;
+      paint('☎ Llamada: micrófono de AIN en pausa','idle');
+    }else enable(false);
+  }else paint('Toca el micrófono para activar AYN','idle');
 })();

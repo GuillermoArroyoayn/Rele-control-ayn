@@ -136,6 +136,9 @@ module.exports=async(req,res)=>{
       const relay=Number(b.relay);
       if(!Number.isInteger(relay)||![1,2,3].includes(relay)||!process.env['TUYA_DEVICE_'+relay])throw A.error('Actuador original no disponible.',400);
       const groupId=A.group(auth,b.groupId);
+      const reservedFor=await A.redis('HGET','ayn:matrix:original:reservations',String(relay));
+      if(reservedFor&&reservedFor!==groupId)
+        throw A.error('Este relé fue reservado para otro administrador. Libera primero la reserva desde Constructor de App.',409);
       if(!['master','unassigned'].includes(groupId)&&!Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
         throw A.error('La administración seleccionada debe estar activa.',409);
       await A.updateRegistry(registry=>{
@@ -150,6 +153,7 @@ module.exports=async(req,res)=>{
         }
         if(!destinationFound)throw A.error('Administrador no disponible.',409);
       });
+      if(reservedFor===groupId)await A.redis('HDEL','ayn:matrix:original:reservations',String(relay)).catch(()=>{});
       await addHistory({kind:'permissions',groupId,userName:'Actuador '+relay,actor:auth.device.name,action:'Asignación de actuador original '+relay}).catch(()=>{});
       return res.json({ok:true,relay,groupId});
     }

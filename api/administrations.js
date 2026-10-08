@@ -15,6 +15,7 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      let upgradedExistingUser=false;
       await A.updateRegistry(registry=>{
         const creator=registry.devices[invitation.creator];
         if(!creator||creator.status!=='active'||(['admin','super_master'].includes(invitation.role)?creator.role!=='super_master':!['super_master','admin'].includes(creator.role)))throw A.error('Invitación anulada.',403);
@@ -22,13 +23,18 @@ module.exports=async(req,res)=>{
         if(registry.revoked?.[id]||id===registry.masterId)throw A.error('Este equipo no puede aceptar la invitación.',403);
         const old=registry.devices[id];
         if(old?.inviteHash===A.hash(b.token))return;
-        if(old&&old.status!=='pending')throw A.error('Este equipo ya tiene una cuenta. Usa otro equipo o solicita su cambio al Máster.',409);
-        if(old?.groupId&&old.groupId!==invitation.groupId)throw A.error('Este equipo pertenece a otra administración.',403);
+        const samePhone=old?.phone&&invitation.phone&&WhatsApp.normalizePhone(old.phone)===WhatsApp.normalizePhone(invitation.phone);
+        const masterAdminUpgrade=Boolean(old&&old.role==='user'&&invitation.role==='admin'&&creator.role==='super_master'&&samePhone);
+        if(old&&old.status!=='pending'&&!masterAdminUpgrade)throw A.error('Este equipo ya tiene una cuenta. Usa otro equipo o solicita su cambio al Máster.',409);
+        if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString()};
+        upgradedExistingUser=masterAdminUpgrade;
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:masterAdminUpgrade?new Date().toISOString():old?.roleChangedAt,roleChangedBy:masterAdminUpgrade?invitation.creator:old?.roleChangedBy};
         if(invitation.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
       });
-      await A.redis('DEL',key);return res.json({ok:true});
+      if(invitation.role==='admin')await Matrix.ensure(invitation.groupId,invitation.name,'active');
+      if(upgradedExistingUser)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
+      await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
     const auth=await A.access(req);
     if(req.method==='GET'){

@@ -389,5 +389,8 @@ $('restoreAdmin').onclick=async()=>{
     if(!localStorage.getItem('relayPin'))throw new Error('Primero entra a Administración general con tu PIN.');
     payload=await api();if(payload.role!=='super_master')throw new Error('Solo el Máster general puede abrir el Constructor de App.');
     renderGroups();
+    if(location.hash==='#delete-community'&&selected()){
+      requestAnimationFrame(()=>$('deleteEntireCommunity').scrollIntoView({behavior:'smooth',block:'center'}));
+    }
   }catch(error){message(error.message,true);$('editor').hidden=true;}
 })();

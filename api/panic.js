@@ -62,7 +62,7 @@ module.exports=async(req,res)=>{
     await require('../lib/information-feed').publish({
       id:'sos-'+id,groupId,kind:'sos',title:'Emergencia · solicita asistencia',
       message:(alert.name||'Residente')+' solicita asistencia'+(alert.apartment?' · Departamento '+alert.apartment:'')+'.',
-      author:alert.name,apartment:alert.apartment,creator:alert.creator,createdAt:alert.createdAt
+      author:alert.name,apartment:alert.apartment,creator:alert.creator,createdAt:alert.createdAt,expiresAt:alert.expiresAt
     },auth);
     const notifying=require('../lib/panic-push').send(alert,auth).catch(()=>{});
     let actuatorStatus=actuator?'sent':'not-configured';

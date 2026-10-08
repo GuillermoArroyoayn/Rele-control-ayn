@@ -16,7 +16,7 @@ function check(checked,title='Función'){
   const caption=el('span',title,'matrix-toggle-title'),state=el('span','','matrix-toggle-state');
   const paint=()=>{wrap.classList.toggle('selected',input.checked);state.textContent=input.checked?'✓ Seleccionado':'○ No seleccionado';input.setAttribute('aria-label',title);};
   input.addEventListener('change',()=>{paint();renderPreview();markDirty();});
-  wrap.append(input,caption,state);input.toggleWrapper=wrap;paint();
+  wrap.append(input,caption,state);input.toggleWrapper=wrap;input.refreshAppearance=paint;paint();
   return input;
 }
 function number(value){const input=document.createElement('input');input.type='number';input.className='order';input.min='1';input.max='99';input.value=value||1;input.addEventListener('input',()=>{renderPreview();markDirty();});return input;}
@@ -117,14 +117,55 @@ function collect(){
   };
 }
 
+function togglePreviewDesignation(itemId){
+  const group=selected();
+  if(!group||group.status==='deleted')return;
+  const row=[...$('modules').children,...$('actuators').children].find(node=>node.dataset.id===itemId);
+  if(!row)return;
+  if(itemId==='users'){
+    message('Incorporar usuarios es obligatorio para los administradores y no puede desactivarse.');
+    return;
+  }
+  const enabled=row.querySelector('[data-field="enabled"]');
+  const allowed=row.querySelector('[data-field="'+(previewRole==='user'?'userVisible':'adminVisible')+'"]');
+  if(!enabled||!allowed||allowed.disabled)return;
+  const newValue=!(enabled.checked&&allowed.checked);
+  if(newValue&&!enabled.checked){enabled.checked=true;enabled.refreshAppearance?.();}
+  allowed.checked=newValue;allowed.refreshAppearance?.();
+  const name=row.querySelector('[data-field="label"]')?.value||'Función';
+  renderPreview();
+  markDirty();
+  message((newValue?'✓ ':'○ ')+name+(newValue?' seleccionada':' desactivada')+
+    ' para '+(previewRole==='user'?'Usuario':'Administrador')+'. Pulsa Publicar cambios para guardarla.');
+}
+
 function renderPreview(){
   if(!selected())return;
   const config=collect(),key=previewRole==='user'?'userVisible':'adminVisible';
+  const items=[...config.modules,...config.actuators]
+    .filter(item=>previewRole!=='user'||item.id!=='users')
+    .sort((a,b)=>(a.order||99)-(b.order||99));
+  const total=items.length,active=items.filter(item=>item.enabled&&item[key]).length;
+  $('previewCount').textContent=active+' de '+total+' funciones seleccionadas';
+  $('previewHelp').textContent=previewRole==='admin'?
+    'Toca las tarjetas para activar o quitar funciones del administrador. “Incorporar usuarios” es obligatoria.':
+    'Toca las tarjetas para elegir las funciones que verá cada usuario de esta comunidad.';
   $('preview').replaceChildren();
   $('preview').append(el('div',config.branding.communityName||config.branding.appName,'preview-title'));
   const grid=el('div',undefined,'preview-grid');
-  for(const item of [...config.modules,...config.actuators].filter(item=>item.enabled&&item[key]).sort((a,b)=>(a.order||99)-(b.order||99)))grid.append(el('div',item.label,'preview-item'));
-  if(!grid.children.length)grid.append(el('p','No hay ventanas visibles para este perfil.'));
+  for(const item of items){
+    const isSelected=Boolean(item.enabled&&item[key]);
+    const required=previewRole==='admin'&&item.id==='users';
+    const card=el('button',undefined,'preview-item');
+    card.type='button';card.dataset.id=item.id;
+    card.setAttribute('aria-pressed',String(isSelected));
+    card.setAttribute('aria-label',item.label+': '+(required?'obligatoria':isSelected?'seleccionada':'no seleccionada'));
+    card.append(el('strong',item.label),el('span',required?'✓ Obligatoria':isSelected?'✓ Seleccionado':'○ No seleccionado','preview-item-state'));
+    card.disabled=required||selected()?.status==='deleted';
+    if(!card.disabled)card.addEventListener('click',()=>togglePreviewDesignation(item.id));
+    grid.append(card);
+  }
+  if(!items.length)grid.append(el('p','Todavía no hay funciones configurables.'));
   $('preview').append(grid);
 }
 

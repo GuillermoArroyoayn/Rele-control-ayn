@@ -16,6 +16,6 @@ assert(api.includes("A.updateRegistry(registry=>"),'Actualización atómica y au
 assert(!api.includes('redis.call("HSET")'),'No registrar originales como nuevas entradas');
 assert(app.includes('originalStatus.relays'),'Actuadores asignados visibles a administrador');
 assert(app.includes('api("/api/control"'),'Mandos originales usan permisos vigentes');
-assert(sw.includes('reles-ayn-v183-clear-admin-folder'));
+assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
 assert(sw.includes('/app.js?v=20261008-voice181'));
 console.log('Relés originales y gestionados listados; asignación sin duplicar, acceso de administrador y PWA verificados.');

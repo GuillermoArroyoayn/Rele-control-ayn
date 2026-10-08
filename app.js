@@ -338,7 +338,7 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
-  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools',panic:'panic',wall:'wall',polls:'polls'};
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',share:'share',panic:'panic',wall:'wall',polls:'polls'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
   if(currentRole!=='super_master'&&masterRoute==='settings'){showView('settings');return;}
   if(["wall","polls"].includes(masterRoute)){showView(masterRoute);return;}

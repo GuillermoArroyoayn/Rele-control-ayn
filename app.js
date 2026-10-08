@@ -658,8 +658,12 @@ async function loadStatus() {
     currentMatrix = data.appMatrix || null;
     statusReady = true;
     applyMatrixPresentation();
-    if(currentRole==="super_master"&&!location.hash){
-      location.replace("/administracion.html");
+    // La portada del perfil administrador es el inicio real del sistema.
+    // Conservar las rutas explícitas (/#control, /#bookings, etc.).
+    if((currentRole==="super_master"&&!location.hash)||
+       (currentRole==="admin"&&!location.hash&&!location.search)){
+      sessionStorage.setItem("aynAdminView","home");
+      location.replace("/administracion.html#home");
       return;
     }
     finishBootLayout();
@@ -681,12 +685,14 @@ async function loadStatus() {
       clearTimeout(functionToastTimer);
       message.textContent = "";
       message.classList.remove("function-toast", "is-error");
-    } else
-      show(
-        currentRole === "admin"
-          ? "Panel de administrador activo."
-          : "Estado actualizado.",
-      );
+    } else if (currentRole === "admin") {
+      // No mostrar un aviso de éxito fijo: tapa la portada sin aportar información.
+      clearTimeout(functionToastTimer);
+      message.textContent = "";
+      message.classList.remove("function-toast", "is-error");
+    } else {
+      show("Estado actualizado.");
+    }
   } catch (e) {
     statusReady = false;
     finishBootLayout();

@@ -1204,3 +1204,9 @@ body[data-user-view="settings"] #refresh{display:none!important}
 
 
 /* v143 · El arranque de Administrador/Máster se mantiene oculto hasta validar el rol. */
+
+
+/* v145 · Configuración al pie de Inicio y Compartir como vista del menú */
+.section-config-bottom{display:block;width:100%;margin-top:16px;text-align:center;text-decoration:none;box-sizing:border-box}
+.share-section.function-screen{display:block}
+.share-section.function-screen .share-main{width:100%;min-height:54px}

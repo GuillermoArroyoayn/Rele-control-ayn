@@ -279,6 +279,7 @@ const menuDefinitions = [
   ["polls", "Encuestas", "📊"],
   ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
+  ["share", "Compartir aplicación", "📤"],
   ["admins", "Administradores", "🛡️"],
   ["users", "Usuarios", "👥"],
   ["temporary", "Permisos temporales", "⏳"],
@@ -314,7 +315,7 @@ function buildMenu() {
     currentRole === "super_master"
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
-        ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
+        ? menuDefinitions.filter(([id]) => !["admins", "database", "share"].includes(id))
         : menuDefinitions.filter(([id]) => ["settings"].includes(id));
   const allowed=roleMenu.filter(([id])=>id==="settings"||matrixAllowed(id,currentRole));
   for (const [id, label, icon] of allowed) {
@@ -343,7 +344,7 @@ function buildMenu() {
   );
 }
 
-const masterConfigLink=document.createElement('a');masterConfigLink.className='small-button';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;mainMenu.before(masterConfigLink);
+const masterConfigLink=document.createElement('a');masterConfigLink.className='share-main section-config-bottom';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;refresh.after(masterConfigLink);
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
 functionBack.onclick=()=>showView("menu");
@@ -358,10 +359,10 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent="Inicio";
   functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,shareSection];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,share:shareSection})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   userSettingsPanel.hidden=!ready||view!=="settings";
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
@@ -378,8 +379,8 @@ function showView(view) {
   currentView = view;
   prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));
-  masterConfigLink.hidden=currentRole!=='super_master';
-  masterConfigLink.href=view==='control'?'/administracion.html#timers':view==='temporary'?'/#temporary':view==='bookings'?'/#bookings':view==='voice'?'/#voice':'/#tools';
+  masterConfigLink.hidden=currentRole!=='super_master'||view!=="control";
+  masterConfigLink.href='/administracion.html#timers';
   if(currentRole==='super_master'){
     for(const {node} of userSettingNodes)node.hidden=view==='settings'?false:view==='voice'?!node.classList.contains('accessibility'):view==='tools'?node.classList.contains('accessibility'):true;
   }
@@ -411,7 +412,8 @@ function showView(view) {
   managedAccessPanel.hidden=!managedAccessVisible;
   if(managedAccessVisible)loadManagedAccess();
   refresh.hidden=!control||currentRole!=="super_master";
-  shareSection.hidden=!control||currentRole!=="super_master";
+  shareSection.hidden=view!=="share"||currentRole!=="super_master";
+  if(view==="share"&&currentRole==="super_master") sharePanel.hidden=false;
   adminPanel.hidden = !(
     ["admins", "users", "temporary", "history"].includes(view) &&
     ["super_master", "admin"].includes(currentRole)

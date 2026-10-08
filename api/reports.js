@@ -71,6 +71,11 @@ module.exports = async (req, res) => {
     const result = await A.redis('EVAL', script, 5, PREFIX+'item:'+id, PREFIX+'photo:'+id,
       PREFIX+'group:'+groupId, PREFIX+'all', PREFIX+'rate:'+auth.device.id, JSON.stringify(item), id, photo, TTL, PREFIX);
     if (result === -1) throw A.error('Puedes enviar hasta 5 reportes por hora. Intenta más tarde.', 429);
+    await require('../lib/information-feed').publish({
+      id:'report-'+id, groupId,kind:'report',title:b.type==='failure'?'Reporte de falla':'Nuevo reporte',
+      message:'Se recibió un reporte para la administración.',privateMessage:text,
+      author:item.name,apartment:item.apartment,creator:auth.device.id,createdAt:item.createdAt
+    },auth);
     return res.json({ ok: true, id, duplicate: result === 0,
       message: 'Reporte enviado al administrador de tu administración y al administrador general.' });
   } catch (e) { res.status(e.status || 500).json({ accessStatus: e.accessStatus, error: e.message || 'No se pudo procesar el reporte.' }); }

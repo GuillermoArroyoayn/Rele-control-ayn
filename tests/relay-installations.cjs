@@ -62,10 +62,15 @@ async function run(action,payload={},method='POST'){
  const at=html.indexOf('id="relayInstaller"'),search=html.indexOf('class="relay-search"'),folders=html.indexOf('id="relayCenterLists"');
  assert(at>html.indexOf('id="relayCenterHead"')&&at<search&&search<folders,'La carpeta debe aparecer antes de buscar y asignar');
  assert(html.includes('Agregar relé ya conectado'),'Alta existente debe tener nombre distinto');
+ assert(!html.includes('Registra los equipos y asígnalos rápidamente a cada administrador.'),'Eliminar introducción redundante');
+ assert(!html.includes('Prepara el relé en el taller. Al llegar al condominio,'),'Eliminar párrafo redundante');
+ assert(html.includes('relay-install-advanced')&&html.includes('relay-install-help'),'Mantener la información técnica bajo detalle accesible');
+ assert(html.includes('relayInstallerSaved'),'Separar listado de relés guardados');
+ assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!anyInstalled"),'Ocultar carpetas vacías');
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
- assert(fs.readFileSync('relay-installer.js','utf8').includes('＋ Preparar relé · '),'Botón de preparación visible');
- assert(html.includes('/relay-installer.js?v=20261008-preinstall159'));
- assert(sw.includes('reles-ayn-v159-relay-top')&&sw.includes('/relay-installer.js?v=20261008-preinstall159'));
+ assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
+ assert(html.includes('/relay-installer.js?v=20261008-compact160'));
+ assert(sw.includes('reles-ayn-v160-relay-compact')&&sw.includes('/relay-installer.js?v=20261008-compact160'));
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
  assert(fs.readFileSync('administracion.css','utf8').includes('.relay-installer[hidden]'));
  console.log('Installer v158 OK: roles, staging, cloud GET-only, offline, confirmation, duplicates and PWA.');

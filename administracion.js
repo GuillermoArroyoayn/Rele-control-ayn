@@ -81,6 +81,10 @@ function renderRelayCenter(){
   relayAssignmentOptions($('relayAddGroup'),$('relayAddGroup').value||'unassigned');
   const query=$('relaySearch').value.trim().toLocaleLowerCase('es');
   const all=data.actuators||[];
+  const anyInstalled=all.length>0;
+  $('relaySearch').parentElement.hidden=!anyInstalled;
+  $('relayBulkAssign').closest('.relay-bulk-bar').hidden=!anyInstalled;
+  $('relayCenterLists').hidden=!anyInstalled;
   const matches=item=>!query||(item.name+' '+relayGroupName(item.groupId)).toLocaleLowerCase('es').includes(query);
   const filtered=all.filter(matches);
   $('unassignedActuators').replaceChildren();

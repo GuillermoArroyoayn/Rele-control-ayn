@@ -1,7 +1,7 @@
 (()=>{
 const p=document.getElementById('relayInstaller'),toggle=document.getElementById('relayInstallerToggle'),
 area=document.getElementById('relayInstallerBody'),form=document.getElementById('relayInstallerForm'),
-list=document.getElementById('relayInstallerList'),message=document.getElementById('relayInstallerStatus');
+list=document.getElementById('relayInstallerList'),message=document.getElementById('relayInstallerStatus'),saved=document.getElementById('relayInstallerSaved'),advanced=document.getElementById('relayInstallAdvanced');
 if(!p||!toggle)return;
 const ids=['name','location','wifiSsid','model','deviceId','code','timerSeconds','groupId'];
 const input=n=>document.getElementById('install-'+n);
@@ -27,7 +27,8 @@ function groupsSelect(selected='unassigned'){
 function reset(){
  form.reset();input('draftId').value='';input('model').value='MINI Smart Switch 16A';
  input('code').value='switch_1';input('timerSeconds').value='4';groupsSelect();
- form.querySelector('button[type="submit"]').textContent='Guardar relé preparado';
+ form.querySelector('button[type="submit"]').textContent='Guardar preparación';
+ advanced.open=false;
 }
 function action(label,fn){
  const b=make('button',label);b.type='button';
@@ -51,7 +52,8 @@ function row(item){
  action('Editar',async()=>{
   for(const key of ids)if(key!=='groupId')input(key).value=item[key]??'';
   groupsSelect(item.groupId);input('draftId').value=item.id;
-  form.querySelector('button[type="submit"]').textContent='Actualizar relé preparado';
+  form.querySelector('button[type="submit"]').textContent='Guardar cambios';
+  advanced.open=true;
   input('name').focus();form.scrollIntoView({behavior:'smooth',block:'start'});
  }),
  action('Comprobar',async()=>{
@@ -68,7 +70,9 @@ function row(item){
 function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');
  const found=drafts.filter(x=>!q||[x.name,x.location,x.wifiSsid,groups.find(g=>g.id===x.groupId)?.name].join(' ').toLocaleLowerCase('es').includes(q));
- toggle.textContent='＋ Preparar relé · '+drafts.length+' pendiente'+(drafts.length===1?'':'s');
+ toggle.textContent=area.hidden?'＋ Preparar relé'+(drafts.length?' · '+drafts.length+' guardado'+(drafts.length===1?'':'s'):''):'− Cerrar preparación';
+ saved.hidden=drafts.length===0;
+ document.getElementById('relayInstallerSearch').parentElement.hidden=drafts.length<4;
  list.replaceChildren();for(const item of found)list.append(row(item));
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));
 }
@@ -77,12 +81,12 @@ async function reload(){
  try{const r=await request();drafts=r.drafts||[];groups=r.groups||[];
   groupsSelect(input('groupId').value);render();}finally{busy=false;}
 }
-toggle.onclick=()=>{area.hidden=!area.hidden;if(!area.hidden)reload().catch(e=>report(e.message,true));};
+toggle.onclick=()=>{area.hidden=!area.hidden;toggle.setAttribute('aria-expanded',String(!area.hidden));render();if(!area.hidden)reload().catch(e=>report(e.message,true));};
 form.onsubmit=async e=>{
  e.preventDefault();const b=form.querySelector('button[type="submit"]');b.disabled=true;
  const values=Object.fromEntries(ids.map(k=>[k,input(k).value])),id=input('draftId').value;
  try{await request(id?'update':'create',{...values,...(id?{id}:{})});await reload();reset();
-  report(id?'Preparación actualizada.':'Relé guardado para instalarlo en el condominio.');
+  report(id?'Cambios guardados.':'Preparación guardada.');
  }catch(error){report(error.message,true);}finally{b.disabled=false;}
 };
 document.getElementById('relayInstallerCancel').onclick=()=>{reset();report('Formulario reiniciado.');};
@@ -94,5 +98,6 @@ function visible(){
 }
 document.addEventListener('ayn-menu-view',()=>setTimeout(visible,0));
 window.addEventListener('pageshow',visible);
+toggle.setAttribute('aria-expanded','false');
 reset();visible();
 })();

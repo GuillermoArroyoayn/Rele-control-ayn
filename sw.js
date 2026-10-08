@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v159-relay-top";
+const CACHE = "reles-ayn-v160-relay-compact";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -27,9 +27,9 @@ const ASSETS = [
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-preinstall159",
-  "/administracion.js?v=20261008-preinstall159",
-  "/relay-installer.js?v=20261008-preinstall159",
+  "/administracion.css?v=20261008-compact160",
+  "/administracion.js?v=20261008-compact160",
+  "/relay-installer.js?v=20261008-compact160",
   "/administracion-voice.js?v=20261008-btaudio154"
 ];
 self.addEventListener("install", (e) =>

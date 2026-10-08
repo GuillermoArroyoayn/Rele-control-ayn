@@ -198,6 +198,7 @@
           vote.type='button';vote.onclick=()=>openSection(item);container.append(vote);
         }
         if(original.hasPhoto)await showPhoto(container,'/api/community?'+new URLSearchParams({groupId:group,photo:srcId}),token);
+        else appendDetail(container,'Fotografía','No se adjuntó ninguna fotografía a esta publicación.');
       }else if(item.kind==='report'&&/^report-[a-f0-9]{32}$/.test(rawId)){
         if(!['admin','super_master'].includes(role)){
           status.textContent='Los detalles y fotografías de los reportes son privados de la administración.';
@@ -217,6 +218,7 @@
         appendDetail(container,'Teléfono',original.phone||'Sin registrar');
         appendDetail(container,'Descripción completa',original.text);
         if(original.hasPhoto)await showPhoto(container,'/api/reports?photo='+encodeURIComponent(srcId),token);
+        else appendDetail(container,'Fotografía','Este reporte no tiene fotografía adjunta.');
       }else if(item.kind==='sos'&&/^sos-[a-f0-9]{32}$/.test(rawId)){
         const srcId=rawId.slice('sos-'.length);
         const data=await authenticated('/api/panic?groupId='+encodeURIComponent(group));
@@ -259,6 +261,7 @@
       el('small','',new Date(item.createdAt).toLocaleString('es-CL')));
     body.replaceChildren(article);
     if(!opened)show();
+    detailBack.focus();
     acknowledgeIds([item.id]);
     body.scrollTop=0;
     loadDetail(item,article,token);

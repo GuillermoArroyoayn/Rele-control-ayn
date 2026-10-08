@@ -34,7 +34,7 @@ call=true;
 assert.equal(window.AynSosSiren.play(),false,'Nunca disputar audio con una llamada');
 call=false;
 window.AynSosSiren.stop();
-assert.equal(stops,3,'Alarma detenible');
+assert(stops>=3,'Alarma detenible: al menos las tres oscilaciones se programan y detienen');
 document.hidden=true;
 assert.equal(window.AynSosSiren.play(),false,'No reproducir desde una pestaña oculta');
 

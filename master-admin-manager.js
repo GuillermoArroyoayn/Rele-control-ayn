@@ -103,7 +103,7 @@
     content.append(el('h2','','Reemplazar administrador'),el('p','master-admin-subtitle',a.name+' · '+a.community));
     content.append(el('p','master-admin-hint','El administrador anterior dejará de tener acceso cuando el reemplazante quede activo. La comunidad conserva sus usuarios y sus actuadores.'));
     const choices=el('div','master-admin-choices');
-    const existing=btn('Utilizar usuario de esta comunidad',()=>renderExisting(),'primary');
+    const existing=btn('Usar alguien de esta comunidad',()=>renderExisting(),'primary');
     const newAccount=btn('Inscribir administrador nuevo',()=>renderInvite(),'');
     choices.append(existing,newAccount);content.append(choices);
     const formArea=el('section','master-admin-replace-form');formArea.id='masterAdminReplaceForm';
@@ -115,13 +115,14 @@
     const a=admins.find(a=>a.id===selectedId);
     const area=content.querySelector('#masterAdminReplaceForm');
     if(!area||!a)return;
-    area.replaceChildren();area.append(el('h3','','Seleccionar usuario de la comunidad'));
-    const candidates=a.users.filter(u=>u.status==='active');
-    if(!candidates.length){area.append(el('p','','No hay usuarios activos disponibles. Puedes inscribir un administrador nuevo.'));return;}
+    area.replaceChildren();area.append(el('h3','','Seleccionar usuario o administrador de la comunidad'));
+    const candidates=[...a.users.filter(u=>u.status==='active').map(u=>({...u,type:'Usuario'})),
+      ...admins.filter(d=>d.groupId===a.groupId&&d.id!==a.id&&d.status==='active').map(d=>({...d,type:'Administrador'}))];
+    if(!candidates.length){area.append(el('p','','No hay integrantes activos disponibles. Puedes inscribir un administrador nuevo.'));return;}
     const select=el('select','master-admin-input');
     select.setAttribute('aria-label','Usuario que será administrador');
-    for(const u of candidates){const option=el('option','',u.name+(u.phone?' · '+u.phone:''));option.value=u.id;select.append(option);}
-    const label=el('label','','Usuario a designar');label.append(select);area.append(label);
+    for(const u of candidates){const option=el('option','',u.type+' · '+u.name+(u.phone?' · '+u.phone:''));option.value=u.id;select.append(option);}
+    const label=el('label','','Integrante a designar');label.append(select);area.append(label);
     area.append(btn('Confirmar reemplazo',async()=>{
       const u=candidates.find(x=>x.id===select.value);
       if(!u||!confirm('¿Reemplazar a '+a.name+' por '+u.name+'? El administrador anterior perderá el acceso inmediatamente.'))return;

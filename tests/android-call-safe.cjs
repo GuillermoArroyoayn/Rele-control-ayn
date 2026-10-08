@@ -37,6 +37,7 @@ vm.runInNewContext(fs.readFileSync('ain-local-voice.js','utf8'),localCtx);
  assert.equal(trackRequestCount,0,'No sondear micrófono durante condiciones ambiguas');
  const main=fs.readFileSync('app.js','utf8'),admin=fs.readFileSync('administracion-voice.js','utf8');
  assert(main.includes('window.AynCallPriority.armFromGesture()'));
+ assert(main.includes('Voz seleccionada · pausada'),'La selección persistente debe permanecer visible');
  assert(admin.includes('window.AynCallPriority.armFromGesture()'));
  assert(!main.includes('Los botones siguen funcionando. Activa la voz al terminar la llamada.'));
  assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v181-voice-call-feedback'));

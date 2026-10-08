@@ -223,10 +223,8 @@ function configureUserLayout(enabled) {
       userViewOrigins.get(node).after(node);
     }
   }
-  for (const {node, marker} of userSettingNodes) {
-    if (enabled) mountPersonalSettings();
-    else marker.after(node);
-  }
+  if (enabled) mountPersonalSettings();
+  else for (const {node, marker} of userSettingNodes) marker.after(node);
   if (!enabled) userSettingsPanel.hidden = true;
 }
 const menuDefinitions = [

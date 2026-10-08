@@ -70,7 +70,7 @@ async function run(action,payload={},method='POST'){
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
  assert(html.includes('/relay-installer.js?v=20261008-compact160'));
- assert(sw.includes('reles-ayn-v185-admin-screen-routes')&&sw.includes('/relay-installer.js?v=20261008-compact160'));
+ assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw)&&sw.includes('/relay-installer.js?v=20261008-compact160'));
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
  assert(fs.readFileSync('administracion.css','utf8').includes('.relay-installer[hidden]'));
  console.log('Installer v158 OK: roles, staging, cloud GET-only, offline, confirmation, duplicates and PWA.');

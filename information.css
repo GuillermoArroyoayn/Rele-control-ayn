@@ -16,6 +16,12 @@ html body .ayn-info-actions .ayn-info-ack{background:#37dbab;border-color:#37dba
 .ayn-info-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .ayn-info-mask.ayn-info-emergency .ayn-info-modal{border-color:#ff3b56;box-shadow:0 0 45px #fe23478a,0 20px 60px #000a}
 .ayn-info-mask.ayn-info-emergency .ayn-info-header h2{color:#ff7f93}
+.ayn-info-sections{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 8px}
+.ayn-info-sections[hidden]{display:none!important}
+html body .ayn-info-sections button{flex:1 1 190px;min-height:44px;border:1px solid #65ace3;border-radius:12px;background:#10365c;color:#e2f6ff;font:700 14px system-ui;padding:9px}
+html body .ayn-info-sections button[aria-pressed="true"]{border:2px solid #80e9ff;background:#15649f;color:#fff}
+html body .ayn-info-sections button[hidden]{display:none!important}
+html body .ayn-info-mask.ayn-info-emergency .ayn-info-sections button[aria-pressed="true"]{border-color:#ff6b82;background:#862840}
 .ayn-info-quick{position:relative}
 .ayn-info-count{position:absolute;top:9px;right:10px;min-width:24px;min-height:24px;border-radius:99px;border:2px solid #fff;background:#e92345;color:#fff;display:flex;align-items:center;justify-content:center;padding:2px 5px;font:800 12px system-ui}
 .ayn-info-emergency-label{color:#ff6e83!important;font:800 13px system-ui!important;text-shadow:0 0 11px #f82850}

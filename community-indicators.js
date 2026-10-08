@@ -8,7 +8,7 @@
   const stamp = value => Number.isFinite(Date.parse(value || '')) ? Date.parse(value) : 0;
   const indicators = () => {
     const read = Number(localStorage.getItem(key(currentGroup)) || 0);
-    const community = items.some(item => item.type !== 'poll' && stamp(item.createdAt) > read);
+    const community = items.some(item => item.type === 'notice' && stamp(item.createdAt) > read);
     const polls = items.some(item => item.type === 'poll' && !item.closed &&
       (item.myVote === null || item.myVote === undefined) && stamp(item.closesAt) > Date.now());
     return {all: community || polls, wall: community, polls};
@@ -33,7 +33,7 @@
   }
   function markRead(section, group = currentGroup, list = items) {
     if(section !== 'wall' || !group)return;
-    const newest = (list || []).filter(item => item.type !== 'poll')
+    const newest = (list || []).filter(item => item.type === 'notice')
       .reduce((max,item) => Math.max(max,stamp(item.createdAt)),0);
     if(newest) localStorage.setItem(key(group),String(Math.max(newest,Number(localStorage.getItem(key(group))||0))));
     if(group === currentGroup)paint();

@@ -14,11 +14,12 @@ assert(admin.includes("if(invitationToken)"),'Personal invitations remain suppor
 assert(adminHtml.includes('id="homeDashboard"'),'Administrator home remains present');
 assert(adminHtml.includes('href="/#access" data-admin-module="access"'),'El acceso desde Inicio debe abrir el panel /#access, no la vista vacía /#control');
 assert(!adminHtml.includes('href="/#control" data-admin-module="access"'),'No restablecer ruta antigua que deja Accesos en blanco');
-assert(adminHtml.includes('/administracion.js?v=20261008-onboard180'));
-assert(html.includes('/app.js?v=20261008-adminroutes185'));
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
-assert(sw.includes('/administracion.js?v=20261008-onboard180'));
-assert(sw.includes('/app.js?v=20261008-adminroutes185'));
+assert.match(sw,/reles-ayn-v\d+-[a-z0-9-]+/,'Caché PWA con versión válida');
+const adminAsset=adminHtml.match(/\/administracion\.js\?v=[\w-]+/)?.[0];
+const appAsset=html.match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(adminAsset&&appAsset,'Las pantallas deben cargar su JavaScript versionado');
+assert(sw.includes(adminAsset),'Administración debe coincidir con versión PWA');
+assert(sw.includes(appAsset),'Inicio debe coincidir con versión PWA');
 function shouldShowAdminHome(role,hash='',search=''){
  return (role==='super_master'&&!hash)||(role==='admin'&&!hash&&!search);
 }

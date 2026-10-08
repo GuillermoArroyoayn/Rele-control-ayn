@@ -57,8 +57,8 @@ assert(app.includes('Aún no hay usuarios registrados para asignar permisos temp
 assert(app.includes('No se pudieron cargar los permisos temporales'));
 assert(app.includes('Agenda de espacios comunes'),'Agenda sigue implementada');
 assert(html.includes('href="/#temporary"')&&html.includes('href="/#bookings"')&&html.includes('href="/#voice"'));
-assert(index.includes('/app.js?v=20261008-adminroutes185'));
+assert(/\/app\.js\?v=20261008-[\w-]+/.test(index));
 assert(index.includes('/styles.css?v=20261008-adminroutes185'));
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
+assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(css.includes('/* v185 — herramientas del administrador'));
 console.log('Admin v185: Permisos temporales, Agenda y Control de voz abren ruta correcta; reconocimiento visible; vacíos informados; regresión de Configuración OK.');

@@ -16,6 +16,7 @@ assert(api.includes("A.updateRegistry(registry=>"),'Actualización atómica y au
 assert(!api.includes('redis.call("HSET")'),'No registrar originales como nuevas entradas');
 assert(app.includes('originalStatus.relays'),'Actuadores asignados visibles a administrador');
 assert(app.includes('api("/api/control"'),'Mandos originales usan permisos vigentes');
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
-assert(sw.includes('/app.js?v=20261008-adminroutes185'));
+assert.match(sw,/reles-ayn-v\d+-[a-z0-9-]+/);
+const currentAsset=app.match(/\/app\.js\?v=[\w-]+/)?.[0]||fs.readFileSync('index.html','utf8').match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(currentAsset&&sw.includes(currentAsset),'App.js debe coincidir con la versión del caché PWA');
 console.log('Relés originales y gestionados listados; asignación sin duplicar, acceso de administrador y PWA verificados.');

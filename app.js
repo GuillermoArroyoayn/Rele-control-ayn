@@ -74,7 +74,7 @@ async function loadManagedAccess(){
   managedAccessGrid.replaceChildren();
   const loading=document.createElement("p");loading.textContent="Cargando actuadores asignados…";managedAccessGrid.append(loading);
   try{
-    const [data,originalStatus]=await Promise.all([managedAccessApi(),api("/api/status")]);
+    const [data,originalStatus]=await Promise.all([managedAccessApi(),api("/api/status").catch(()=>({relays:[]}))]);
     managedAccessGrid.replaceChildren();
     const items=data.actuators||[];
     const originals=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));

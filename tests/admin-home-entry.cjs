@@ -12,11 +12,11 @@ assert(admin.includes("let data,currentTab='home'"),'Administrator default is In
 assert(admin.includes("if(['home','menu','timers','equipment','people','history'].includes(initialSection))"),'Explicit admin deep links preserved');
 assert(admin.includes("if(invitationToken)"),'Personal invitations remain supported');
 assert(adminHtml.includes('id="homeDashboard"'),'Administrator home remains present');
-assert(adminHtml.includes('/administracion.js?v=20261008-adminhome163'));
-assert(html.includes('/app.js?v=20261008-adminhome163'));
-assert(sw.includes('reles-ayn-v163-admin-home'));
-assert(sw.includes('/administracion.js?v=20261008-adminhome163'));
-assert(sw.includes('/app.js?v=20261008-adminhome163'));
+assert(adminHtml.includes('/administracion.js?v=20261008-enrolled164'));
+assert(html.includes('/app.js?v=20261008-enrolled164'));
+assert(sw.includes('reles-ayn-v164-enrolled-list'));
+assert(sw.includes('/administracion.js?v=20261008-enrolled164'));
+assert(sw.includes('/app.js?v=20261008-enrolled164'));
 function shouldShowAdminHome(role,hash='',search=''){
  return (role==='super_master'&&!hash)||(role==='admin'&&!hash&&!search);
 }

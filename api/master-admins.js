@@ -103,6 +103,8 @@ module.exports=async(req,res)=>{
         const usersRemain=Object.values(registry.devices).some(d=>d.role==='user'&&d.groupId===current.groupId&&d.status!=='deleted');
         if(!activePeer&&(usersRemain||managed||(current.relays||[]).length))
           throw A.error('Primero reemplaza al administrador de esta comunidad.',409);
+        const recipient=Object.entries(registry.devices).find(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===current.groupId&&d.status==='active');
+        if(recipient)recipient[1].relays=[...new Set([...(recipient[1].relays||[]),...(current.relays||[])])].sort();
         mark(current,'deleted',auth.device.id);
       });
       await addHistory({kind:'permissions',groupId:old.groupId,userName:old.adminName||old.name,actor:auth.device.name,action:'Cuenta de administrador eliminada (datos de la comunidad conservados)'}).catch(()=>{});

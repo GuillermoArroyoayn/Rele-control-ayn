@@ -41,7 +41,7 @@ const Matrix={
  listPublished:async()=>[...published.values()],markStatus:async(id,status)=>{published.get(id).status=status;},
  defaultConfig:()=>make('unused')
 };
-const WhatsApp={normalizePhone:p=>String(p||'').replace(/\\D/g,''),
+const WhatsApp={normalizePhone:p=>String(p||'').replace(/\D/g,''),
  fallbackUrl:({phone})=>'https://wa.me/'+phone,
  sendInvitation:async()=>{sent++;return {sent:true,messageId:'mock-1'};}};
 function load(name){

@@ -67,6 +67,50 @@ const localDateTime = (value) => {
 };
 const relayGrid = document.querySelector(".relay-grid"),
   shareSection = document.querySelector(".share-section");
+const managedAccessPanel=document.createElement("section");
+managedAccessPanel.className="managed-access-panel";
+managedAccessPanel.hidden=true;
+managedAccessPanel.innerHTML='<h2>Actuadores</h2><p class="managed-access-help">Solo aparecen los actuadores asignados a esta cuenta.</p><div class="relay-grid managed-access-grid"></div>';
+relayGrid.after(managedAccessPanel);
+const managedAccessGrid=managedAccessPanel.querySelector(".managed-access-grid");
+let managedAccessLoading=false;
+async function managedAccessApi(body){
+  return api("/api/administrations",body?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}:{});
+}
+async function loadManagedAccess(){
+  if(managedAccessLoading||currentRole==="super_master"||!statusReady)return;
+  managedAccessLoading=true;
+  managedAccessGrid.replaceChildren();
+  const loading=document.createElement("p");loading.textContent="Cargando actuadores asignados…";managedAccessGrid.append(loading);
+  try{
+    const data=await managedAccessApi();
+    managedAccessGrid.replaceChildren();
+    const items=data.actuators||[];
+    if(!items.length){
+      const empty=document.createElement("p");empty.textContent="No hay actuadores asignados a esta cuenta.";managedAccessGrid.append(empty);return;
+    }
+    for(const item of items){
+      const card=document.createElement("article");card.className="relay-card managed-relay-card";
+      const info=document.createElement("div");
+      const name=document.createElement("span");name.className="relay-label";name.textContent=item.name||"Actuador";
+      const state=document.createElement("strong");state.textContent="Estado pendiente";
+      info.append(name,state);
+      const controls=document.createElement("div");controls.className="managed-relay-actions";
+      const on=document.createElement("button");on.type="button";on.className="small-button";on.textContent="ON";
+      const off=document.createElement("button");off.type="button";off.className="small-button";off.textContent="OFF";
+      const refreshState=document.createElement("button");refreshState.type="button";refreshState.className="small-button";refreshState.textContent="Actualizar";
+      const setBusy=value=>{on.disabled=value;off.disabled=value;refreshState.disabled=value;};
+      const read=async()=>{const result=await managedAccessApi({action:"status",id:item.id});state.textContent=result.state===true?"ENCENDIDO":result.state===false?"APAGADO":"Estado pendiente";card.classList.toggle("on",result.state===true);};
+      on.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{const result=await managedAccessApi({action:"control",id:item.id,state:true});state.textContent=result.autoOffConfirmed?"APAGADO":result.state===true?"ENCENDIDO":"Estado pendiente";card.classList.toggle("on",result.state===true&&!result.autoOffConfirmed);}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
+      off.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{await managedAccessApi({action:"control",id:item.id,state:false});state.textContent="APAGADO";card.classList.remove("on");}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
+      refreshState.onclick=async()=>{setBusy(true);try{await read();}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
+      controls.append(on,off,refreshState);card.append(info,controls);managedAccessGrid.append(card);read().catch(()=>{});
+    }
+  }catch(error){
+    managedAccessGrid.replaceChildren();
+    const failed=document.createElement("p");failed.textContent=error.message;managedAccessGrid.append(failed);
+  }finally{managedAccessLoading=false;}
+}
 const mainMenu = document.createElement("nav");
 mainMenu.className = "main-menu";
 mainMenu.hidden = true;
@@ -322,7 +366,7 @@ function prepareFunctionScreen(view) {
   userSettingsPanel.hidden=!ready||view!=="settings";
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
   if(!user){
-    if(view==="settings")mountPersonalSettings();
+    if(currentRole==="admin"||view==="settings")mountPersonalSettings();
     else for(const {node,marker} of userSettingNodes) {
       if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility"))) functionSettings.append(node);
       else marker.after(node);
@@ -362,9 +406,12 @@ function showView(view) {
   for (const button of mainMenu.querySelectorAll("button"))
     button.classList.toggle("active", button.dataset.view === view);
   const control = view === "control";
-  relayGrid.hidden = user ? view !== "access" : !control;
-  refresh.hidden = !control || user;
-  shareSection.hidden = !control || user;
+  const managedAccessVisible=currentRole!=="super_master"&&(user?view==="access":currentRole==="admin"&&["control","access"].includes(view));
+  relayGrid.hidden=currentRole!=="super_master"||!control;
+  managedAccessPanel.hidden=!managedAccessVisible;
+  if(managedAccessVisible)loadManagedAccess();
+  refresh.hidden=!control||currentRole!=="super_master";
+  shareSection.hidden=!control||currentRole!=="super_master";
   adminPanel.hidden = !(
     ["admins", "users", "temporary", "history"].includes(view) &&
     ["super_master", "admin"].includes(currentRole)
@@ -609,6 +656,7 @@ async function loadStatus() {
           ? "Administradores y usuarios"
           : "Mis usuarios";
     buildMenu();
+    if(currentRole!=="super_master")loadManagedAccess().catch(()=>{});
     recoveryPanel.hidden = currentRole !== "super_master";
     if (currentRole === "super_master") applyPowerOnOff();
     if (errors.length) show(errors.join(" · "), true);

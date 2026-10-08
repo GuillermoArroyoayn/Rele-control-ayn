@@ -15,7 +15,7 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-style146",
+  "/styles.css?v=20261008-btaudio154",
   "/share.css?v=20261006-orbit123",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",

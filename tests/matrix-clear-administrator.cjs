@@ -40,6 +40,7 @@ const source=fs.readFileSync('api/app-matrix.js','utf8');
 const sandboxModule={exports:{}};
 vm.runInNewContext(source,{module:sandboxModule,Date,process:{env:{TUYA_DEVICE_1:'one',TUYA_DEVICE_2:'two',TUYA_DEVICE_3:'three'}},
  require:n=>n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:
+ n==='../lib/tuya'?{checkPin:req=>req.headers['x-app-pin']==='correct-master-pin'}:
  n==='../lib/history'?{addHistory:async event=>audits.push(event)}:(()=>{throw Error(n)})()});
 async function request(body){
  let code=200,value;
@@ -107,10 +108,53 @@ const seed=id=>{
  assert.equal(registry.devices.one.status,'active');
  assert.equal((await request({action:'deleteAdministration',groupId:'group-multi'})).code,409,
   'El comando antiguo peligroso ya no elimina usuarios');
+ seed('group-cascade');
+ registry.devices.cascadeAdmin={role:'admin',status:'active',groupId:'group-cascade',relays:[2]};
+ registry.devices.cascadeTenant={role:'user',status:'active',groupId:'group-cascade',relays:[2],actuatorIds:['door']};
+ registry.devices.cascadeInactive={role:'user',status:'paused',groupId:'group-cascade'};
+ managed.push({id:'managed-three',groupId:'group-cascade',name:'Portón comunidad'});
+ const preview=await request({action:'previewDeleteCommunity',groupId:'group-cascade'});
+ assert.equal(preview.code,200);
+ assert.equal(preview.value.impact.administrators,1);
+ assert.equal(preview.value.impact.residents,2);
+ assert.equal(preview.value.impact.actuators,1);
+ assert.equal(preview.value.impact.originalRelays,1);
+ const base={action:'deleteCommunityCompletely',groupId:'group-cascade',
+  confirmation:'ELIMINAR group-cascade',expectedImpact:preview.value.impact};
+ const noPin=await request(base);
+ assert.equal(noPin.code,403,'Eliminar toda la comunidad exige clave nueva');
+ assert.equal(registry.devices.cascadeTenant.status,'active','No tocar usuario sin clave');
+ const badPin=await request({...base,confirmationPin:'incorrecto'});
+ assert.equal(badPin.code,403,'Clave incorrecta rechazada por servidor');
+ assert.equal(managed[2].groupId,'group-cascade','No liberar relés con clave incorrecta');
+ const stale=await request({...base,confirmationPin:'correct-master-pin',
+  expectedImpact:{...preview.value.impact,residents:0}});
+ assert.equal(stale.code,409,'Impacto desactualizado cancela operación');
+ const incomplete=await request({...base,confirmationPin:'correct-master-pin',confirmation:'ELIMINAR otro'});
+ assert.equal(incomplete.code,400,'Confirmación de grupo explícita requerida');
+ const correct=await request({...base,confirmationPin:'correct-master-pin'});
+ assert.equal(correct.code,200,JSON.stringify(correct.value));
+ assert.equal(correct.value.communityDeleted,true);
+ assert.equal(correct.value.removedResidents,2);
+ assert.equal(registry.devices.cascadeAdmin.status,'deleted');
+ assert.equal(registry.devices.cascadeTenant.status,'deleted');
+ assert.equal(registry.devices.cascadeInactive.status,'deleted');
+ assert.equal(registry.devices.cascadeTenant.actuatorIds.length,0);
+ assert.equal(managed[2].groupId,'unassigned');
+ assert.equal(hash('ayn:matrix:published').has('group-cascade'),false);
+ assert.equal(hash('ayn:matrix:deleted-groups').has('group-cascade'),true);
+ assert.equal((await request({action:'restoreAdministration',groupId:'group-cascade'})).code,410,
+  'No revivir comunidad eliminada');
+ assert(audits.some(x=>x.action?.includes('Comunidad completa eliminada')));
+
  const matrix=fs.readFileSync('matrix.js','utf8'),markup=fs.readFileSync('matrix.html','utf8');
  assert(matrix.includes("action:'deleteAndClearAdministrator'"));
  assert(!matrix.includes("group.prepared&&group.status==='pending'"));
  assert(markup.includes('Eliminar administrador y vaciar carpeta'));
+ assert(markup.includes('Eliminar comunidad completa y administradores'));
+ assert(markup.includes('id="communityDeletePin" type="password"'));
+ assert(matrix.includes('confirmationPin'));
+ assert(!matrix.includes("prompt('Confirmación definitiva"));
  assert(markup.includes('href="/administracion.html#people"'),'Enlace para nuevo administrador siempre visible');
  const invites=fs.readFileSync('api/administrations.js','utf8');
  assert(invites.includes('invitation.stagedAdmin'));

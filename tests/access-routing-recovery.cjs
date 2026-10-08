@@ -10,7 +10,8 @@ assert(!app.includes('userSettingsPanel,managedAccessPanel,accessSettingsPanel')
 assert(app.includes('const [managedResponse,originalResponse,profilesResponse]=await Promise.allSettled'));
 assert(app.includes("if(originalResponse.status==='rejected')"));
 assert(app.includes("if(managedResponse.status==='rejected')"));
-assert(app.includes("if(currentRole==='admin'&&['access','access-settings'].includes(masterRoute))"));
+assert(app.includes("if(currentRole==='admin'&&directViews[masterRoute])"));
+assert(app.includes("access:'access','access-settings':'access-settings'"));
 assert(app.includes('syncAccessBrand(view)'));
 assert(app.includes('profileEditor(card,profile)'));
 assert(app.includes('lastKnownAccessStatus=data'));

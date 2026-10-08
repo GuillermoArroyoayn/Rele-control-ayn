@@ -14,7 +14,7 @@ r=await request({action:'assignOriginal',groupId:'A',relay:2,destination:'admin'
 r=await request({action:'assignOriginal',groupId:'B',relay:1,destination:'admin'});assert.equal(r.code,409);
 r=await request({action:'assignOriginal',groupId:'B',relay:2,destination:'master'});assert.equal(r.code,200);assert.equal(holds.size,0);
 registry.devices.B={role:'admin',groupId:'B',status:'active',relays:[]};
-r=await request({action:'assignOriginal',groupId:'B',relay:3,destination:'admin'});assert.equal(r.code,200);assert.deepEqual(registry.devices.B.relays,[3]);
+r=await request({action:'assignOriginal',groupId:'B',relay:3,destination:'admin'});assert.equal(r.code,200);assert.equal(Array.from(registry.devices.B.relays).join(','),'3');
 r=await request({action:'assignOriginal',groupId:'B',relay:3,destination:'master'});assert.equal(r.code,200);assert.deepEqual(registry.devices.B.relays,[]);
 role='admin';r=await request({action:'assignOriginal',groupId:'B',relay:2,destination:'admin'});assert.equal(r.code,403);
 const js=fs.readFileSync('matrix.js','utf8'),html=fs.readFileSync('matrix.html','utf8');

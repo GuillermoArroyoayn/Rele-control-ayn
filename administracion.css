@@ -462,3 +462,9 @@ html body #people[hidden]{display:none!important}
 #administrators .admin-folder-actions button{flex:1 1 100px;margin:0!important;min-height:38px!important;padding:7px 10px!important}
 #users .resident-card>strong{font-size:18px;display:block;margin-bottom:4px}
 #usersTitle{margin-top:24px}
+
+
+/* Vista exclusiva: Administrador → Usuarios · v139 */
+#backAdministrators{display:block;width:auto;margin:0 0 18px;padding:10px 16px}
+#backAdministrators[hidden]{display:none!important}
+body[data-admin-view="people"] #users[hidden],body[data-admin-view="people"] #usersTitle[hidden],body[data-admin-view="people"] #peopleTitle[hidden],body[data-admin-view="people"] #peopleHelp[hidden],body[data-admin-view="people"] #invite[hidden]{display:none!important}

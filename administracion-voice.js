@@ -108,6 +108,13 @@
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
     allowedRelays=(data.allowedRelays||[]).map(Number);
+    try{
+      const profilesResponse=await fetch('/api/actuator-profiles',{headers:headers()});
+      if(profilesResponse.ok){
+        const profiles=await profilesResponse.json();
+        window.AynActuatorVoice?.setProfiles(profiles.profiles||[]);
+      }
+    }catch{/* Mantener los comandos tradicionales si no hay red. */}
     statusReady=true;
     return data;
   }
@@ -212,7 +219,18 @@
     }
     if(routeByVoice(command))return;
 
-    const relay=resolveRelay(command);
+    const personalized=window.AynActuatorVoice?.match(command);
+    if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
+    if(personalized?.kind==='managed'){
+      try{
+        const response=await fetch('/api/administrations',{method:'POST',headers:headers(),body:JSON.stringify({action:'control',id:personalized.id.slice(8),state:true})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||'Orden rechazada.');
+        paint(personalized.name+' activado correctamente','listening');
+      }catch(error){paint(error.message,'error');}
+      return;
+    }
+    const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
     if(relay===-1){
       paint('Indica un solo acceso','listening');
       await speak('Indica un solo acceso');
@@ -220,6 +238,7 @@
     }
     if(relay&&isOpenIntent(command)){
       const names={1:'Actuador uno',2:'Actuador dos',3:'Actuador tres'};
+      if(personalized?.name)names[relay]=personalized.name;
       paint('Orden recibida: '+names[relay],'listening');
       const activation=controlRelay(relay);
       await speak('OK');

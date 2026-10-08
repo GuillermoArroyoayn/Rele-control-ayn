@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v164-enrolled-list";
+const CACHE = "reles-ayn-v165-access-profiles";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -17,21 +17,22 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-nav161",
+  "/styles.css?v=20261008-access165",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-enrolled164",
+  "/app.js?v=20261008-access165",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-nav161",
   "/administracion.js?v=20261008-enrolled164",
   "/relay-installer.js?v=20261008-compact160",
-  "/administracion-voice.js?v=20261008-btaudio154"
+  "/actuator-voice.js?v=20261008-access165",
+  "/administracion-voice.js?v=20261008-access165"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

@@ -1358,3 +1358,12 @@ body.app-screen-mode .function-toolbar > button:not(:last-child){
 body.app-screen-mode .function-toolbar > button:nth-child(3){display:none!important}
 body.app-screen-mode .function-toolbar{justify-content:space-between}
 @media(max-width:360px){body.user-layout .user-toolbar .ayn-nav-back,body.user-layout .user-toolbar .ayn-nav-home,body.app-screen-mode .function-toolbar > button:not(:last-child){min-width:95px;padding-inline:10px!important}}
+/* v165: configuración compacta de cada actuador autorizado. */
+.managed-relay-card .actuator-settings{width:100%;margin-top:12px;padding-top:8px;border-top:1px solid #ffffff33}
+.managed-relay-card .actuator-settings>summary{cursor:pointer;font-weight:700;padding:9px 0}
+.managed-relay-card .actuator-settings-form{display:grid;gap:12px;margin-top:7px}
+.managed-relay-card .actuator-settings-form label{display:grid;gap:5px;font-size:15px}
+.managed-relay-card .actuator-settings-form :is(input,select){min-height:46px;width:100%;padding:9px;border-radius:10px;font-size:16px}
+.managed-relay-card .actuator-settings-form button{min-height:46px}
+.managed-relay-card .actuator-settings-status{font-size:14px;line-height:1.4;margin:4px 0}
+.managed-relay-card .actuator-settings-form label[hidden]{display:none!important}

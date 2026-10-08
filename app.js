@@ -64,6 +64,44 @@ managedAccessPanel.hidden=true;
 managedAccessPanel.innerHTML='<h2>Actuadores</h2><p class="managed-access-help">Solo aparecen los actuadores asignados a esta cuenta.</p><div class="relay-grid managed-access-grid"></div>';
 relayGrid.after(managedAccessPanel);
 const managedAccessGrid=managedAccessPanel.querySelector(".managed-access-grid");
+
+function profileEditor(card,profile){
+  if(currentRole!=='admin')return;
+  const details=document.createElement('details');details.className='actuator-settings';
+  const summary=document.createElement('summary');summary.textContent='⚙ Configurar';details.append(summary);
+  const form=document.createElement('form');form.className='actuator-settings-form';
+  const field=(labelText,input)=>{
+    const wrap=document.createElement('label');wrap.textContent=labelText;wrap.append(input);form.append(wrap);return input;
+  };
+  const input=(type,value,max)=>{const el=document.createElement('input');el.type=type;el.value=value??'';if(max)el.maxLength=max;return el;};
+  const name=field('Nombre del actuador',input('text',profile.name,60));name.required=true;
+  const voice=field('Nombre para comando de voz',input('text',profile.voiceName||'',50));
+  voice.placeholder='Ej: Portón principal';
+  const mode=document.createElement('select');
+  for(const [key,label] of [['timer','Con temporizador'],['manual','ON/OFF manual']]){
+    const option=document.createElement('option');option.value=key;option.textContent=label;mode.append(option);
+  }
+  mode.value=profile.mode||'timer';field('Modo de funcionamiento',mode);
+  const seconds=input('number',profile.seconds>0?profile.seconds:(profile.timerDefault||4));
+  seconds.min='1';seconds.max='86400';seconds.step='1';
+  const timerField=field('Apagado automático (segundos)',seconds);
+  const toggle=()=>{timerField.parentElement.hidden=mode.value==='manual';seconds.disabled=mode.value==='manual';};
+  mode.onchange=toggle;toggle();
+  const save=document.createElement('button');save.type='submit';save.textContent='Guardar configuración';
+  const status=document.createElement('p');status.className='actuator-settings-status';status.setAttribute('role','status');
+  form.append(save,status);details.append(form);
+  form.onsubmit=async event=>{
+    event.preventDefault();save.disabled=true;status.textContent='Guardando…';
+    try{
+      const payload={id:profile.id,name:name.value,voiceName:voice.value,mode:mode.value,seconds:mode.value==='manual'?0:Number(seconds.value)};
+      const result=await api('/api/actuator-profiles',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      status.textContent='Configuración guardada. Voz: «AYN abre '+(result.profile.voiceName||result.profile.name)+'».';
+      await loadManagedAccess();
+    }catch(error){status.textContent=error.message;}finally{save.disabled=false;}
+  };
+  card.append(details);
+}
+
 let managedAccessLoading=false;
 async function managedAccessApi(body){
   return api("/api/administrations",body?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}:{});
@@ -74,8 +112,17 @@ async function loadManagedAccess(){
   managedAccessGrid.replaceChildren();
   const loading=document.createElement("p");loading.textContent="Cargando actuadores asignados…";managedAccessGrid.append(loading);
   try{
-    const [data,originalStatus]=await Promise.all([managedAccessApi(),api("/api/status").catch(()=>({relays:[]}))]);
+    const [data,originalStatus,profileResult]=await Promise.all([
+      managedAccessApi(),api("/api/status").catch(()=>({relays:[]})),
+      api("/api/actuator-profiles").catch(error=>({profiles:[],error:error.message}))
+    ]);
     managedAccessGrid.replaceChildren();
+    window.AynActuatorVoice?.setProfiles(profileResult.profiles||[]);
+    const profiles=new Map((profileResult.profiles||[]).map(x=>[x.id,x]));
+    if(profileResult.error){
+      const warning=document.createElement('p');warning.textContent='Configuración no disponible: '+profileResult.error;
+      managedAccessGrid.append(warning);
+    }
     const items=data.actuators||[];
     const originals=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
     if(!items.length&&!originals.length){
@@ -85,7 +132,7 @@ async function loadManagedAccess(){
     for(const original of originals){
       const card=document.createElement("article");card.className="relay-card managed-relay-card";
       const info=document.createElement("div"),name=document.createElement("span"),state=document.createElement("strong");
-      name.className="relay-label";name.textContent="Actuador "+original.relay;
+      name.className="relay-label";const profile=profiles.get('original-'+original.relay);name.textContent=profile?.name||"Actuador "+original.relay;
       state.textContent=original.state===true?"ENCENDIDO":original.state===false?"APAGADO":"Estado pendiente";
       info.append(name,state);
       const controls=document.createElement("div");controls.className="managed-relay-actions";
@@ -103,12 +150,14 @@ async function loadManagedAccess(){
         }catch(error){state.textContent=error.message;}finally{busy(false);}};
       on.onclick=()=>send(true);off.onclick=()=>send(false);
       refreshState.onclick=async()=>{busy(true);try{await read();}catch(error){state.textContent=error.message;}finally{busy(false);}};
-      controls.append(on,off,refreshState);card.append(info,controls);managedAccessGrid.append(card);
+      controls.append(on,off,refreshState);card.append(info,controls);
+      if(profile)profileEditor(card,profile);
+      managedAccessGrid.append(card);
     }
     for(const item of items){
       const card=document.createElement("article");card.className="relay-card managed-relay-card";
       const info=document.createElement("div");
-      const name=document.createElement("span");name.className="relay-label";name.textContent=item.name||"Actuador";
+      const name=document.createElement("span");name.className="relay-label";const profile=profiles.get('managed-'+item.id);name.textContent=profile?.name||item.name||"Actuador";
       const state=document.createElement("strong");state.textContent="Estado pendiente";
       info.append(name,state);
       const controls=document.createElement("div");controls.className="managed-relay-actions";
@@ -120,7 +169,9 @@ async function loadManagedAccess(){
       on.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{const result=await managedAccessApi({action:"control",id:item.id,state:true});state.textContent=result.autoOffConfirmed?"APAGADO":result.state===true?"ENCENDIDO":"Estado pendiente";card.classList.toggle("on",result.state===true&&!result.autoOffConfirmed);}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
       off.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{await managedAccessApi({action:"control",id:item.id,state:false});state.textContent="APAGADO";card.classList.remove("on");}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
       refreshState.onclick=async()=>{setBusy(true);try{await read();}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
-      controls.append(on,off,refreshState);card.append(info,controls);managedAccessGrid.append(card);read().catch(()=>{});
+      controls.append(on,off,refreshState);card.append(info,controls);
+      if(profile)profileEditor(card,profile);
+      managedAccessGrid.append(card);read().catch(()=>{});
     }
   }catch(error){
     managedAccessGrid.replaceChildren();
@@ -1114,7 +1165,7 @@ const isCompleteFastVoiceCommand = (phrase) => {
   if (!hasWakeWord(normalized) && Date.now() >= voiceWakeUntil) return false;
   const command = hasWakeWord(normalized) ? removeWakeWord(normalized) : normalized;
   if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) return false;
-  return resolveVoiceRelay(command) > 0 && hasVoiceOpenIntent(command);
+  return Boolean(window.AynActuatorVoice?.match(command))||resolveVoiceRelay(command) > 0 && hasVoiceOpenIntent(command);
 };
 
 async function runVoiceCommand(transcript) {
@@ -1155,14 +1206,27 @@ async function runVoiceCommand(transcript) {
     setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
     return;
   }
-  const relay = resolveVoiceRelay(command);
+  const personalized=window.AynActuatorVoice?.match(command);
+  if(personalized?.ambiguous){setVoiceStatus('Nombre de acceso ambiguo.',true);return;}
+  if(personalized?.kind==='managed'){
+    if(!hasVoiceOpenIntent(command)){setVoiceStatus('Ain está en espera de una nueva orden.');return;}
+    const acknowledgement=acknowledgeVoiceCommand();
+    setVoiceStatus('Activando '+personalized.name+'…');
+    try{
+      const result=await managedAccessApi({action:'control',id:personalized.id.slice(8),state:true});
+      await acknowledgement;
+      setVoiceStatus(result.autoOffPending?'Orden enviada; apagado pendiente de confirmar.':personalized.name+' activado correctamente.',false,true);
+    }catch(error){setVoiceStatus(error.message,true,true);}
+    return;
+  }
+  const relay=personalized?.kind==='original'?personalized.relay:resolveVoiceRelay(command);
   if (relay === -1) {
     setVoiceStatus("Ain está en espera de una nueva orden.");
     return;
   }
   if (relay) {
     if (!allowedRelays.includes(relay)) {
-      const text = `No tienes permiso para abrir ${voiceRelayNames[relay]}.`;
+      const text = `No tienes permiso para abrir ${personalized?.name||personalized?.name||voiceRelayNames[relay]}.`;
       setVoiceStatus(text, true, true);
       return;
     }
@@ -1170,14 +1234,14 @@ async function runVoiceCommand(transcript) {
     if (directAction) {
       const acknowledgement = acknowledgeVoiceCommand();
       if (!voiceEnabled) return;
-      setVoiceStatus(`Activando ${voiceRelayNames[relay]}…`);
+      setVoiceStatus(`Activando ${personalized?.name||voiceRelayNames[relay]}…`);
       const success = await controlRelay(relay, true, "voice");
       await acknowledgement;
       if (!voiceEnabled) return;
       setVoiceStatus(
         success
-          ? controlOutcomes.get(relay)?.autoOffPending?`${voiceRelayNames[relay]}: ${controlOutcomes.get(relay).message||'activación enviada; apagado pendiente de confirmar.'}`:`${voiceRelayNames[relay]} activado correctamente.`
-          : `No fue posible activar ${voiceRelayNames[relay]}.`,
+          ? controlOutcomes.get(relay)?.autoOffPending?`${personalized?.name||voiceRelayNames[relay]}: ${controlOutcomes.get(relay).message||'activación enviada; apagado pendiente de confirmar.'}`:`${personalized?.name||voiceRelayNames[relay]} activado correctamente.`
+          : `No fue posible activar ${personalized?.name||voiceRelayNames[relay]}.`,
         !success,
         true,
       );

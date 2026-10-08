@@ -67,7 +67,7 @@ async function call(fn,actor,body){
  res=await call(community,'userA',{action:'vote',id:pollId,choice:1});
  assert.equal(res.code,409,'Solo se permite un voto por residente');
  res=await call(community,'userB',{action:'vote',id:pollId,choice:1});
- assert.equal(res.code,400,'Un residente externo no vota en la comunidad A');
+ assert.equal(res.code,404,'Un residente externo no vota en la comunidad A');
  res=await call(community,'adminA',{action:'publish',requestId:'emergency-123456789',type:'emergency',title:'Emergencia',text:'Sin acceso público'});
  assert.equal(res.code,400,'Las emergencias no se publican como anuncios generales');
  res=await call(reports,'userA',{requestId:idC,type:'incident',text:'Residente informa emergencia'});

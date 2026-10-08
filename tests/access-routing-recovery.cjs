@@ -20,6 +20,6 @@ assert(admin.includes("b.dataset.tab==='equipment'"));
 assert(css.includes('section.access-settings-panel.function-screen > section.access-controls-page:not([hidden])'));
 assert(css.includes('.access-settings-panel.function-screen'));
 assert(html.includes('/administracion.js?v=20261008-onboard180'));
-assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
+assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'No reintroducir formulario dentro del botón');
 console.log('V167: recuperación de Accesos, pantalla completa y Configurar accesos en una ruta única verificadas.');

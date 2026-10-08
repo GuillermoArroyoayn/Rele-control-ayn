@@ -344,7 +344,7 @@ function buildMenu() {
   );
 }
 
-const masterConfigLink=document.createElement('a');masterConfigLink.className='share-main section-config-bottom';masterConfigLink.textContent='⚙ Configuración de esta sección';masterConfigLink.hidden=true;refresh.after(masterConfigLink);
+const masterConfigLink=document.createElement('a');masterConfigLink.className='refresh section-config-bottom';masterConfigLink.textContent='Configuración de esta sección';masterConfigLink.hidden=true;refresh.after(masterConfigLink);
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
 functionBack.onclick=()=>showView("menu");

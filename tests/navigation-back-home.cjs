@@ -12,7 +12,7 @@ assert(app.includes("window.AynNavigation?.visit('app',view)"));
 assert(ucss.includes('body.user-layout .user-toolbar > :not(.ayn-nav-back):not(.ayn-nav-home)'));
 assert(ucss.includes('.function-toolbar > button:nth-child(3){display:none!important}'));
 assert(matrix.includes('id="matrixBack"')&&matrix.includes('id="matrixHome"'));
-for(const item of ['/ayn-navigation.js?v=20261008-nav161','/matrix-nav.js?v=20261008-nav161','/administracion.css?v=20261008-nav161','/styles.css?v=20261008-nav161'])assert(sw.includes(item));
+for(const item of ['/ayn-navigation.js?v=20261008-nav161','/matrix-nav.js?v=20261008-nav161','/administracion.css?v=20261008-nav161','/styles.css?v=20261008-access165'])assert(sw.includes(item));
 assert(main.includes('/ayn-navigation.js?v=20261008-nav161')&&admin.includes('/ayn-navigation.js?v=20261008-nav161'));
 const seen=[],storage=new Map();
 const w={

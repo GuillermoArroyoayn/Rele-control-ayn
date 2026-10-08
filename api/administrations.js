@@ -122,7 +122,17 @@ module.exports=async(req,res)=>{
     }
     const item=(await A.records()).find(d=>d.id===b.id);if(!item||!A.visible(auth,item))throw A.error('Actuador no autorizado.',403);
     if(b.action==='assign'){
-      if(auth.role!=='super_master')throw A.error('Solo el Máster asigna actuadores.',403);item.groupId=A.group(auth,b.groupId);await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));return res.json({ok:true});
+      if(auth.role!=='super_master')throw A.error('Solo el Máster asigna actuadores.',403);
+      const previousGroup=item.groupId,nextGroup=A.group(auth,b.groupId);
+      item.groupId=nextGroup;
+      await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
+      if(previousGroup!==nextGroup)await A.updateRegistry(registry=>{
+        for(const user of Object.values(registry.devices||{})){
+          if(user.role!=='user'||!Array.isArray(user.actuatorIds))continue;
+          if(nextGroup==='unassigned'||user.groupId!==nextGroup)user.actuatorIds=user.actuatorIds.filter(id=>id!==item.id);
+        }
+      });
+      return res.json({ok:true,previousGroup,groupId:nextGroup});
     }
     if(!item.approved)throw A.error('El Máster debe verificar la asignación de este equipo.',403);
     if(b.action==='settings'){

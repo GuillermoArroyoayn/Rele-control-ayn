@@ -1,9 +1,10 @@
-const CACHE = "reles-ayn-v192-sos-community-only";
+const CACHE = "reles-ayn-v193-sos-all-community-siren";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
   "/community-indicators.js?v=20261008-audience189",
-  "/information.js?v=20261008-cards191",
+  "/information.js?v=20261008-sos193",
+  "/sos-siren.js?v=20261008-sos193",
   "/information.css?v=20261008-cards191",
   "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
@@ -28,12 +29,12 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-labels190",
-  "/panic.js?v=20261008-sos192",
+  "/app.js?v=20261008-sos193",
+  "/panic.js?v=20261008-sos193",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-mic182",
-  "/administracion.js?v=20261008-labels190",
+  "/administracion.js?v=20261008-sos193",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
@@ -89,7 +90,7 @@ self.addEventListener('push',event=>{
     else if(Date.parse(data.expiresAt)<=Date.now())return;
     await self.registration.showNotification(data.title,{
       body:data.body,icon:'/app-icon-192.png',badge:'/app-icon-192.png',
-      tag,renotify:true,silent:false,vibrate:data.cancelled?[]:[250,100,250,100,500],
+      tag,renotify:true,silent:false,vibrate:data.cancelled?[]:[180,100,180,100,180,250,450,120,450,120,450,250,180,100,180,100,180],
       requireInteraction:!data.cancelled,data:{url:'/#emergency',expiresAt:data.expiresAt}
     });
   })());

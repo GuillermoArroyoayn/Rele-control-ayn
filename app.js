@@ -460,7 +460,12 @@ const homeOverflowButton = homeDashboard.querySelector(".home-overflow");
 const homeVoiceButton = homeDashboard.querySelector(".home-voice-button");
 const homeVoiceText = homeDashboard.querySelector(".home-voice-text");
 for (const button of homeDashboard.querySelectorAll("[data-home-view]")) {
-  button.addEventListener("click", () => showView(button.dataset.homeView));
+  button.addEventListener("click", () => {
+    if(button.dataset.homeView==='panic'&&['user','admin'].includes(currentRole)){
+      if(window.AynSOS?.trigger?.())return; // Un toque: inicia la alarma, no abre ajustes.
+    }
+    showView(button.dataset.homeView);
+  });
 }
 homeOverflowButton.addEventListener("click", () => {
   if(["super_master","admin"].includes(currentRole))openAdministrationMenu();
@@ -538,9 +543,7 @@ userBackButton.onclick=()=>{if(window.AynNavigation)window.AynNavigation.back('a
 window.addEventListener('ayn:navigate',event=>{if(event.detail?.page==='app'&&statusReady)showView(event.detail.view);});
 userToolbar.append(userMenuButton,userBackButton,userViewTitle,userHomeButton);
 document.body.append(userToolbar);
-document.addEventListener("ayn-panic-feedback", () => {
-  if (document.body.classList.contains("user-layout")) showView("panic");
-});
+// El SOS muestra su propia confirmación, sin redirigir al residente a opciones técnicas.
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && statusReady && currentView !== "control") {
     showView("control");userMenuButton.focus();

@@ -1189,3 +1189,7 @@ body[data-user-view="settings"] .share-section{display:none!important}
   .managed-relay-actions{justify-content:stretch}
   .managed-relay-actions .small-button{flex:1 1 80px}
 }
+
+
+/* Inicio real en barra de funciones · v141 */
+.function-toolbar .function-home-button{flex:1;text-align:center;min-width:82px;font-size:16px;font-weight:800;user-select:none;-webkit-user-select:none}

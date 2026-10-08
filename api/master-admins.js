@@ -60,8 +60,15 @@ module.exports=async(req,res)=>{
     if(b.action==='setStatus'){
       if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado no válido.');
       let groupId='',name='';
+      const activeActuators=b.status==='active'?[]:await A.records();
       await A.updateRegistry(registry=>{
         const old=adminIn(registry,id);
+        if(b.status!=='active'){
+          const otherAdmin=Object.entries(registry.devices).some(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===old.groupId&&d.status==='active');
+          const residents=Object.values(registry.devices).some(d=>d.role==='user'&&d.groupId===old.groupId&&d.status!=='deleted');
+          const actuators=activeActuators.some(a=>a.groupId===old.groupId)||(old.relays||[]).length>0;
+          if(!otherAdmin&&(residents||actuators))throw A.error('Para mantener los accesos de los residentes, primero reemplaza al único administrador activo de esta comunidad.',409);
+        }
         groupId=old.groupId;name=old.adminName||old.name||'Administrador';
         mark(old,b.status,auth.device.id);
       });

@@ -80,7 +80,8 @@
   }
 
   function speak(text){
-    if(!('speechSynthesis' in window)||!text)return Promise.resolve();
+    // Visual confirmation only when Bluetooth/music compatibility is on.
+    if(localStorage.getItem('aynBluetoothQuiet')!=='false'||!('speechSynthesis' in window)||!text)return Promise.resolve();
     return new Promise(resolve=>{
       voiceSpeaking=true;
       if(recognition)recognition.suppressAudio=true;

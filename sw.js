@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v153-clean-menu";
+const CACHE = "reles-ayn-v154-bluetooth-quiet";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -21,15 +21,15 @@ const ASSETS = [
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
   "/ui-feedback.css?v=20261006-orbit123",
-  "/ain-local-voice.js?v=20261006-voice116",
+  "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-menu153",
+  "/app.js?v=20261008-btaudio154",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-menu153",
   "/administracion.js?v=20261008-menu153",
-  "/administracion-voice.js?v=20261006-voice118"
+  "/administracion-voice.js?v=20261008-btaudio154"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

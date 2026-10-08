@@ -792,6 +792,22 @@ buttons.forEach((btn) =>
   }),
 );
 
+// Keep voice capture active without speaking over Bluetooth music.
+const bluetoothQuietToggle = document.getElementById("bluetoothQuiet");
+const bluetoothQuietEnabled = () => localStorage.getItem("aynBluetoothQuiet") !== "false";
+if (bluetoothQuietToggle) {
+  bluetoothQuietToggle.checked = bluetoothQuietEnabled();
+  bluetoothQuietToggle.addEventListener("change", () => {
+    localStorage.setItem("aynBluetoothQuiet", String(bluetoothQuietToggle.checked));
+    if (bluetoothQuietToggle.checked) {
+      ++voiceSpeechGeneration;
+      clearTimeout(voiceSpeechTimer);
+      window.speechSynthesis?.cancel();
+      voiceSpeaking = false;
+      if (recognition) recognition.suppressAudio = false;
+    }
+  });
+}
 const SpeechRecognition = window.AinLocalRecognition;
 const voiceRelayNames = { 1: "Acceso QR", 2: "Acceso vehicular", 3: "Acceso peatonal" };
 let voiceEnabled = false;
@@ -904,7 +920,7 @@ const scheduleVoiceListening = (delay = 350) => {
   voiceRestartTimer = window.setTimeout(()=>{voiceRestartTimer=0;startVoiceListening();}, delay);
 };
 const speak = (text, onFinished) => {
-  if (!("speechSynthesis" in window)) return false;
+  if (bluetoothQuietEnabled() || !("speechSynthesis" in window)) return false;
   const generation = ++voiceSpeechGeneration;
   clearTimeout(voiceSpeechTimer);
   voiceSpeaking = true;

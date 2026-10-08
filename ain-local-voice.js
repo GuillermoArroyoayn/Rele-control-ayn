@@ -78,16 +78,42 @@
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!navigator.mediaDevices?.getUserMedia || !AudioContextClass)
           throw new Error("Este navegador no admite el motor local");
-        context = new AudioContextClass();
+        // The recognition graph is input-only. Never open an audible Web Audio
+        // sink that could fight for Android's Bluetooth media output.
+        try { context = new AudioContextClass({ sinkId: { type: "none" } }); }
+        catch { context = new AudioContextClass(); }
         this.context = context;
+        if (typeof context.setSinkId === "function" &&
+            !(context.sinkId && typeof context.sinkId === "object" && context.sinkId.type === "none")) {
+          try { await context.setSinkId({ type: "none" }); }
+          catch { /* Older Android browsers may not support a silent sink. */ }
+        }
+        if (generation !== this.generation) return;
         this.onloading?.("Voz 100: preparando audio local…");
         this.onloading?.("Voz 100: permite el micrófono. Preparando escucha local…");
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: false,
-          // Ask Android for automatic input gain while keeping noise and echo control.
-          // The browser may ignore this preference if the device cannot provide it.
-          audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true, channelCount: 1 }
-        });
+
+        // A Bluetooth headset microphone can switch music from A2DP to HFP.
+        // Prefer the phone's own microphone if the browser exposes its ID.
+        const media = navigator.mediaDevices;
+        let internalInput;
+        if (typeof media.enumerateDevices === "function") {
+          try {
+            const inputs = (await media.enumerateDevices()).filter(item =>
+              item.kind === "audioinput" && item.deviceId);
+            internalInput = inputs.find(item =>
+              /built.?in|intern[oa]|integrad[oa]|handset|phone mic|tel[eé]fono/i.test(item.label || "") &&
+              !/bluetooth|headset|hands.?free|auricular|aud[ií]fon/i.test(item.label || ""));
+          } catch { /* Use system default when device names are hidden. */ }
+        }
+        if (generation !== this.generation) return;
+        const audio = { autoGainControl: true, echoCancellation: true, noiseSuppression: true, channelCount: 1 };
+        if (internalInput) audio.deviceId = { exact: internalInput.deviceId };
+        try { stream = await media.getUserMedia({ video: false, audio }); }
+        catch (error) {
+          if (!internalInput || !["OverconstrainedError", "NotFoundError"].includes(error?.name)) throw error;
+          delete audio.deviceId;
+          stream = await media.getUserMedia({ video: false, audio });
+        }
         if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
         this.stream = stream;
         let resumeTimer;
@@ -129,7 +155,7 @@
         const source = context.createMediaStreamSource(stream);
         this.source = source;
         source.connect(node);
-        node.connect(context.destination); // worklet output is silence, never microphone playback
+        node.connect(context.destination); // Worklet renders silence; the AudioContext sink is set to "none" where supported.
         stream.getAudioTracks().forEach(track => track.addEventListener("ended", () => {
           if (this.active) this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
         }));

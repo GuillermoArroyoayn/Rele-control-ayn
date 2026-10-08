@@ -3,8 +3,9 @@
   const STORAGE='ayn:information:seen:v1:';
   const SOUND='ayn:information:sound:v1';
   const CRITICAL=new Set(['sos','emergency','report']);
-  const PRIVATE=new Set(['report','emergency','sos','sos-cancelled']);
-  const isPrivate=item=>PRIVATE.has(item?.kind);
+  const PRIVATE=new Set(['report','emergency']);
+  // El residente recibe SOS comunitarios; el administrador los revisa en Reportes emergencia.
+  const isPrivate=item=>PRIVATE.has(item?.kind)||(role!=='user'&&['sos','sos-cancelled'].includes(item?.kind));
   const TYPES={report:'Reporte',notice:'Aviso',poll:'Encuesta',emergency:'Emergencia',sos:'Emergencia', 'sos-cancelled':'Emergencia cancelada'};
   let items=[],role='',deviceId='',seen=new Set(),dialogItem=null,opened=false,soundContext=null,loading=false;
   let previousFocused=null,initialized=false,firstLoad=true,activeView='new',activeInbox='wall';
@@ -72,6 +73,7 @@
   };
   const hide=()=>{
     releaseDetail();detailBack.hidden=true;
+    window.AynSosSiren?.stop?.();
     opened=false;mask.hidden=true;mask.classList.remove('ayn-info-emergency');sections.hidden=true;
     document.body.classList.remove('ayn-info-dialog-open');
     previousFocused?.focus?.();
@@ -116,9 +118,9 @@
     activeView='new';dialogItem=item;sections.hidden=true;body.replaceChildren(card(item));
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
-    heading.textContent=isPrivate(item)?'Reportes emergencia':'Muro informativo';
+    heading.textContent=item.kind==='sos'?'🚨 Alerta SOS':isPrivate(item)?'Reportes emergencia':'Muro informativo';
     symbol.textContent=urgent?'🚨':'ℹ️';
-    subtitle.textContent=isPrivate(item)?'Aviso privado para la administración. Revisa el detalle.':'Nuevo aviso o encuesta en tu comunidad.';
+    subtitle.textContent=item.kind==='sos'?'Solicitud de ayuda en tu comunidad.':isPrivate(item)?'Aviso privado para la administración. Revisa el detalle.':'Nuevo aviso o encuesta en tu comunidad.';
     seeAll.hidden=false;
     acknowledge.textContent='Entendido';
     show();
@@ -245,6 +247,11 @@
         appendDetail(container,'Descripción completa',original.text);
         if(original.hasPhoto)await showPhoto(container,'/api/reports?photo='+encodeURIComponent(srcId),token);
         else appendDetail(container,'Fotografía','Este reporte no tiene fotografía adjunta.');
+      }else if(item.kind==='sos'&&role==='user'){
+        status.remove();
+        appendDetail(container,'Persona',item.author||'Residente');
+        appendDetail(container,'Departamento',item.apartment||'Sin registrar');
+        appendDetail(container,'Solicitud',item.message||'Se solicita asistencia.');
       }else if(item.kind==='sos'&&/^sos-[a-f0-9]{32}$/.test(rawId)){
         const srcId=rawId.slice('sos-'.length);
         const data=await authenticated('/api/panic?groupId='+encodeURIComponent(group));
@@ -319,6 +326,10 @@
   function chime(item){
     if(!soundEnabled()||document.hidden||isCall()||document.body.classList.contains('panic-screen-open'))return;
     if(!soundContext||soundContext.state!=='running')return;
+    if(item.kind==='sos'){
+      window.AynSosSiren?.play?.();
+      return;
+    }
     const urgent=isEmergency(item);
     const pattern=urgent?[880,660,880,660]:[740,880];
     try{
@@ -429,5 +440,10 @@
   navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='AYN_OPEN_INFORMATION'){refresh().finally(()=>openInbox(event.data.section==='emergency'?'emergency':'wall'));}});
   window.addEventListener('ayn:information:refresh',()=>refresh());
   window.AynInformation=Object.freeze({refresh,openInbox});
-  installHomeButtons();refresh();if(location.hash==='#information')openInbox('wall');if(location.hash==='#emergency')refresh().finally(()=>openInbox('emergency'));setInterval(refresh,8000);
+  installHomeButtons();refresh();if(location.hash==='#information')openInbox('wall');if(location.hash==='#emergency')refresh().finally(()=>openInbox('emergency'));setInterval(refresh,5000);
+  // La sirena SOS se repite hasta que se atienda o cierre la alerta visible.
+  setInterval(()=>{
+    if(opened&&activeView==='new'&&dialogItem?.kind==='sos'&&!seen.has(dialogItem.id)&&!isCancelled(dialogItem)&&!isCall())
+      window.AynSosSiren?.play?.();
+  },6500);
 })();

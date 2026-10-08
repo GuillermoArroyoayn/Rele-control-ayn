@@ -1,10 +1,10 @@
-const CACHE = "reles-ayn-v193-sos-all-community-siren";
+const CACHE = "reles-ayn-v194-sos-user-choice";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
   "/community-indicators.js?v=20261008-audience189",
-  "/information.js?v=20261008-sos193",
-  "/sos-siren.js?v=20261008-sos193",
+  "/information.js?v=20261008-sos194",
+  "/sos-siren.js?v=20261008-sos194",
   "/information.css?v=20261008-cards191",
   "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
@@ -29,8 +29,8 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-sos193",
-  "/panic.js?v=20261008-sos193",
+  "/app.js?v=20261008-sos194",
+  "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-mic182",

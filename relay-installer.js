@@ -68,7 +68,7 @@ function row(item){
 function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');
  const found=drafts.filter(x=>!q||[x.name,x.location,x.wifiSsid,groups.find(g=>g.id===x.groupId)?.name].join(' ').toLocaleLowerCase('es').includes(q));
- toggle.textContent='Relés preparados · '+drafts.length+' pendientes';
+ toggle.textContent='＋ Preparar relé · '+drafts.length+' pendiente'+(drafts.length===1?'':'s');
  list.replaceChildren();for(const item of found)list.append(row(item));
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));
 }

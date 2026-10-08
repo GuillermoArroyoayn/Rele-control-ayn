@@ -168,7 +168,13 @@
           if(track.muted&&!document.hidden)window.AynCallPriority?.interrupt();
         });
         stream.getAudioTracks().forEach(track => track.addEventListener("ended", () => {
-          if (this.active) this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
+          // Si Android retira la pista de audio, dar prioridad al teléfono
+          // antes de que un reintento automático vuelva a solicitar el micrófono.
+          if (this.active||this.starting) {
+            window.AynCallPriority?.interrupt();
+            if (this.active||this.starting)
+              this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
+          }
         }));
         context.onstatechange = () => {
           if ((this.active||this.starting) && context.state==="interrupted"){

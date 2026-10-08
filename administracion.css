@@ -411,7 +411,7 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
 
 
 /* Incorporar usuarios: vista móvil independiente y siempre visible · v128 */
-body[data-admin-view="people"] #people{
+body[data-admin-view="people"] #people:not([hidden]){
   display:block!important;
   width:min(560px,100%);
   margin:0 auto;
@@ -443,3 +443,10 @@ body[data-admin-view="people"] #invite button{
   margin:16px 0 0!important;
 }
 body[data-admin-view="people"] #invitation:not([hidden]){display:block!important;margin:14px 0}
+
+
+/* Respeta permisos de visibilidad aunque las tarjetas usen display:flex !important · v129 */
+html body #homeUsersCard[hidden],
+html body .home-quick-card[hidden],
+html body #tabs>[hidden],
+html body #people[hidden]{display:none!important}

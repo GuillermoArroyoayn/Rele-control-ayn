@@ -81,3 +81,21 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
   .preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .preview-item{min-height:100px}
 }
+
+/* v180: flujo confirmación -> autorizaciones -> invitación */
+.prepared-admin-banner{border-color:#54c8ff;background:linear-gradient(135deg,#082d56,#071d3e)}
+.prepared-admin-banner h2{color:#d9f8ff;font-size:clamp(17px,4vw,23px)}
+.prepared-admin-banner p{line-height:1.55}
+#preparedAdminInfo{font-weight:800;color:#ddf8ff!important;overflow-wrap:anywhere}
+.send-prepared-invite{flex:1 1 100%;min-height:60px;font-size:16px;line-height:1.4;
+  background:linear-gradient(110deg,#0065c8,#07849b);border:2px solid #78e7fa!important;
+  box-shadow:0 0 15px #007cff55;white-space:normal}
+.prepared-invite-result{border-color:#5cd4c7;background:#062c40}
+.prepared-invite-result label{overflow-wrap:anywhere}
+.prepared-invite-result input{font-size:14px}
+.prepared-invite-result .secondary{margin-top:8px}
+#inviteProcessHelp{color:#a9dcff;font-size:13px;line-height:1.5}
+@media(max-width:760px){
+  .send-prepared-invite{width:100%;min-height:66px}
+  .prepared-invite-result button,.prepared-invite-result a{display:flex;width:100%;justify-content:center}
+}

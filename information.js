@@ -10,7 +10,8 @@
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
   const sorted=records=>[...records].sort((a,b)=>(CRITICAL.has(b.kind)?1:0)-(CRITICAL.has(a.kind)?1:0)||eventTime(b.createdAt)-eventTime(a.createdAt));
   const fresh=()=>items.filter(e=>!seen.has(e.id) && !e.isOwn);
-  const isEmergency=e=>CRITICAL.has(e?.kind)&&(!e.expiresAt||eventTime(e.expiresAt)>Date.now());
+  const isCancelled=e=>e?.kind==='sos'&&items.some(x=>x.kind==='sos-cancelled'&&x.id==='sos-cancelled-'+e.id.slice(4));
+  const isEmergency=e=>CRITICAL.has(e?.kind)&&!isCancelled(e)&&(!e.expiresAt||eventTime(e.expiresAt)>Date.now());
   const critical=()=>fresh().some(isEmergency);
   const isCall=()=>Boolean(window.AynCallPriority?.isPhoneCallActive?.());
   const el=(tag,className='',value='')=>{const node=document.createElement(tag);node.className=className;if(value)node.textContent=value;return node;};
@@ -65,7 +66,7 @@
   };
   function card(item,withActions=false){
     const urgent=isEmergency(item),div=el('article','ayn-info-message'+(urgent?' urgent':''));
-    const kind=el('strong','ayn-info-type',(urgent?'🚨 ':'')+(TYPES[item.kind]||'Información'));
+    const kind=el('strong','ayn-info-type',(urgent?'🚨 ':'')+(isCancelled(item)?'Emergencia cancelada':TYPES[item.kind]||'Información'));
     const title=el('h3','',item.title||'Información');
     const detail=el('p','',item.message||'');
     const foot=el('small','',new Date(item.createdAt).toLocaleString('es-CL')+(role==='super_master'&&item.groupName?' · '+item.groupName:''));
@@ -115,7 +116,7 @@
     else window.dispatchEvent(new CustomEvent('ayn:navigate',{detail:{page:'app',view:section}}));
   }
   function enableAudioFromGesture(){
-    if(!soundEnabled()||isCall()||document.hidden)return;
+    if(!soundEnabled()||isCall()||document.hidden||soundContext?.state==='running')return;
     try{
       if(!soundContext){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;soundContext=new Audio();}
       if(soundContext.state==='suspended')soundContext.resume().then(paint).catch(()=>{});

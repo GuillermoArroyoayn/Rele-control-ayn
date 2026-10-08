@@ -313,6 +313,31 @@ $('assignActuator').onclick=async()=>{
   finally{$('assignActuator').disabled=false;}
 };
 
+$('deleteEntireCommunity').onclick=async()=>{
+  const group=selected();if(!group)return;
+  const button=$('deleteEntireCommunity');button.disabled=true;
+  try{
+    const preview=await api({action:'previewDeleteCommunity',groupId:group.id});
+    const count=preview.impact||{};
+    const notice='VAS A ELIMINAR TODA LA COMUNIDAD: '+preview.communityName+'\n\n'+
+      'Administradores: '+count.administrators+'\n'+
+      'Residentes que perderán el acceso: '+count.residents+'\n'+
+      'Actuadores que quedarán libres: '+count.actuators+'\n'+
+      'Relés originales que quedarán libres: '+count.originalRelays+'\n\n'+
+      'Esta acción cancela la comunidad para TODOS sus integrantes. Se conservará el historial de seguridad. ¿Continuar?';
+    if(!confirm(notice))return;
+    const required='ELIMINAR '+group.id;
+    const answer=prompt('Confirmación definitiva: escribe exactamente\n\n'+required+'\n\npara eliminar la comunidad completa.','');
+    if(answer!==required){message('Eliminación cancelada. No se modificó la comunidad.');return;}
+    const result=await api({action:'deleteCommunityCompletely',groupId:group.id,
+      confirmation:answer,expectedImpact:count});
+    await reload();
+    message('✓ Comunidad eliminada junto con '+result.removedAdministrators+
+      ' administrador(es) y '+result.removedResidents+
+      ' residente(s). Los relés quedaron libres. Puedes crear otra comunidad.');
+  }catch(error){message(error.message||'No se pudo eliminar la comunidad.',true);}
+  finally{button.disabled=false;}
+};
 $('deleteAdmin').onclick=async()=>{
   const group=selected();if(!group)return;
   const adminName=group.prepared?.name||group.name;

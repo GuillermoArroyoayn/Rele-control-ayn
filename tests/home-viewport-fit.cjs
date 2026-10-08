@@ -73,3 +73,5 @@ require('./matrix-original-relays.cjs');
 require('./matrix-preview-toggles.cjs');
 
 require('./admin-staged-invite.cjs');
+
+require('./voice-spoken-feedback.cjs');

@@ -1346,3 +1346,15 @@ body[data-user-view="settings"] #refresh{display:none!important}
   .home-dashboard > .home-voice-button,
   .home-dashboard > .home-voice-text{flex-shrink:0}
 }
+/* v161 · navegación interior para todos los perfiles. */
+body.user-layout .user-toolbar > :not(.ayn-nav-back):not(.ayn-nav-home){display:none!important}
+body.user-layout .user-toolbar:not([hidden]){justify-content:space-between;gap:12px}
+body.user-layout .user-toolbar .ayn-nav-back,body.user-layout .user-toolbar .ayn-nav-home,
+body.app-screen-mode .function-toolbar > button:not(:last-child){
+ display:inline-flex;align-items:center;justify-content:center;min-height:46px!important;min-width:105px;
+ margin:0!important;padding:9px 16px!important;border:1px solid var(--theme-border,#5ee7ff99)!important;
+ border-radius:12px!important;background:var(--theme-soft,#1670da)!important;color:#fff!important;font-weight:700!important;box-shadow:none!important
+}
+body.app-screen-mode .function-toolbar > button:nth-child(3){display:none!important}
+body.app-screen-mode .function-toolbar{justify-content:space-between}
+@media(max-width:360px){body.user-layout .user-toolbar .ayn-nav-back,body.user-layout .user-toolbar .ayn-nav-home,body.app-screen-mode .function-toolbar > button:not(:last-child){min-width:95px;padding-inline:10px!important}}

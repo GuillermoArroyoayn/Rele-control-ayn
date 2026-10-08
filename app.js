@@ -236,9 +236,13 @@ const userViewTitle = document.createElement("strong");
 const userHomeButton = document.createElement("button");
 userHomeButton.type = "button";
 userHomeButton.textContent = "Inicio";
-userHomeButton.addEventListener("click", () => showView("control"));
+userHomeButton.className="ayn-nav-home";
+userHomeButton.addEventListener("click", () => {if(window.AynNavigation)window.AynNavigation.home('app');else showView("control");});
 userMenuButton.addEventListener("click", () => showView(currentView === "menu" ? "control" : "menu"));
-userToolbar.append(userMenuButton,userViewTitle,userHomeButton);
+const userBackButton=document.createElement("button");userBackButton.type="button";userBackButton.className="ayn-nav-back";userBackButton.textContent="← Atrás";
+userBackButton.onclick=()=>{if(window.AynNavigation)window.AynNavigation.back('app');else showView('control');};
+window.addEventListener('ayn:navigate',event=>{if(event.detail?.page==='app'&&statusReady)showView(event.detail.view);});
+userToolbar.append(userMenuButton,userBackButton,userViewTitle,userHomeButton);
 document.body.append(userToolbar);
 document.addEventListener("ayn-panic-feedback", () => {
   if (document.body.classList.contains("user-layout")) showView("panic");
@@ -349,10 +353,10 @@ function buildMenu() {
 
 const masterConfigLink=document.createElement('a');masterConfigLink.className='refresh section-config-bottom';masterConfigLink.textContent='Configuración de esta sección';masterConfigLink.hidden=true;refresh.after(masterConfigLink);
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
-const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
+const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="← Atrás";
 function openAdministrationMenu(){sessionStorage.setItem("aynAdminView","menu");location.assign("/administracion.html#menu");}
-functionBack.onclick=openAdministrationMenu;
-const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{sessionStorage.setItem("aynAdminView","home");location.assign("/administracion.html#home");};
+functionBack.onclick=()=>{if(window.AynNavigation)window.AynNavigation.back('app');else openAdministrationMenu();};
+const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{if(window.AynNavigation)window.AynNavigation.home('admin');else{sessionStorage.setItem("aynAdminView","home");location.assign("/administracion.html#home");}};
 const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>showView("settings");
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
 const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);
@@ -383,6 +387,7 @@ function showView(view) {
   if(statusReady&&currentRole!=="super_master"&&matrixViewId(view,currentRole)&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   currentView = view;
+  if(statusReady)window.AynNavigation?.visit('app',view);
   prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));
   masterConfigLink.hidden=currentRole!=='super_master'||view!=="control";

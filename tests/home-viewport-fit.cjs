@@ -51,3 +51,6 @@ assert(uj.includes('history.scrollRestoration="manual"'));
 assert(uj.includes('window.addEventListener("pageshow",()=>'));
 assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v157-home-frame'));
 console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');
+
+// Comprobación adicional: alta segura y sin conmutación de los relés.
+require('./relay-installations.cjs');

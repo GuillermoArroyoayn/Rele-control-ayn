@@ -8,7 +8,7 @@ Retirar residuos comprobados sin modificar la lógica de relés, temporizadores,
 
 - `share.css`: hoja de estilo antigua que no está importada en las pantallas actuales (`index.html`, `administracion.html`, `matrix.html`), otros estilos ni en el precaché del service worker. Se elimina del árbol activo; Git conserva el historial.
 - `icon.svg`: dibujo antiguo de botón eléctrico; no corresponde al logotipo vigente de A&N Control, no aparece en los manifiestos, HTML ni caché. Se elimina del árbol activo; los iconos actuales `app-icon-192.png` y `app-icon-512.png` permanecen intactos.
-- `sw.js`: tres URL del precaché apuntaban a versiones antiguas distintas de las realmente enlazadas en el HTML. Se sincronizan los identificadores de `ain-streaming-provider.js`, `ain-voice-phrases.js` y `panic.js` para que la carga sin conexión sea coherente.
+- `index.html` y `administracion.html`: tres identificadores de versión no coincidían con el precaché vigente de `sw.js`. Se unifican los enlaces de `ain-streaming-provider.js`, `ain-voice-phrases.js` y `panic.js` con las versiones ya cacheadas, sin modificar esos módulos ni duplicar sus archivos.
 - `sw.js`: no se altera el mecanismo de actualización, ni la excepción que impide almacenar respuestas de `/api/`.
 
 ## Exclusiones de la limpieza

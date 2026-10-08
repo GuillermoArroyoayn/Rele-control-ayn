@@ -1193,3 +1193,11 @@ body[data-user-view="settings"] .share-section{display:none!important}
 
 /* Inicio real en barra de funciones · v141 */
 .function-toolbar .function-home-button{flex:1;text-align:center;min-width:82px;font-size:16px;font-weight:800;user-select:none;-webkit-user-select:none}
+
+
+/* v142 · Configuración aislada y diagnóstico fuera de Inicio */
+body[data-user-view="settings"] .user-settings-panel{display:block!important}
+body[data-user-view="settings"] .managed-access-panel,
+body[data-user-view="settings"] .relay-grid,
+body[data-user-view="settings"] .share-section,
+body[data-user-view="settings"] #refresh{display:none!important}

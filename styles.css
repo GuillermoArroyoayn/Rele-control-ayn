@@ -1164,3 +1164,28 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   0%,100%{opacity:.78;stroke-width:3}
   50%{opacity:1;stroke-width:5.2}
 }
+
+
+/* AYN v138 · Configuración aislada y actuadores asignados */
+.managed-access-panel{width:100%;margin:0 0 18px}
+.managed-access-panel>h2{margin:0 0 6px}
+.managed-access-help{margin:0 0 14px;color:#bfd3e2}
+.managed-access-grid{margin:0}
+.managed-relay-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
+.managed-relay-card>div:first-child{display:grid;gap:5px}
+.managed-relay-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.managed-relay-actions .small-button{margin:0;min-width:72px}
+body[data-user-view="settings"] .relay-grid,
+body[data-user-view="settings"] .managed-access-panel,
+body[data-user-view="settings"] #refresh,
+body[data-user-view="settings"] .share-section{display:none!important}
+.user-settings-panel>.appearance,
+.user-settings-panel>.accessibility,
+.user-settings-panel>.security,
+.user-settings-panel>.panic-preferences{width:100%;box-sizing:border-box}
+.user-settings-panel>.security{margin:0 0 14px;padding:16px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(7,25,42,.78)}
+@media(max-width:520px){
+  .managed-relay-card{grid-template-columns:1fr}
+  .managed-relay-actions{justify-content:stretch}
+  .managed-relay-actions .small-button{flex:1 1 80px}
+}

@@ -1537,3 +1537,33 @@ html body .access-controls-page[hidden]{display:none!important}
   color:#e8fbff!important;background:#116d78!important;
   opacity:1!important;box-shadow:0 0 0 1px #7ef7ed inset!important;cursor:default;
 }
+
+/* v171: solución estructural. Accesos usa la misma ventana raíz que la
+   configuración que ya funciona en los teléfonos administradores. */
+html body.app-screen-mode[data-user-view="access"] section.access-settings-panel.function-screen:not([hidden]),
+html body.user-layout[data-user-view="access"] section.access-settings-panel.function-screen:not([hidden]){
+  display:block!important;visibility:visible!important;opacity:1!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+}
+html body.app-screen-mode[data-user-view="access"] section.access-settings-panel.function-screen > section.access-controls-page:not([hidden]),
+html body.user-layout[data-user-view="access"] section.access-settings-panel.function-screen > section.access-controls-page:not([hidden]){
+  display:block!important;
+  position:relative!important;inset:auto!important;
+  top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+  z-index:auto!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  width:100%!important;max-width:none!important;box-sizing:border-box!important;
+  overflow:visible!important;margin:0 auto!important;
+  padding:4px 0 28px!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+}
+html body.app-screen-mode[data-user-view="access"] .access-settings-panel > .access-control-top{
+  display:flex!important;
+}
+html body.app-screen-mode[data-user-view="access"] .access-settings-panel .access-activation-grid{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:min(520px,100%)!important;margin:12px auto!important;gap:12px!important;
+}
+html body.app-screen-mode[data-user-view="access"] .access-settings-panel .access-button-card{
+  min-height:135px!important;display:flex!important;
+}

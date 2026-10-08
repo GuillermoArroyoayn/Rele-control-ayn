@@ -625,6 +625,11 @@ async function initializeActuatorsOff(data) {
   }
 }
 
+function finishBootLayout(){
+  delete document.documentElement.dataset.bootLayout;
+  document.getElementById("bootHeader")?.remove();
+  document.getElementById("bootScreen")?.remove();
+}
 async function loadStatus() {
   if (startupResetInFlight) return;
   if (!pin()) {
@@ -647,6 +652,11 @@ async function loadStatus() {
     currentMatrix = data.appMatrix || null;
     statusReady = true;
     applyMatrixPresentation();
+    if(currentRole==="super_master"&&!location.hash){
+      location.replace("/administracion.html");
+      return;
+    }
+    finishBootLayout();
     if (currentRole === "admin" && currentGroupId)
       localStorage.setItem("relayGroupId", currentGroupId);
     adminPanel.hidden = !["super_master", "admin"].includes(currentRole);
@@ -671,6 +681,7 @@ async function loadStatus() {
       );
   } catch (e) {
     statusReady = false;
+    finishBootLayout();
     setRelayAccess([]);
     configureUserLayout(false);
     show(e.message, true);
@@ -2283,15 +2294,18 @@ if ("serviceWorker" in navigator) {
     })
     .catch(() => {});
 }
-// Mostrar Inicio antes de esperar la validación de red; los actuadores siguen deshabilitados.
-if (document.documentElement.dataset.bootLayout === "user") {
+// Los usuarios pueden ver Inicio de inmediato; Administrador/Máster esperan la validación sin mostrar pantallas intermedias.
+const initialBootLayout=document.documentElement.dataset.bootLayout||"";
+if (initialBootLayout === "user") {
   setRelayAccess([]);
   configureUserLayout(true);
   showView("control");
+  finishBootLayout();
+} else if (initialBootLayout !== "validating") {
+  finishBootLayout();
 }
-delete document.documentElement.dataset.bootLayout;
-document.getElementById("bootHeader")?.remove();
 if (pin()) loadStatus();
+else finishBootLayout();
 
 // Clear stale controls when any shared service detects suspended access.
 document.addEventListener("ayn-access-restricted", event => {
@@ -2303,15 +2317,9 @@ document.addEventListener("ayn-access-restricted", event => {
   stopVoiceMode(event.detail || "Acceso suspendido por la administración.", false);
   show(event.detail || "Acceso suspendido por la administración.", true);
 });
-document.addEventListener("ayn-access-restored", () => { // Mostrar Inicio antes de esperar la validación de red; los actuadores siguen deshabilitados.
-if (document.documentElement.dataset.bootLayout === "user") {
-  setRelayAccess([]);
-  configureUserLayout(true);
-  showView("control");
-}
-delete document.documentElement.dataset.bootLayout;
-document.getElementById("bootHeader")?.remove();
-if (pin()) loadStatus(); });
+document.addEventListener("ayn-access-restored", () => {
+  if (pin()) loadStatus();
+});
 
 window.addEventListener('hashchange',()=>{if(currentRole==='super_master'&&statusReady)buildMenu();});
 

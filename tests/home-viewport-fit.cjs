@@ -19,7 +19,7 @@ for(const path of files){
 const index=fs.readFileSync('index.html','utf8'),admin=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
 assert(index.includes('/styles.css?v=20261008-access173'));
 assert(admin.includes('/administracion.css?v=20261008-nav161'));
-assert(sw.includes('reles-ayn-v173-access-feedback'));
+assert(sw.includes('reles-ayn-v174-resident-roles'));
 assert(sw.includes('/styles.css?v=20261008-access173'));
 assert(sw.includes('/administracion.css?v=20261008-nav161'));
 assert(fs.readFileSync('app.js','utf8').includes('home-quick-card home-quick-sos'));
@@ -49,7 +49,7 @@ assert(aj.includes("history.scrollRestoration='manual'")&&aj.includes('resetHome
 assert(aj.includes("window.addEventListener('pageshow'"));
 assert(uj.includes('history.scrollRestoration="manual"'));
 assert(uj.includes('window.addEventListener("pageshow",()=>'));
-assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v173-access-feedback'));
+assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v174-resident-roles'));
 console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');
 
 // Comprobación adicional: alta segura y sin conmutación de los relés.

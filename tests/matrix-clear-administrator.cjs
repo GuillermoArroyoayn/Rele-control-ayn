@@ -111,7 +111,7 @@ const seed=id=>{
  assert(matrix.includes("action:'deleteAndClearAdministrator'"));
  assert(!matrix.includes("group.prepared&&group.status==='pending'"));
  assert(markup.includes('Eliminar administrador y vaciar carpeta'));
- assert(markup.includes('id="createAdminAfterDelete"'));
+ assert(markup.includes('href="/administracion.html#people"'),'Enlace para nuevo administrador siempre visible');
  const invites=fs.readFileSync('api/administrations.js','utf8');
  assert(invites.includes('invitation.stagedAdmin'));
  assert(invites.includes("staged.status!=='sent'"));

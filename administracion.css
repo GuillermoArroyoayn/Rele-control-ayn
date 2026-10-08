@@ -483,3 +483,49 @@ body[data-admin-view="people"] #users[hidden],body[data-admin-view="people"] #us
 #users .resident-permissions{display:grid;gap:8px;margin:12px 0}
 #users .resident-details>button{margin:8px 8px 0 0}
 @media(max-width:520px){#users .resident-summary{padding:16px}#users .resident-summary strong{font-size:18px}#users .resident-details{padding:0 16px 16px}}
+
+
+/* Central Máster de Relés / Actuadores · v147 */
+.relay-center-head,.relay-center-lists{width:min(680px,100%);margin:0 auto}
+.relay-center-title{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.relay-center-title h2{margin:0 0 5px}
+.relay-center-title p{margin:0;color:#c7dff2}
+.relay-center-title>button{flex:0 0 auto;min-height:44px;padding:10px 14px}
+.relay-search{display:block;font-weight:800;margin:0 0 14px}
+.relay-search input{display:block;width:100%;margin-top:7px}
+.relay-bulk-bar{display:grid;grid-template-columns:auto minmax(150px,1fr) auto;align-items:center;gap:10px;padding:12px;border:1px solid var(--theme-border,#5ee7ff99);border-radius:16px;background:var(--theme-panel-strong,#051c3f)}
+.relay-bulk-bar select,.relay-bulk-bar button{min-height:42px}
+.relay-list-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 10px}
+.relay-list-heading h3{margin:0}
+.relay-list-heading>span{display:inline-grid;place-items:center;min-width:34px;height:28px;padding:0 8px;border-radius:999px;background:var(--theme-accent,#5ee7ff);color:#052538;font-weight:900}
+.relay-admin-heading{margin-top:28px}
+.relay-center-grid{display:grid;gap:10px}
+.relay-center-card{padding:14px!important;border:1px solid var(--theme-border,#5ee7ff99)!important;border-radius:17px!important;background:var(--theme-panel,#083b78)!important}
+.relay-center-card-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px}
+.relay-center-check{width:22px!important;height:22px!important;min-width:22px!important;margin:0!important;accent-color:var(--theme-accent,#5ee7ff)}
+.relay-center-card-top strong{display:block;font-size:17px}
+.relay-center-card-top small{display:block;margin-top:3px;color:#c3d8ea}
+.relay-live-state{font-size:12px;font-weight:900;padding:5px 8px;border-radius:999px;background:#071c37;color:#d9edff;white-space:nowrap}
+.relay-live-state[data-state="on"]{background:#14532d;color:#dcfce7}
+.relay-live-state[data-state="off"]{background:#164e63;color:#cffafe}
+.relay-live-state[data-state="error"]{background:#7f1d1d;color:#fee2e2}
+.relay-center-meta{display:block;margin:10px 0;color:#c7dff2}
+.relay-center-actions{display:grid;grid-template-columns:minmax(120px,1fr) auto auto;gap:8px}
+.relay-center-actions select,.relay-center-actions button{min-height:42px}
+.relay-admin-folders{display:grid;gap:10px}
+.relay-admin-folder{border:1px solid var(--theme-border,#5ee7ff99);border-radius:17px;background:var(--theme-panel-strong,#051c3f);overflow:hidden}
+.relay-admin-folder>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}
+.relay-admin-folder>summary span{color:#bfe0ff;font-size:13px}
+.relay-admin-folder>.relay-center-grid{padding:0 12px 12px}
+#add{width:min(680px,100%);margin:16px auto!important}
+body[data-admin-view="equipment"] #groupLabel{display:none!important}
+@media(max-width:560px){
+  .relay-center-title{display:grid;grid-template-columns:1fr}
+  .relay-center-title>button{width:100%}
+  .relay-bulk-bar{grid-template-columns:1fr}
+  .relay-bulk-bar>*{width:100%}
+  .relay-center-card-top{grid-template-columns:auto 1fr}
+  .relay-live-state{grid-column:2;justify-self:start}
+  .relay-center-actions{grid-template-columns:1fr 1fr}
+  .relay-center-actions select{grid-column:1/-1;width:100%}
+}

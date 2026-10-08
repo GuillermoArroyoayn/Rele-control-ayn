@@ -1420,7 +1420,13 @@ body[data-user-view="access"] .managed-access-grid{
   border:0!important;border-radius:21px;box-shadow:none!important;
   text-align:center;white-space:normal;overflow-wrap:anywhere;
 }
-.managed-access-panel .access-power-symbol{font-size:37px;line-height:1;opacity:.85}
+.managed-access-panel .access-power-symbol{
+  display:flex;align-items:center;justify-content:center;
+  width:62px;height:62px;border:2px solid var(--theme-border,#5ee7ff99);border-radius:50%;
+  font-size:35px;line-height:1;opacity:.92;
+  background:radial-gradient(circle,var(--theme-glow,#0b54a966),transparent 76%);
+  box-shadow:0 0 14px var(--theme-glow,#00a8ff44);
+}
 .managed-access-panel .access-actuator-name{font-size:clamp(15px,4.2vw,19px);line-height:1.2;font-weight:750}
 .managed-access-panel .access-actuator-status{font-size:12px;letter-spacing:.08em;font-weight:750;opacity:.82}
 .managed-access-panel .access-button-card.on{
@@ -1443,6 +1449,20 @@ body[data-user-view="access"] .managed-access-grid{
 .access-settings-card .actuator-settings-form button{min-height:48px}
 .access-settings-card .actuator-settings-form label[hidden]{display:none!important}
 .access-settings-success{margin:0;padding:10px 14px;border:1px solid var(--theme-border,#5ee7ff99);border-radius:12px}
+/* La cuadrícula interior nunca debe usar la posición fija del relé original. */
+body.user-layout[data-user-view="access"] .managed-access-panel .managed-access-grid{
+  position:static!important;inset:auto!important;z-index:auto!important;
+  height:auto!important;min-height:0!important;overflow:visible!important;
+  box-sizing:border-box;padding:0!important;background:transparent!important;
+  overscroll-behavior:auto;
+}
+body.app-screen-mode[data-user-view="access"] .managed-access-panel .managed-access-grid{
+  padding:0!important;position:static!important;inset:auto!important;
+}
+.managed-access-panel .access-button-card:focus-within{
+  outline:2px solid var(--theme-accent,#5ee7ff);outline-offset:2px;
+}
+
 @media(max-width:370px){
   body[data-user-view="access"] .managed-access-grid{gap:10px}
   .managed-access-panel .access-button-card,.managed-access-panel .access-activation-button{min-height:126px}

@@ -4,9 +4,9 @@ const holds=new Map();let role='super_master';
 const A={access:async()=>({role,registry,device:{name:'Máster',id:'master'}}),error:(m,s=400)=>Object.assign(new Error(m),{status:s}),records:async()=>[],updateRegistry:async(fn)=>fn(registry),redis:async(cmd,key,k,v)=>{if(cmd==='HGETALL')return [...holds].flatMap(([a,b])=>[a,b]);if(cmd==='HSETNX'){if(holds.has(k))return 0;holds.set(k,v);return 1;}if(cmd==='HGET')return holds.get(k)||null;if(cmd==='HDEL')return holds.delete(k)?1:0;}};
 const config=id=>({groupId:id,status:id==='B'?'pending':'active',branding:{communityName:id},modules:[],actuators:[]});
 const M={listPublished:async()=>[config('B'),config('A')],getPublished:async(id)=>config(id),getDraft:async()=>null,ensure:async(id)=>config(id),CATALOG:[]};
-const module={exports:{}};
-vm.runInNewContext(fs.readFileSync('api/app-matrix.js','utf8'),{module,process:{env:{TUYA_DEVICE_1:'x',TUYA_DEVICE_2:'y',TUYA_DEVICE_3:'z'}},require:n=>n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:{addHistory:async()=>{}}});
-async function request(body){let code=200,value;await module.exports({method:body?'POST':'GET',body},{setHeader(){},status(n){code=n;return this},json(v){value=v;return this}});return {code,value}}
+const sandboxModule={exports:{}};
+vm.runInNewContext(fs.readFileSync('api/app-matrix.js','utf8'),{module:sandboxModule,process:{env:{TUYA_DEVICE_1:'x',TUYA_DEVICE_2:'y',TUYA_DEVICE_3:'z'}},require:n=>n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:{addHistory:async()=>{}}});
+async function request(body){let code=200,value;await sandboxModule.exports({method:body?'POST':'GET',body},{setHeader(){},status(n){code=n;return this},json(v){value=v;return this}});return {code,value}}
 (async()=>{
 let r=await request();assert.equal(r.code,200);assert.equal(r.value.originalPool.length,3);assert.equal(r.value.originalPool.filter(x=>x.groupId==='master').length,2);
 r=await request({action:'assignOriginal',groupId:'B',relay:2,destination:'admin'});assert.equal(r.code,200);assert.equal(r.value.pending,true);assert.equal(holds.get('2'),'B');

@@ -1462,6 +1462,12 @@ body.app-screen-mode[data-user-view="access"] .managed-access-panel .managed-acc
 .managed-access-panel .access-button-card:focus-within{
   outline:2px solid var(--theme-accent,#5ee7ff);outline-offset:2px;
 }
+/* Un actuador se centra; con tres, el tercero queda simétrico. */
+body[data-user-view="access"] .managed-access-grid > .access-button-card:only-child,
+body[data-user-view="access"] .managed-access-grid > .access-button-card:last-child:nth-child(odd){
+  grid-column:1/-1;width:min(100%,245px);justify-self:center;
+}
+
 
 @media(max-width:370px){
   body[data-user-view="access"] .managed-access-grid{gap:10px}

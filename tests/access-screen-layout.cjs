@@ -12,7 +12,8 @@ assert(app.includes('access:accessSettingsPanel'),'Accesos utiliza la ventana qu
 assert(app.includes('accessSettingsPanel.prepend(managedAccessPanel)'),'Controles montados en ventana compartida');
 assert(app.includes("Promise.allSettled("),'No ocultar originales por fallo de otro catálogo');
 assert(app.includes("lastKnownAccessStatus=data"),'Conservar permisos autenticados de la sesión');
-assert(app.includes("if(currentRole==='admin'&&['access','access-settings'].includes(masterRoute))"),'Abrir ajustes desde la administración');
+assert(app.includes("if(currentRole==='admin'&&directViews[masterRoute])"),'Abrir ajustes y herramientas desde administración');
+assert(app.includes("access:'access','access-settings':'access-settings'"),'Conservar rutas de acceso y configuración');
 assert(app.includes("currentRole!=='admin'"),'El administrador debe ser quien configure');
 assert(app.includes('syncAccessBrand(view)'),'Usar el logo original en pantalla de acceso');
 assert(app.includes('if(managedAccessVisible||view==="access-settings")loadManagedAccess()'),'Ajustes guardados disponibles al navegar');

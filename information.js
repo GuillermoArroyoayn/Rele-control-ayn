@@ -22,9 +22,10 @@
   head.append(symbol,heading,close);
   const subtitle=el('p','ayn-info-subtitle'),body=el('div','ayn-info-body'),actions=el('footer','ayn-info-actions');
   const sound=el('button','ayn-info-sound');sound.type='button';
+  const push=el('button','ayn-info-push');push.type='button';
   const seeAll=el('button','ayn-info-all','Ver todas');seeAll.type='button';
   const acknowledge=el('button','ayn-info-ack','Entendido');acknowledge.type='button';
-  actions.append(sound,seeAll,acknowledge);modal.append(head,subtitle,body,actions);mask.append(modal);
+  actions.append(sound,push,seeAll,acknowledge);modal.append(head,subtitle,body,actions);mask.append(modal);
   document.body.append(mask);
   const readState=()=>{
     const key=STORAGE+deviceId;
@@ -50,7 +51,8 @@
       button.title=count ? count+' notificación(es) pendiente(s)' : 'Información';
     });
     if(opened && activeView==='all')renderAll();
-    sound.textContent=soundEnabled()?'🔊 Sonido activado':'🔇 Activar sonido';
+    sound.textContent=!soundEnabled()?'🔇 Activar sonido':soundContext?.state==='running'?'🔊 Sonido activado':'🔊 Tocar para activar sonido';
+    push.textContent=window.AynPushNotifications?.enabled?.()?'🔔 Avisos al teléfono ✓':'🔔 Activar avisos al teléfono';
   }
   const hide=()=>{
     opened=false;mask.hidden=true;mask.classList.remove('ayn-info-emergency');
@@ -116,7 +118,8 @@
     if(!soundEnabled()||isCall()||document.hidden)return;
     try{
       if(!soundContext){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;soundContext=new Audio();}
-      if(soundContext.state==='suspended')soundContext.resume().catch(()=>{});
+      if(soundContext.state==='suspended')soundContext.resume().then(paint).catch(()=>{});
+      else paint();
     }catch{}
   }
   function chime(item){
@@ -189,6 +192,13 @@
     hide();if(fresh().length)maybeDisplay(fresh());
   };
   seeAll.onclick=()=>{renderAll();};
+  push.onclick=async()=>{
+    const api=window.AynPushNotifications;
+    if(!api){subtitle.textContent='Las notificaciones del sistema no están disponibles aquí.';return;}
+    push.disabled=true;
+    try{await api.toggle();subtitle.textContent=api.enabled()?'Avisos al teléfono activados.':'Revisa los permisos del navegador si los avisos no se activaron.';}
+    finally{push.disabled=false;paint();}
+  };
   sound.onclick=()=>{
     if(soundEnabled()){localStorage.setItem(SOUND,'off');if(soundContext?.state==='running')soundContext.suspend().catch(()=>{});}
     else{localStorage.setItem(SOUND,'on');enableAudioFromGesture();}

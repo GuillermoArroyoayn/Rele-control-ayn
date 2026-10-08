@@ -1,5 +1,5 @@
 /* Centro de Información A&N · v187 */
-.ayn-info-mask[hidden],.ayn-info-count[hidden],.ayn-info-emergency-label[hidden]{display:none!important}
+.ayn-info-mask[hidden],.ayn-info-count[hidden]{display:none!important}
 .ayn-info-mask{position:fixed;inset:0;z-index:2200;display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(0,8,27,.78);backdrop-filter:blur(8px)}
 .ayn-info-modal{width:min(620px,100%);max-height:calc(100dvh - 26px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:hidden;display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0a315d,#06172e);color:#f2f9ff;border:2px solid #29b8ff;border-radius:22px;padding:18px;box-shadow:0 0 40px #008fff55,0 18px 50px #000a}
 .ayn-info-header{display:flex;align-items:center;gap:9px}.ayn-info-head-icon{font-size:29px}.ayn-info-header h2{flex:1;margin:0;font-size:clamp(24px,5vw,30px);color:#fff}
@@ -24,7 +24,6 @@ html body .ayn-info-sections button[hidden]{display:none!important}
 html body .ayn-info-mask.ayn-info-emergency .ayn-info-sections button[aria-pressed="true"]{border-color:#ff6b82;background:#862840}
 .ayn-info-quick{position:relative}
 .ayn-info-count{position:absolute;top:9px;right:10px;min-width:24px;min-height:24px;border-radius:99px;border:2px solid #fff;background:#e92345;color:#fff;display:flex;align-items:center;justify-content:center;padding:2px 5px;font:800 12px system-ui}
-.ayn-info-emergency-label{color:#ff6e83!important;font:800 13px system-ui!important;text-shadow:0 0 11px #f82850}
 html body .ayn-info-quick.ayn-info-unread{border-color:#3bd6ff!important;box-shadow:0 0 16px #219eff77!important}
 html body .ayn-info-quick.ayn-info-urgent{border:2px solid #ff3155!important;box-shadow:0 0 18px #ff315588!important}
 html body .ayn-info-quick.ayn-info-urgent .home-quick-icon{color:#ff647c!important;filter:drop-shadow(0 0 10px #f12b53)}

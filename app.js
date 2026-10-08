@@ -433,20 +433,15 @@ homeDashboard.innerHTML = `
         <svg viewBox="0 0 64 64"><path d="M39 11a12 12 0 0 0-13 15L10 42l12 12 16-16a12 12 0 0 0 15-13l-9 9-8-2-2-8 9-9a12 12 0 0 0-4-4Z"/><path d="M15 49l5-5"/></svg>
       </span><span>Reportes</span>
     </button>
-    <button type="button" class="home-quick-card" data-home-view="wall">
+    <button type="button" class="home-quick-card" data-home-view="community-hub" data-community-pending="all">
       <span class="home-quick-icon" aria-hidden="true">
         <svg viewBox="0 0 64 64"><circle cx="32" cy="22" r="9"/><circle cx="15" cy="28" r="7"/><circle cx="49" cy="28" r="7"/><path d="M18 53v-5c0-8 6-14 14-14s14 6 14 14v5M5 52v-4c0-6 4-11 10-12M59 52v-4c0-6-4-11-10-12"/></svg>
-      </span><span>Comunidad</span>
+      </span><span>Comunidad<br>y encuestas</span>
     </button>
     <button type="button" class="home-quick-card home-quick-sos" data-home-view="panic">
       <span class="home-quick-icon" aria-hidden="true">
         <svg viewBox="0 0 64 64"><path d="M20 44h24M23 41V29a9 9 0 0 1 18 0v12M18 49h28"/><path d="M32 8v7M12 19l6 4M52 19l-6 4M8 34h7M49 34h7"/></svg>
       </span><span>SOS</span>
-    </button>
-    <button type="button" class="home-quick-card" data-home-view="polls">
-      <span class="home-quick-icon" aria-hidden="true">
-        <svg viewBox="0 0 64 64"><path d="M13 52V37h10v15M27 52V27h10v25M41 52V15h10v37M9 52h46"/></svg>
-      </span><span>Encuestas</span>
     </button>
   </div>
   <div class="home-voice-area">
@@ -581,8 +576,7 @@ const menuDefinitions = [
   ["control", "Inicio", "🏠"],
   ["bookings", "Agenda", "📅"],
   ["reports", "Reportes", "📝"],
-  ["wall", "Muro digital", "📢"],
-  ["polls", "Encuestas", "📊"],
+  ["community-hub", "Comunidad y encuestas", "👥"],
   ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
   ["admins", "Administradores", "🛡️"],
@@ -596,7 +590,7 @@ const menuDefinitions = [
 const matrixViewMap={control:"access",access:"access",bookings:"bookings",reports:"reports",wall:"wall",polls:"polls",panic:"sos",history:"history",temporary:"temporary",voice:"voice"};
 function matrixViewId(view,role=currentRole){if(view==="control"&&role==="user")return null;return matrixViewMap[view]||null;}
 function matrixEntry(view,role=currentRole){const id=matrixViewId(view,role);return id&&currentMatrix?.modules?.find(item=>item.id===id);}
-function matrixAllowed(view,role=currentRole){const item=matrixEntry(view,role);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
+function matrixAllowed(view,role=currentRole){if(view==="community-hub")return matrixAllowed("wall",role)||matrixAllowed("polls",role);const item=matrixEntry(view,role);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
 function matrixLabel(view,fallback,role=currentRole){return matrixEntry(view,role)?.label||fallback;}
 function applyMatrixPresentation(){
   if(!currentMatrix)return;
@@ -617,7 +611,7 @@ function buildMenu() {
   // y /#voice. Conservar la ruta al cargar la app, no caer en control vacío.
   const directViews={access:'access','access-settings':'access-settings',
     temporary:'temporary',bookings:'bookings',voice:'voice',history:'history',
-    reports:'reports',reportes:'reports',wall:'wall',polls:'polls',
+    reports:'reports',reportes:'reports',wall:'wall',polls:'polls','community-hub':'community-hub',
     panic:'panic',settings:'settings',users:'users',admins:'admins'};
   if(currentRole==='admin'&&directViews[masterRoute]){
     showView(directViews[masterRoute]);return;
@@ -636,6 +630,7 @@ function buildMenu() {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.view = id;
+    if(id==="community-hub")button.dataset.communityPending="all";
     button.innerHTML = `<span class="menu-icon" aria-hidden="true">${icon}</span><span class="menu-label">${matrixLabel(id,label)}</span>`;
     button.addEventListener("click", () => showView(id));
     mainMenu.append(button);
@@ -649,10 +644,10 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
-  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',panic:'panic',wall:'wall',polls:'polls'};
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',panic:'panic',wall:'wall',polls:'polls','community-hub':'community-hub'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
   if(currentRole!=='super_master'&&masterRoute==='settings'){showView('settings');return;}
-  if(["wall","polls"].includes(masterRoute)){showView(masterRoute);return;}
+  if(["wall","polls","community-hub"].includes(masterRoute)){showView(masterRoute);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
   );
@@ -711,7 +706,7 @@ function prepareFunctionScreen(view) {
 function showView(view) {
   if(view==="access-settings"&&currentRole!=="admin")view="access";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
-  if(statusReady&&currentRole!=="super_master"&&matrixViewId(view,currentRole)&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
+  if(statusReady&&currentRole!=="super_master"&&(view==="community-hub"||matrixViewId(view,currentRole))&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   currentView = view;
   syncAccessBrand(view);
@@ -779,6 +774,10 @@ function showView(view) {
   if (view === "database") loadDatabaseSummary();
   if (view === "system") loadSystemSummary();
 }
+window.addEventListener("ayn-community-open", event => {
+  const section=event.detail?.view;
+  if(["wall","polls","community-hub"].includes(section))showView(section);
+});
 const recoveryPanel = document.createElement("section");
 recoveryPanel.className = "menu-panel";
 recoveryPanel.hidden = true;

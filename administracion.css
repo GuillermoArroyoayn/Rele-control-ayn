@@ -529,3 +529,8 @@ body[data-admin-view="equipment"] #groupLabel{display:none!important}
   .relay-center-actions{grid-template-columns:1fr 1fr}
   .relay-center-actions select{grid-column:1/-1;width:100%}
 }
+
+
+/* v148 · Evita selección accidental de texto en la barra superior móvil */
+#panelToolbar,#panelToolbar *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+#viewTitle{cursor:default}

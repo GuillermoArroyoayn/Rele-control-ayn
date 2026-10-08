@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v147-relay-center";
+const CACHE = "reles-ayn-v148-toolbar-selection";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -27,7 +27,7 @@ const ASSETS = [
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-relays147",
+  "/administracion.css?v=20261008-toolbar148",
   "/administracion.js?v=20261008-relays147",
   "/administracion-voice.js?v=20261006-voice118"
 ];

@@ -16,6 +16,11 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      if(invitation.role==='admin'){
+        const target=await Matrix.getPublished(invitation.groupId);
+        if(!target||target.status==='deleted')
+          throw A.error('La carpeta del administrador fue eliminada. Solicita una nueva invitación.',410);
+      }
       // Las invitaciones del Constructor pueden ser canceladas por el Máster:
       // el enlace antiguo no puede recrear una carpeta eliminada.
       if(invitation.stagedAdmin){

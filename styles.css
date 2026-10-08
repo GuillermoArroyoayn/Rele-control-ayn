@@ -1625,3 +1625,46 @@ html body .access-controls-page .access-actuator-status{
 @media(prefers-reduced-motion:reduce){
   .access-controls-page .access-button-card.activation-pending .access-power-symbol{animation:none}
 }
+
+/* v182 · Portada usuario: micrófono independiente de tarjetas, sin leyenda visible.
+   El estado se conserva para lectores de pantalla, sin ocupar espacio de diseño. */
+body.user-layout[data-user-view="control"] .home-dashboard .home-voice-text{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;
+  border:0!important;white-space:nowrap!important;
+}
+body.user-layout[data-user-view="control"] .home-dashboard .home-voice-area{
+  display:flex!important;position:relative!important;inset:auto!important;
+  flex:0 0 auto!important;align-self:center!important;justify-content:center!important;
+  align-items:center!important;width:100%!important;max-width:100%;
+  height:auto!important;min-height:clamp(102px,12dvh,132px);
+  margin:clamp(20px,2.8dvh,32px) auto 0!important;
+  padding:0 0 12px!important;box-sizing:border-box!important;
+  transform:none!important;overflow:visible!important;
+}
+body.user-layout[data-user-view="control"] .home-dashboard .home-voice-button{
+  display:flex!important;position:relative!important;inset:auto!important;
+  align-items:center!important;justify-content:center!important;
+  width:min(100%,360px)!important;max-width:100%;
+  height:clamp(88px,11dvh,118px)!important;min-height:0!important;
+  margin:0 auto!important;padding:0!important;
+  flex:0 1 auto;box-sizing:border-box!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  transform:none!important;touch-action:manipulation;
+}
+body.user-layout[data-user-view="control"] .home-dashboard .home-voice-button:focus:not(:focus-visible){
+  outline:none!important;
+}
+body.user-layout[data-user-view="control"] .home-dashboard .home-voice-button:focus-visible{
+  outline:2px solid var(--theme-accent,#67dcff);outline-offset:3px;
+  border-radius:80px;
+}
+@media(max-width:719px){
+  body.user-layout[data-user-view="control"] .home-dashboard:not([hidden]){
+    justify-content:flex-start;
+  }
+  body.user-layout[data-user-view="control"] .app{
+    padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+  }
+}

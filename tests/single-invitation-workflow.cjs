@@ -16,8 +16,9 @@ assert(api.includes("if(b.action==='prepareAdmin')")&&api.includes("if(b.action=
 assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
 assert(api.includes("A.manager(auth)"));
 assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
-assert(sw.includes('/app.js?v=20261008-adminroutes185'));
+assert.match(sw,/const CACHE\\s*=\\s*["']reles-ayn-v\\d+-[^"']+["']/,'La PWA debe definir una versión válida de caché');
+const appAsset=sw.match(/["'](\\/app\\.js\\?v=[^"']+)["']/);
+assert(appAsset,'La PWA debe incluir el archivo principal actualizado');
 assert(!sw.includes('/share.css?'));
-assert(index.includes('/app.js?v=20261008-adminroutes185'));
+assert(index.includes(appAsset[1]),'La portada debe cargar la misma versión de app.js que la PWA');
 console.log('Invitación única por administración conservada; Compartir aplicación duplicado eliminado; PWA verificada.');

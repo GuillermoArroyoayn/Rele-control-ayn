@@ -8,7 +8,7 @@
   let previousFocused=null,initialized=false,firstLoad=true,activeView='new';
   const soundEnabled=()=>localStorage.getItem(SOUND)!=='off';
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
-  const sorted=records=>[...records].sort((a,b)=>(CRITICAL.has(b.kind)?1:0)-(CRITICAL.has(a.kind)?1:0)||eventTime(b.createdAt)-eventTime(a.createdAt));
+  const sorted=records=>[...records].sort((a,b)=>(isEmergency(b)?1:0)-(isEmergency(a)?1:0)||eventTime(b.createdAt)-eventTime(a.createdAt));
   const fresh=()=>items.filter(e=>!seen.has(e.id) && !e.isOwn);
   const isCancelled=e=>e?.kind==='sos'&&items.some(x=>x.kind==='sos-cancelled'&&x.id==='sos-cancelled-'+e.id.slice(4));
   const isEmergency=e=>CRITICAL.has(e?.kind)&&!isCancelled(e)&&(!e.expiresAt||eventTime(e.expiresAt)>Date.now());

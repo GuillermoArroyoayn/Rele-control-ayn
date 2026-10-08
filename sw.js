@@ -1,10 +1,10 @@
-const CACHE = "reles-ayn-v190-exact-screen-labels";
+const CACHE = "reles-ayn-v191-no-emergency-labels";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
   "/community-indicators.js?v=20261008-audience189",
-  "/information.js?v=20261008-labels190",
-  "/information.css?v=20261008-audience189",
+  "/information.js?v=20261008-cards191",
+  "/information.css?v=20261008-cards191",
   "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
   "/index.html",

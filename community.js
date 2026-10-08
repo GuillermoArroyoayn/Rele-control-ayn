@@ -1,9 +1,9 @@
 (() => {
   const anchor=document.getElementById('reportsPanel');if(!anchor)return;
   const panel=document.createElement('section');panel.id='communityPanel';panel.className='community-panel';panel.hidden=true;anchor.after(panel);
-  panel.innerHTML='<h2 id="communityTitle">Muro digital</h2><label id="communityGroupLabel" hidden>Administración<select id="communityGroup"></select></label><p>Publicaciones exclusivas de esta administración. Las encuestas son consultas informativas.</p><form id="communityForm" hidden><h3>Nueva publicación</h3><label>Tipo<select id="communityType"><option value="notice">Aviso</option><option value="emergency">Emergencia</option><option value="poll">Encuesta</option></select></label><label>Título<input id="communityHeading" maxlength="120" required></label><label>Mensaje<textarea id="communityText" maxlength="3000" rows="4" required></textarea></label><label>Foto opcional<input id="communityPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><fieldset id="communityPollFields" hidden><legend>Encuesta</legend><label>Alternativas (una por línea, entre 2 y 6)<textarea id="communityOptions" rows="4"></textarea></label><label>Fecha y hora de cierre<input id="communityClose" type="datetime-local"></label><p>Una respuesta por usuario; los resultados se muestran a esta administración sin identificar votantes.</p></fieldset><button id="communityPublish">Publicar</button></form><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityRefresh" type="button">Actualizar</button><p>Se conservan hasta 90 días y las últimas 100 publicaciones por administración.</p><div id="communityList"></div>';
+  panel.innerHTML='<h2 id="communityTitle">Muro informativo</h2><label id="communityGroupLabel" hidden>Administración<select id="communityGroup"></select></label><p>Publicaciones exclusivas de esta administración. Las encuestas son consultas informativas.</p><form id="communityForm" hidden><h3>Nueva publicación</h3><label>Tipo<select id="communityType"><option value="notice">Aviso</option><option value="poll">Encuesta</option></select></label><label>Título<input id="communityHeading" maxlength="120" required></label><label>Mensaje<textarea id="communityText" maxlength="3000" rows="4" required></textarea></label><label>Foto opcional<input id="communityPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><fieldset id="communityPollFields" hidden><legend>Encuesta</legend><label>Alternativas (una por línea, entre 2 y 6)<textarea id="communityOptions" rows="4"></textarea></label><label>Fecha y hora de cierre<input id="communityClose" type="datetime-local"></label><p>Una respuesta por usuario; los resultados se muestran a esta administración sin identificar votantes.</p></fieldset><button id="communityPublish">Publicar</button></form><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityRefresh" type="button">Actualizar</button><p>Se conservan hasta 90 días y las últimas 100 publicaciones por administración.</p><div id="communityList"></div>';
   const hub=document.createElement('section');hub.id='communityHub';hub.className='community-panel community-hub-panel';hub.hidden=true;
-  hub.innerHTML='<h2>Comunidad y encuestas</h2><p>Selecciona lo que deseas revisar. Los iconos se iluminan en rojo cuando hay novedades o encuestas sin responder.</p><div class="community-hub-grid"><button type="button" class="community-hub-option" data-community-section="wall" data-community-pending="wall"><span class="community-hub-icon" aria-hidden="true">👥</span><strong>Comunidad</strong><small>Avisos y emergencias</small></button><button type="button" class="community-hub-option" data-community-section="polls" data-community-pending="polls"><span class="community-hub-icon" aria-hidden="true">📊</span><strong>Encuestas</strong><small>Votaciones y resultados</small></button></div>';
+  hub.innerHTML='<h2>Muro informativo</h2><p>Selecciona lo que deseas revisar. Los iconos se iluminan en rojo cuando hay novedades o encuestas sin responder.</p><div class="community-hub-grid"><button type="button" class="community-hub-option" data-community-section="wall" data-community-pending="wall"><span class="community-hub-icon" aria-hidden="true">👥</span><strong>Avisos</strong><small>Información para la comunidad</small></button><button type="button" class="community-hub-option" data-community-section="polls" data-community-pending="polls"><span class="community-hub-icon" aria-hidden="true">📊</span><strong>Encuestas</strong><small>Votaciones y resultados</small></button></div>';
   panel.after(hub);
   hub.querySelectorAll('[data-community-section]').forEach(button=>button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('ayn-community-open',{detail:{view:button.dataset.communitySection}}))));
   const $=id=>panel.querySelector('#'+id),node=(tag,text)=>{const el=document.createElement(tag);el.textContent=text;return el;};
@@ -19,7 +19,7 @@
   }
   function render(items){
     const list=$('communityList');list.replaceChildren();
-    for(const item of items.filter(x=>view==='polls'?x.type==='poll':x.type!=='poll').sort((a,b)=>(b.type==='emergency')-(a.type==='emergency')||Date.parse(b.createdAt)-Date.parse(a.createdAt))){
+    for(const item of items.filter(x=>view==='polls'?x.type==='poll':x.type==='notice').sort((a,b)=>(b.type==='emergency')-(a.type==='emergency')||Date.parse(b.createdAt)-Date.parse(a.createdAt))){
       const card=node('article','');card.className='community-card '+item.type;
       card.append(node('small',({notice:'📢 Aviso',emergency:'🚨 Emergencia',poll:'📊 Encuesta'})[item.type]),node('h3',item.title),node('p',item.text),node('small',item.author+' · '+new Date(item.createdAt).toLocaleString('es-CL')));
       if(item.hasPhoto){const button=node('button','Ver foto');button.type='button';button.onclick=async()=>{button.disabled=true;try{const blob=await api(null,groupId,item.id);if(!card.isConnected)return;const img=document.createElement('img');img.alt='Foto de la publicación';const url=URL.createObjectURL(blob);img.onload=()=>URL.revokeObjectURL(url);img.onerror=()=>URL.revokeObjectURL(url);img.src=url;card.append(img);button.remove();}catch(e){status(e.message);button.disabled=false;}};card.append(button);}
@@ -42,9 +42,8 @@
       render(data.items);
       window.AynCommunityAlerts?.update(data);
       if(view==='wall'&&!panel.hidden)window.AynCommunityAlerts?.markRead('wall',groupId,data.items);
-      const latest=data.items.filter(x=>x.type==='emergency').sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt))[0];
-      banner.hidden=!latest||localStorage.getItem('aynCommunitySeen:'+groupId)===latest.id||!panel.hidden;
-      if(latest){banner.textContent='🚨 Aviso de emergencia: '+latest.title;banner.onclick=()=>{localStorage.setItem('aynCommunitySeen:'+groupId,latest.id);window.dispatchEvent(new CustomEvent('ayn-community-open',{detail:{view:'wall'}}));banner.hidden=true;};}
+      // Las emergencias se entregan sólo por la bandeja privada de administración.
+      banner.hidden=true;
     }catch(e){$('communityList').replaceChildren();banner.hidden=true;if(!panel.hidden)status(e.message);}finally{loading=false;}
   }
   function menu(){queueMicrotask(()=>{
@@ -55,7 +54,7 @@
     panel.hidden=!['wall','polls'].includes(next);
     if(!panel.hidden){
       view=next;
-      $('communityTitle').textContent=view==='polls'?'Encuestas':'Comunidad';
+      $('communityTitle').textContent=view==='polls'?'Encuestas':'Muro informativo';
       const type=$('communityType'),poll=type.querySelector('option[value="poll"]');
       poll.hidden=view!=='polls';
       type.closest('label').hidden=view==='polls';

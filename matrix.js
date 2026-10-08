@@ -29,9 +29,9 @@ function moduleRow(item){
   const enabled=check(item.enabled,'Activa'),admin=check(item.adminVisible,'Administrador'),user=check(item.userVisible,'Usuario'),order=number(item.order);
   enabled.dataset.field='enabled';admin.dataset.field='adminVisible';user.dataset.field='userVisible';order.dataset.field='order';label.dataset.field='label';
   if(item.id==='users'){
-    enabled.checked=true;admin.checked=true;user.checked=false;
-    enabled.disabled=true;admin.disabled=true;user.disabled=true;
-    row.title='Función obligatoria para cuentas Administrador';
+    user.checked=false;user.disabled=true;
+    user.refreshAppearance?.();
+    row.title='Función exclusiva del administrador. El Máster puede activarla o desactivarla.';
   }
   row.append(label,enabled.toggleWrapper,admin.toggleWrapper,user.toggleWrapper,order);
   return row;
@@ -122,10 +122,6 @@ function togglePreviewDesignation(itemId){
   if(!group||group.status==='deleted')return;
   const row=[...$('modules').children,...$('actuators').children].find(node=>node.dataset.id===itemId);
   if(!row)return;
-  if(itemId==='users'){
-    message('Incorporar usuarios es obligatorio para los administradores y no puede desactivarse.');
-    return;
-  }
   const enabled=row.querySelector('[data-field="enabled"]');
   const allowed=row.querySelector('[data-field="'+(previewRole==='user'?'userVisible':'adminVisible')+'"]');
   if(!enabled||!allowed||allowed.disabled)return;
@@ -148,20 +144,19 @@ function renderPreview(){
   const total=items.length,active=items.filter(item=>item.enabled&&item[key]).length;
   $('previewCount').textContent=active+' de '+total+' funciones seleccionadas';
   $('previewHelp').textContent=previewRole==='admin'?
-    'Toca las tarjetas para activar o quitar funciones del administrador. “Incorporar usuarios” es obligatoria.':
+    'Toca cada tarjeta para elegir exactamente qué funciones tendrá este administrador.':
     'Toca las tarjetas para elegir las funciones que verá cada usuario de esta comunidad.';
   $('preview').replaceChildren();
   $('preview').append(el('div',config.branding.communityName||config.branding.appName,'preview-title'));
   const grid=el('div',undefined,'preview-grid');
   for(const item of items){
     const isSelected=Boolean(item.enabled&&item[key]);
-    const required=previewRole==='admin'&&item.id==='users';
     const card=el('button',undefined,'preview-item');
     card.type='button';card.dataset.id=item.id;
     card.setAttribute('aria-pressed',String(isSelected));
-    card.setAttribute('aria-label',item.label+': '+(required?'obligatoria':isSelected?'seleccionada':'no seleccionada'));
-    card.append(el('strong',item.label),el('span',required?'✓ Obligatoria':isSelected?'✓ Seleccionado':'○ No seleccionado','preview-item-state'));
-    card.disabled=required||selected()?.status==='deleted';
+    card.setAttribute('aria-label',item.label+': '+(isSelected?'seleccionada':'no seleccionada'));
+    card.append(el('strong',item.label),el('span',isSelected?'✓ Seleccionado':'○ No seleccionado','preview-item-state'));
+    card.disabled=selected()?.status==='deleted';
     if(!card.disabled)card.addEventListener('click',()=>togglePreviewDesignation(item.id));
     grid.append(card);
   }

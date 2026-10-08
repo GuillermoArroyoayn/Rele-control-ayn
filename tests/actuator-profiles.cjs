@@ -17,7 +17,7 @@ const store=new Map(),A={
  }
 };
 const T={originalSeconds:async()=>4,originalInfo:async()=>({timer:null})},m={exports:{}};
-vm.runInNewContext(fs.readFileSync('lib/actuator-profiles.js','utf8'),{module:m,require:x=>x.endsWith('administrations')?A:T,Date});
+vm.runInNewContext(fs.readFileSync('lib/actuator-profiles.js','utf8'),{module:m,require:x=>x.endsWith('administrations')?A:x.includes('ain-voice-phrases')?{phrases:[{phrase:'actuador 1'},{phrase:'portón'},{phrase:'abrir portón'}]}:T,Date});
 const Profiles=m.exports;
 const adminA={role:'admin',groupId:'group-a',allowedRelays:[1],device:{actuatorIds:[]}};
 const adminB={role:'admin',groupId:'group-b',allowedRelays:[2],device:{actuatorIds:[]}};
@@ -34,7 +34,8 @@ const managedId='managed-00000000-0000-0000-0000-000000000001';
  await assert.rejects(Profiles.save(userA,{id:'original-1',name:'Puerta',mode:'manual'}),/Solo el administrador/);
  await assert.rejects(Profiles.save(adminB,{id:managedId,name:'Quincho',mode:'manual'}),/no autorizado/);
  await assert.rejects(Profiles.save(adminA,{id:managedId,name:'Quincho',voiceName:'Portón principal',mode:'manual'}),/Ya existe/);
- await assert.rejects(Profiles.save(adminA,{id:'original-1',name:'Portón',voiceName:'inicio',mode:'manual'}),/específico/);
+ await assert.rejects(Profiles.save(adminA,{id:'original-1',name:'Portón',voiceName:'inicio',mode:'manual'}),/único/);
+ await assert.rejects(Profiles.save(adminA,{id:managedId,name:'Quincho',voiceName:'Actuador 1',mode:'manual'}),/único/);
  await assert.rejects(Profiles.save(adminA,{id:'original-1',name:'Portón',mode:'timer',seconds:120}),/no compatible/);
  const managed=await Profiles.save(adminA,{id:managedId,name:'Quincho',voiceName:'Luz quincho',mode:'manual',seconds:0});
  assert.equal(managed.seconds,0);

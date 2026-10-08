@@ -10,7 +10,8 @@
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
   const sorted=records=>[...records].sort((a,b)=>(CRITICAL.has(b.kind)?1:0)-(CRITICAL.has(a.kind)?1:0)||eventTime(b.createdAt)-eventTime(a.createdAt));
   const fresh=()=>items.filter(e=>!seen.has(e.id) && !e.isOwn);
-  const critical=()=>fresh().some(e=>CRITICAL.has(e.kind));
+  const isEmergency=e=>CRITICAL.has(e?.kind)&&(!e.expiresAt||eventTime(e.expiresAt)>Date.now());
+  const critical=()=>fresh().some(isEmergency);
   const isCall=()=>Boolean(window.AynCallPriority?.isPhoneCallActive?.());
   const el=(tag,className='',value='')=>{const node=document.createElement(tag);node.className=className;if(value)node.textContent=value;return node;};
   const mask=el('div','ayn-info-mask');mask.hidden=true;
@@ -61,7 +62,7 @@
     previousFocused=document.activeElement;opened=true;mask.hidden=false;document.body.classList.add('ayn-info-dialog-open');close.focus();
   };
   function card(item,withActions=false){
-    const urgent=CRITICAL.has(item.kind),div=el('article','ayn-info-message'+(urgent?' urgent':''));
+    const urgent=isEmergency(item),div=el('article','ayn-info-message'+(urgent?' urgent':''));
     const kind=el('strong','ayn-info-type',(urgent?'🚨 ':'')+(TYPES[item.kind]||'Información'));
     const title=el('h3','',item.title||'Información');
     const detail=el('p','',item.message||'');
@@ -85,7 +86,7 @@
   }
   function renderNew(item){
     activeView='new';dialogItem=item;body.replaceChildren(card(item));
-    const urgent=CRITICAL.has(item.kind);
+    const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
     heading.textContent=urgent?'Emergencia':'Información';
     symbol.textContent=urgent?'🚨':'ℹ️';
@@ -121,7 +122,7 @@
   function chime(item){
     if(!soundEnabled()||document.hidden||isCall()||document.body.classList.contains('panic-screen-open'))return;
     if(!soundContext||soundContext.state!=='running')return;
-    const urgent=CRITICAL.has(item.kind);
+    const urgent=isEmergency(item);
     const pattern=urgent?[880,660,880,660]:[740,880];
     try{
       for(let i=0;i<pattern.length;i++){
@@ -140,7 +141,7 @@
     if(!unread.length||document.hidden||document.body.classList.contains('panic-screen-open'))return;
     const current=sorted(unread)[0];if(!current)return;
     if(!opened){renderNew(current);chime(current);return;}
-    if(activeView==='new'&&dialogItem?.id!==current.id&&CRITICAL.has(current.kind)&&!CRITICAL.has(dialogItem?.kind)){
+    if(activeView==='new'&&dialogItem?.id!==current.id&&isEmergency(current)&&!isEmergency(dialogItem)){
       renderNew(current);chime(current);
     }
   }
@@ -209,7 +210,8 @@
   document.addEventListener('ayn-access-restricted',()=>{items=[];paint();hide();});
   document.addEventListener('ayn-menu-view',()=>{installHomeButtons();});
   window.addEventListener('pageshow',()=>refresh());
+  navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='AYN_OPEN_INFORMATION'){refresh();openInbox();}});
   window.addEventListener('ayn:information:refresh',()=>refresh());
   window.AynInformation=Object.freeze({refresh,openInbox});
-  installHomeButtons();refresh();setInterval(refresh,8000);
+  installHomeButtons();refresh();if(location.hash==='#information')openInbox();setInterval(refresh,8000);
 })();

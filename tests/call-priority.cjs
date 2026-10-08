@@ -55,5 +55,5 @@ for(const html of [index,adminHtml]){
 }
 assert(!source.includes("document.createElement('button')"));
 assert(!sw.includes('/ayn-call-priority.css'));
-assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
+assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
 console.log('Prioridad telefónica v181: sin flotante, modo persistente, pausa/reanudación nativa y fallback seguro OK.');

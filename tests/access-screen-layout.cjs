@@ -12,7 +12,8 @@ assert(app.includes('access:accessSettingsPanel'),'Accesos utiliza la ventana qu
 assert(app.includes('accessSettingsPanel.prepend(managedAccessPanel)'),'Controles montados en ventana compartida');
 assert(app.includes("Promise.allSettled("),'No ocultar originales por fallo de otro catálogo');
 assert(app.includes("lastKnownAccessStatus=data"),'Conservar permisos autenticados de la sesión');
-assert(app.includes("if(currentRole==='admin'&&['access','access-settings'].includes(masterRoute))"),'Abrir ajustes desde la administración');
+assert(app.includes("if(currentRole==='admin'&&directViews[masterRoute])"),'Abrir ajustes y herramientas desde administración');
+assert(app.includes("access:'access','access-settings':'access-settings'"),'Conservar rutas de acceso y configuración');
 assert(app.includes("currentRole!=='admin'"),'El administrador debe ser quien configure');
 assert(app.includes('syncAccessBrand(view)'),'Usar el logo original en pantalla de acceso');
 assert(app.includes('if(managedAccessVisible||view==="access-settings")loadManagedAccess()'),'Ajustes guardados disponibles al navegar');
@@ -23,6 +24,6 @@ assert(app.includes("accessSettingsGrid.append(card)"),'Formulario fuera de los 
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'Configuración no debe quedar en tarjeta operativa');
 assert(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Distribución equilibrada');
 assert(styles.includes('.access-brand-slot .home-logo'),'Logo A&N en accesos');
-assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
-assert(html.includes('/styles.css?v=20261008-mic182')&&html.includes('/app.js?v=20261008-voice181'));
+assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
+assert(html.includes('/styles.css?v=20261008-adminroutes185')&&html.includes('/app.js?v=20261008-adminroutes185'));
 console.log('Accesos v166: logo original, botón único, menú independiente, permisos, modo manual/temporizador y diseño adaptable.');

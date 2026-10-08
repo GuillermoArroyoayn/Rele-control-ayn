@@ -41,16 +41,16 @@ const push=mocked('lib/panic-push.js',{'./administrations':A,'web-push':webpush}
 const feed=mocked('lib/information-feed.js',{'./administrations':A,'./panic-push':push});
 (async()=>{
  const list=async id=>(await feed.read(auth(id))).items;
- assert.deepEqual((await list('userA')).map(x=>x.kind).sort(),['notice','poll']);
- assert.deepEqual((await list('userB')).map(x=>x.kind),['notice']);
- assert.deepEqual((await list('adminA')).map(x=>x.kind).sort(),['emergency','notice','poll','report','sos']);
- assert.deepEqual((await list('master')).map(x=>x.kind).sort(),['emergency','report','report','sos']);
+ assert.deepEqual([...(await list('userA')).map(x=>x.kind)].sort(),['notice','poll']);
+ assert.deepEqual([...(await list('userB')).map(x=>x.kind)],['notice']);
+ assert.deepEqual([...(await list('adminA')).map(x=>x.kind)].sort(),['emergency','notice','poll','report','sos']);
+ assert.deepEqual([...(await list('master')).map(x=>x.kind)].sort(),['emergency','report','report','sos']);
  const subscriptions=()=>sent.splice(0).map(x=>x.recipient).sort();
  await push.sendInformation(records[0],auth('adminA'));
  assert.deepEqual(subscriptions(),['adminA','userA']);
  await push.sendInformation(records[2],auth('userA'));
  assert.deepEqual(subscriptions(),['adminA','master']);
- await push.sendInformation(records[4],auth('adminA'));
+ await push.sendInformation({...records[4],creator:'adminA'},auth('adminA'));
  assert.deepEqual(subscriptions(),['master']);
  await push.send({groupId:'A',creator:'userA',id:'abcd',name:'A',apartment:'201',expiresAt:new Date(Date.now()+120000).toISOString()},auth('userA'));
  assert.deepEqual(subscriptions(),['adminA','master']);

@@ -2,9 +2,13 @@
   const anchor=document.getElementById('reportsPanel');if(!anchor)return;
   const panel=document.createElement('section');panel.id='communityPanel';panel.className='community-panel';panel.hidden=true;anchor.after(panel);
   panel.innerHTML='<h2 id="communityTitle">Muro digital</h2><label id="communityGroupLabel" hidden>Administración<select id="communityGroup"></select></label><p>Publicaciones exclusivas de esta administración. Las encuestas son consultas informativas.</p><form id="communityForm" hidden><h3>Nueva publicación</h3><label>Tipo<select id="communityType"><option value="notice">Aviso</option><option value="emergency">Emergencia</option><option value="poll">Encuesta</option></select></label><label>Título<input id="communityHeading" maxlength="120" required></label><label>Mensaje<textarea id="communityText" maxlength="3000" rows="4" required></textarea></label><label>Foto opcional<input id="communityPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><fieldset id="communityPollFields" hidden><legend>Encuesta</legend><label>Alternativas (una por línea, entre 2 y 6)<textarea id="communityOptions" rows="4"></textarea></label><label>Fecha y hora de cierre<input id="communityClose" type="datetime-local"></label><p>Una respuesta por usuario; los resultados se muestran a esta administración sin identificar votantes.</p></fieldset><button id="communityPublish">Publicar</button></form><p id="communityStatus" role="status" aria-live="polite"></p><button id="communityRefresh" type="button">Actualizar</button><p>Se conservan hasta 90 días y las últimas 100 publicaciones por administración.</p><div id="communityList"></div>';
+  const hub=document.createElement('section');hub.id='communityHub';hub.className='community-panel community-hub-panel';hub.hidden=true;
+  hub.innerHTML='<h2>Comunidad y encuestas</h2><p>Selecciona lo que deseas revisar. Los iconos se iluminan en rojo cuando hay novedades o encuestas sin responder.</p><div class="community-hub-grid"><button type="button" class="community-hub-option" data-community-section="wall" data-community-pending="wall"><span class="community-hub-icon" aria-hidden="true">👥</span><strong>Comunidad</strong><small>Avisos y emergencias</small></button><button type="button" class="community-hub-option" data-community-section="polls" data-community-pending="polls"><span class="community-hub-icon" aria-hidden="true">📊</span><strong>Encuestas</strong><small>Votaciones y resultados</small></button></div>';
+  panel.after(hub);
+  hub.querySelectorAll('[data-community-section]').forEach(button=>button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('ayn-community-open',{detail:{view:button.dataset.communitySection}}))));
   const $=id=>panel.querySelector('#'+id),node=(tag,text)=>{const el=document.createElement(tag);el.textContent=text;return el;};
   const banner=node('button','');banner.type='button';banner.className='community-alert';banner.hidden=true;banner.setAttribute('aria-live','polite');document.querySelector('main')?.prepend(banner);
-  let role='user',groupId='',view='wall',loading=false,sending=false,requestId=null,photo='',processing=false,photoGeneration=0;
+  let role='user',groupId=(localStorage.getItem('aynLastRole')==='super_master'?sessionStorage.getItem('aynCommunityActiveGroup')||'':''),view='wall',loading=false,sending=false,requestId=null,photo='',processing=false,photoGeneration=0;
   const status=text=>$('communityStatus').textContent=text;
   async function api(body,group=groupId,photoId=''){
     const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'',id=localStorage.getItem('relayDeviceId');
@@ -36,15 +40,32 @@
       const select=$('communityGroup');select.replaceChildren();for(const g of data.groups){const option=node('option',g.name);option.value=g.id;select.append(option);}select.value=groupId;
       $('communityGroupLabel').hidden=role!=='super_master';$('communityForm').hidden=!['admin','super_master'].includes(role);
       render(data.items);
+      window.AynCommunityAlerts?.update(data);
+      if(view==='wall'&&!panel.hidden)window.AynCommunityAlerts?.markRead('wall',groupId,data.items);
       const latest=data.items.filter(x=>x.type==='emergency').sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt))[0];
       banner.hidden=!latest||localStorage.getItem('aynCommunitySeen:'+groupId)===latest.id||!panel.hidden;
-      if(latest){banner.textContent='🚨 Aviso de emergencia: '+latest.title;banner.onclick=()=>{localStorage.setItem('aynCommunitySeen:'+groupId,latest.id);document.querySelector('[data-view="wall"]')?.click();banner.hidden=true;};}
+      if(latest){banner.textContent='🚨 Aviso de emergencia: '+latest.title;banner.onclick=()=>{localStorage.setItem('aynCommunitySeen:'+groupId,latest.id);window.dispatchEvent(new CustomEvent('ayn-community-open',{detail:{view:'wall'}}));banner.hidden=true;};}
     }catch(e){$('communityList').replaceChildren();banner.hidden=true;if(!panel.hidden)status(e.message);}finally{loading=false;}
   }
-  function menu(){queueMicrotask(()=>{const next=document.body.dataset.userView;panel.hidden=!['wall','polls'].includes(next);if(!panel.hidden){view=next;$('communityTitle').textContent=view==='polls'?'Encuestas':'Muro digital';$('communityType').value=view==='polls'?'poll':'notice';fields();load();}});}
+  function menu(){queueMicrotask(()=>{
+    const next=document.body.dataset.userView;
+    hub.hidden=next!=='community-hub';
+    const visibility=window.AynCommunityVisibility;
+    for(const button of hub.querySelectorAll('[data-community-section]'))button.hidden=Boolean(visibility&&visibility[button.dataset.communitySection]===false);
+    panel.hidden=!['wall','polls'].includes(next);
+    if(!panel.hidden){
+      view=next;
+      $('communityTitle').textContent=view==='polls'?'Encuestas':'Comunidad';
+      const type=$('communityType'),poll=type.querySelector('option[value="poll"]');
+      poll.hidden=view!=='polls';
+      type.closest('label').hidden=view==='polls';
+      type.value=view==='polls'?'poll':'notice';
+      fields();load();
+    }
+  });}
   function fields(){$('communityPollFields').hidden=$('communityType').value!=='poll';}
   $('communityType').onchange=fields;
-  $('communityGroup').onchange=()=>{groupId=$('communityGroup').value;$('communityList').replaceChildren();banner.hidden=true;load();};
+  $('communityGroup').onchange=()=>{groupId=$('communityGroup').value;if(role==='super_master')sessionStorage.setItem('aynCommunityActiveGroup',groupId);$('communityList').replaceChildren();banner.hidden=true;load();};
   $('communityRefresh').onclick=load;
   $('communityForm').oninput=()=>{if(!sending)requestId=null;};
   $('communityPhoto').onchange=async()=>{
@@ -56,6 +77,6 @@
   $('communityForm').onsubmit=async e=>{e.preventDefault();if(sending||processing)return;sending=true;const controls=[...$('communityForm').querySelectorAll('input,select,textarea,button')];controls.forEach(x=>x.disabled=true);$('communityGroup').disabled=true;
     try{requestId=requestId||crypto.randomUUID();const close=$('communityClose').value;await api({action:'publish',requestId,type:$('communityType').value,title:$('communityHeading').value,text:$('communityText').value,photo,options:$('communityOptions').value.split('\n').filter(x=>x.trim()),closesAt:close?new Date(close).toISOString():null});status('Publicación guardada en esta administración.');requestId=null;photo='';$('communityHeading').value='';$('communityText').value='';$('communityPhoto').value='';await load();}catch(e){status(e.message);}finally{sending=false;controls.forEach(x=>x.disabled=false);$('communityGroup').disabled=false;}
   };
-  document.addEventListener('ayn-access-restricted',()=>{panel.hidden=true;banner.hidden=true;$('communityList').replaceChildren();});
+  document.addEventListener('ayn-access-restricted',()=>{hub.hidden=true;panel.hidden=true;banner.hidden=true;$('communityList').replaceChildren();});
   document.addEventListener('ayn-menu-view',menu);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});setInterval(load,30000);menu();load();
 })();

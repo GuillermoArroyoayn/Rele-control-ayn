@@ -1,0 +1,57 @@
+/* Gestión Máster de administradores, aislada de las pantallas de residentes. */
+#administrators .admin-folder.has-admin-config .admin-folder-actions button:not(.admin-config-trigger){display:none!important}
+#administrators .admin-folder .admin-config-trigger{
+  display:block!important;width:100%;min-height:44px!important;
+  color:#e9f8ff!important;border:1px solid #5bd7ff!important;
+  background:linear-gradient(110deg,#103f83,#087ac0)!important;
+  font-weight:800!important;box-shadow:0 0 12px #047de655;
+}
+.master-admin-open{overflow:hidden}
+.master-admin-overlay[hidden]{display:none!important}
+.master-admin-overlay{
+  position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top,12px) 10px env(safe-area-inset-bottom,12px);
+  background:rgba(0,9,25,.91);backdrop-filter:blur(7px);
+}
+.master-admin-panel{
+  box-sizing:border-box;max-width:640px;width:100%;max-height:96dvh;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:linear-gradient(145deg,#071932,#072450);
+  border:1px solid #53c9ff;border-radius:20px;color:#e5f6ff;
+  box-shadow:0 0 35px #0087ff77;
+}
+.master-admin-heading{padding:12px 16px;border-bottom:1px solid #3569a1}
+.master-admin-close{border:0!important;background:transparent!important;color:#d3efff!important;text-align:left;font-weight:700}
+.master-admin-content{overflow-y:auto;overscroll-behavior:contain;padding:18px;display:flex;flex-direction:column;gap:13px}
+.master-admin-content h2,.master-admin-content h3{margin:0;font-weight:800}
+.master-admin-content h2{font-size:22px;color:#fff}
+.master-admin-content h3{font-size:16px;margin-top:8px}
+.master-admin-subtitle{color:#b0d7f7;margin:0}
+.master-admin-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.master-admin-stat{background:#092d59;padding:12px;border:1px solid #346a9c;border-radius:12px;min-width:0}
+.master-admin-stat small{display:block;color:#aedcff;font-size:12px}
+.master-admin-stat strong{display:block;margin-top:4px;overflow-wrap:anywhere}
+.master-admin-modules{display:flex;flex-wrap:wrap;gap:8px}
+.master-admin-modules span{font-size:12px;padding:6px 9px;background:#0e4470;border:1px solid #397cbb;border-radius:20px}
+.master-admin-edit{display:block;color:#8ee8ff;text-decoration:underline;text-underline-offset:4px}
+.master-admin-actions,.master-admin-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.master-admin-action{margin:0!important;min-height:44px;padding:9px 11px!important;
+  background:#143c72!important;border:1px solid #3a8cc9!important;color:#eaf8ff!important;
+  border-radius:12px!important;font-weight:700!important;font-size:14px!important;white-space:normal;overflow-wrap:anywhere}
+.master-admin-action.primary{background:#0865aa!important;border-color:#64d5ff!important}
+.master-admin-action.danger{border-color:#bb6078!important;background:#56223d!important}
+.master-admin-action:disabled{opacity:.45}
+.master-admin-choices .master-admin-action{min-height:66px}
+.master-admin-replace-form{display:flex;flex-direction:column;gap:12px;padding:13px;border:1px solid #377aaa;border-radius:14px;background:#0a2a50}
+.master-admin-replace-form label{display:flex;flex-direction:column;gap:5px;font-weight:700}
+.master-admin-input{box-sizing:border-box;width:100%;min-height:44px;background:#071a32;color:#fff;border:1px solid #529bc7;border-radius:9px;padding:10px;font-size:16px}
+.master-admin-invite-result{display:flex;flex-direction:column;gap:10px;overflow-wrap:anywhere}
+.master-admin-invite-result a{color:#8ee8ff;text-decoration:underline}
+.master-admin-hint{font-size:13px;line-height:1.5;color:#c7e4fb}
+.master-admin-message{padding:9px 11px;border-left:3px solid #56dbff;background:#0b3862;border-radius:6px;margin:0}
+.master-admin-message[data-error="true"]{border-color:#ff8d99;background:#60293e}
+@media(max-width:400px){
+  .master-admin-stats{grid-template-columns:1fr 1fr}
+  .master-admin-actions,.master-admin-choices{grid-template-columns:1fr}
+  .master-admin-content{padding:12px}
+}

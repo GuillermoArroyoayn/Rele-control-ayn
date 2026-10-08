@@ -50,6 +50,6 @@ vm.runInNewContext(fs.readFileSync('ain-local-voice.js','utf8'),recognizerContex
  assert(!policy.shouldListen(),'Volver a abrir requiere nueva pulsación');
  assert(fs.readFileSync('app.js','utf8').includes('window.AynCallPriority.armFromGesture()'));
  assert(fs.readFileSync('administracion-voice.js','utf8').includes('window.AynCallPriority.armFromGesture()'));
- assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v176-call-safe'));
+ assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v177-master-admin-manager'));
  console.log('Android call safety OK: zero getUserMedia on open, focus, return or native call; explicit manual voice only.');
 })().catch(err=>{console.error(err);process.exitCode=1;});

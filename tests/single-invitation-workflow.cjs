@@ -15,7 +15,7 @@ assert(admin.includes('id="phone"')&&admin.includes('id="apartment"'));
 assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
 assert(api.includes("A.manager(auth)"));
 assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
-assert(sw.includes('reles-ayn-v176-call-safe'));
+assert(sw.includes('reles-ayn-v177-master-admin-manager'));
 assert(sw.includes('/app.js?v=20261008-phone176'));
 assert(!sw.includes('/share.css?'));
 assert(index.includes('/app.js?v=20261008-phone176'));

@@ -3,7 +3,7 @@ const M=require('../lib/app-matrix');
 const {addHistory}=require('../lib/history');
 
 function ownerFor(registry,groupId){
-  return Object.entries(registry.devices).find(([,item])=>item.role==='admin'&&item.groupId===groupId);
+  return Object.entries(registry.devices).find(([,item])=>item.role==='admin'&&item.groupId===groupId&&item.status==='active')||Object.entries(registry.devices).find(([,item])=>item.role==='admin'&&item.groupId===groupId);
 }
 function safeActuator(item){const {deviceId,...safe}=item;return safe;}
 async function validateActuators(groupId,config){

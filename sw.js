@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v176-call-safe";
+const CACHE = "reles-ayn-v177-master-admin-manager";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -32,6 +32,8 @@ const ASSETS = [
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-nav161",
   "/administracion.js?v=20261008-access167",
+  "/master-admin-manager.css?v=20261008-config180",
+  "/master-admin-manager.js?v=20261008-config180",
   "/relay-installer.js?v=20261008-compact160",
   "/actuator-voice.js?v=20261008-access165",
   "/administracion-voice.js?v=20261008-phone176"

@@ -55,5 +55,5 @@ for(const markup of [index,adminHtml]){
  assert(markup.includes('ayn-call-priority.js?v=20261008-phone176'));
  assert(markup.includes('ayn-call-priority.css?v=20261008-phone175'));
 }
-assert(sw.includes('reles-ayn-v176-call-safe'),'La actualización debe invalidar caché anterior');
+assert(sw.includes('reles-ayn-v177-master-admin-manager'),'La actualización debe invalidar caché anterior');
 console.log('Modo llamada: ocultamiento, liberación, controles, señal telefónica, reanudación y PWA OK.');

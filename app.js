@@ -1908,7 +1908,7 @@ async function loadDevices() {
 
         const permissions = document.createElement("div");
         permissions.className = "device-permissions";
-        for (const relay of [1, 2, 3]) {
+        for (const relay of (data.grantableRelays || [])) {
           const label = document.createElement("label");
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";

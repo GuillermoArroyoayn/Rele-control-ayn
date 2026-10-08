@@ -1,4 +1,4 @@
-const {authorize,writeRegistry:saveRegistry}=require("../lib/devices");
+const {authorize,writeRegistry:saveRegistry,configuredOriginalRelays}=require("../lib/devices");
 const {addHistory}=require('../lib/history');
 
 module.exports=async function handler(req,res){
@@ -9,17 +9,19 @@ module.exports=async function handler(req,res){
     const {registry}=auth;
     const writeRegistry=async registry=>{await saveRegistry(registry);const id=String(req.body?.deviceId||'');const target=registry.devices[id]||registry.revoked?.[id]||{};await addHistory({kind:'permissions',groupId:target.groupId||'master',userName:target.adminName||target.name||id,actor:auth.device.name,action:req.method==='DELETE'?'Acceso eliminado':req.body?.action==='restore'?'Acceso reincorporado':req.body?.status?'Estado: '+req.body.status:'Permisos actualizados',relays:target.relays||[],accessStartsAt:target.accessStartsAt||'',accessEndsAt:target.accessEndsAt||''}).catch(()=>{});};
     const isSuper=auth.role==="super_master";
+    const configured=isSuper?[1,2,3]:await configuredOriginalRelays(auth.groupId);
+    const grantableRelays=isSuper?[1,2,3]:auth.allowedRelays.filter(relay=>configured.includes(relay));
     const canManage=(id,item)=>isSuper||(item.role==="user"&&item.groupId===auth.groupId);
 
     if(req.method==="GET"){
       const activeDevices=Object.entries(registry.devices).filter(([id,item])=>isSuper||canManage(id,item)).map(([id,item])=>({
-        id,name:item.adminName||item.name,deviceName:item.name,adminName:item.adminName||"",phone:item.phone||"",role:id===registry.masterId?"super_master":item.role||"user",groupId:item.groupId||"",status:item.status,relays:item.relays,accessStartsAt:item.accessStartsAt||"",accessEndsAt:item.accessEndsAt||"",createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
+        id,name:item.adminName||item.name,deviceName:item.name,adminName:item.adminName||"",phone:item.phone||"",role:id===registry.masterId?"super_master":item.role||"user",groupId:item.groupId||"",status:item.status,relays:!isSuper&&item.role==='user'?(item.relays||[]).filter(relay=>grantableRelays.includes(relay)):item.relays,accessStartsAt:item.accessStartsAt||"",accessEndsAt:item.accessEndsAt||"",createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
       }));
       const removedDevices=Object.entries(registry.revoked||{}).filter(([id,item])=>isSuper||(item.role==="user"&&item.groupId===auth.groupId)).map(([id,item])=>({
         id,name:item.adminName||item.name||"Equipo eliminado",deviceName:item.name||"Equipo eliminado",adminName:item.adminName||"",phone:item.phone||"",role:item.role||"user",groupId:item.groupId||"",status:"removed",relays:item.relays||[],accessStartsAt:item.accessStartsAt||"",accessEndsAt:item.accessEndsAt||"",createdAt:item.createdAt,revokedAt:item.revokedAt
       }));
       const devices=[...activeDevices,...removedDevices].sort((a,b)=>a.role==="super_master"?-1:b.role==="super_master"?1:a.role==="admin"&&b.role!=="admin"?-1:b.role==="admin"&&a.role!=="admin"?1:String(a.createdAt||"").localeCompare(String(b.createdAt||""))||a.id.localeCompare(b.id));
-      return res.status(200).json({devices,role:auth.role,groupId:auth.groupId||""});
+      return res.status(200).json({devices,role:auth.role,groupId:auth.groupId||"",grantableRelays});
     }
 
     if(req.method==="PUT"){
@@ -27,7 +29,7 @@ module.exports=async function handler(req,res){
       if(req.body?.action==="restore"){
         const removed=registry.revoked?.[id];
         if(!id||!removed||!(isSuper||(removed.role==="user"&&removed.groupId===auth.groupId))) return res.status(404).json({error:"Equipo eliminado no encontrado."});
-        const savedRelays=[...new Set((removed.relays||[]).map(Number).filter(relay=>[1,2,3].includes(relay)))].sort();
+        const savedRelays=[...new Set((removed.relays||[]).map(Number).filter(relay=>grantableRelays.includes(relay)))].sort();
         registry.devices[id]={name:removed.name||"Equipo reincorporado",adminName:removed.adminName||"",phone:removed.phone||"",role:removed.role||"user",groupId:removed.groupId||"",status:savedRelays.length?"active":"pending",relays:savedRelays,accessStartsAt:removed.accessStartsAt||"",accessEndsAt:removed.accessEndsAt||"",createdAt:removed.createdAt||new Date().toISOString(),lastSeen:removed.lastSeen||null,restoredAt:new Date().toISOString(),restoredBy:auth.device.id};
         if(removed.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
         delete registry.revoked[id];await writeRegistry(registry);
@@ -40,7 +42,7 @@ module.exports=async function handler(req,res){
       if(req.body?.status!==undefined){
         const status=String(req.body.status);
         if(!["active","paused","blocked"].includes(status)) return res.status(400).json({error:"Estado de acceso inválido."});
-        if(status==="active"&&!(item.relays||[]).length) return res.status(400).json({error:"Asigna por lo menos un actuador antes de reactivar este usuario."});
+        if(status==="active"&&!(item.relays||[]).some(relay=>grantableRelays.includes(relay))&&(!isSuper||item.role==="user")) return res.status(400).json({error:"Asigna por lo menos un actuador autorizado antes de reactivar este usuario."});
         item.status=status;item.statusChangedAt=new Date().toISOString();item.statusChangedBy=auth.device.id;
         if(status==="active") item.reactivatedAt=new Date().toISOString();
         if(isSuper&&item.role==="admin"){for(const member of Object.values(registry.devices)){if(member.role==="user"&&member.groupId===item.groupId){member.status=status==="active"&&!(member.relays||[]).length?"pending":status;member.statusChangedAt=new Date().toISOString();member.statusChangedBy=auth.device.id;}}}
@@ -50,6 +52,8 @@ module.exports=async function handler(req,res){
       if((registry.masterIds||[]).includes(id)) return res.status(400).json({error:"Los permisos de un equipo Máster no se modifican desde aquí. Puedes pausarlo o eliminarlo."});
       const relays=[...new Set((Array.isArray(req.body?.relays)?req.body.relays:[]).map(Number))].filter(relay=>[1,2,3].includes(relay)).sort();
       if(!relays.length) return res.status(400).json({error:"Selecciona por lo menos un actuador."});
+      if(!isSuper&&relays.some(relay=>!grantableRelays.includes(relay)))
+        return res.status(403).json({error:"Solo puedes entregar accesos configurados y autorizados para tu administración."});
       const adminName=String(req.body?.adminName||"").trim().slice(0,60);
       const phone=String(req.body?.phone||"").trim().slice(0,30);
       const accessStartsAt=String(req.body?.accessStartsAt||"").trim();

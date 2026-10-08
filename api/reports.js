@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
       PREFIX+'group:'+groupId, PREFIX+'all', PREFIX+'rate:'+auth.device.id, JSON.stringify(item), id, photo, TTL, PREFIX);
     if (result === -1) throw A.error('Puedes enviar hasta 5 reportes por hora. Intenta más tarde.', 429);
     await require('../lib/information-feed').publish({
-      id:'report-'+id, groupId,kind:'report',title:b.type==='failure'?'Reporte de falla':'Nuevo reporte',
+      id:'report-'+id, groupId,kind:'report',title:b.type==='failure'?'Emergencia · falla':'Reporte de emergencia',
       message:'Se recibió un reporte para la administración.',privateMessage:text,
       author:item.name,apartment:item.apartment,creator:auth.device.id,createdAt:item.createdAt
     },auth);

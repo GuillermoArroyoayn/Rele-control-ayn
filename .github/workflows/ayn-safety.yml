@@ -41,6 +41,9 @@ jobs:
       - name: Verificar transiciones ON/OFF y temporización de Accesos
         run: node tests/access-state-feedback.cjs
 
+      - name: Verificar permisos estrictos de residentes y actuadores no autorizados
+        run: node tests/resident-relay-permissions.cjs
+
       - name: Verificar compatibilidad voz con audio Bluetooth
         run: node tests/bluetooth-audio.cjs
 

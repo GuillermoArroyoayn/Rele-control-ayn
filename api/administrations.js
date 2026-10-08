@@ -32,7 +32,7 @@ module.exports=async(req,res)=>{
         registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
         if(invitation.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
       });
-      if(invitation.role==='admin')await Matrix.ensure(invitation.groupId,invitation.name,'active');
+      if(invitation.role==='admin')await Matrix.markStatus(invitation.groupId,'active',invitation.name);
       if(upgradedExistingUser)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
       await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
@@ -71,7 +71,7 @@ module.exports=async(req,res)=>{
             promotedExistingUsers++;
           }
         });
-        await Matrix.ensure(groupId,name,'active');
+        await Matrix.ensure(groupId,name,promotedExistingUsers?'active':'pending');
       }
       await A.redis('SET','ayn:managed:invite:'+inviteHash,JSON.stringify(invitation),'EX',86400);
       const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
@@ -80,7 +80,7 @@ module.exports=async(req,res)=>{
       const inviteUrl=base+'/administracion.html#invite='+token;
       const whatsapp=await WhatsApp.sendInvitation({phone,name,role,inviteUrl});
       await addHistory({kind:'invite',groupId:groupId||'master',userName:name,actor:auth.device.name,action:whatsapp.sent?'Invitación enviada automáticamente por WhatsApp':'Invitación creada; envío automático de WhatsApp pendiente'}).catch(()=>{});
-      return res.json({ok:true,token,expiresIn:86400,inviteUrl,whatsapp,promotedExistingUsers});
+      return res.json({ok:true,token,expiresIn:86400,inviteUrl,whatsapp,promotedExistingUsers,role,groupId});
     }
     if(b.action==='promoteUser'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster general puede convertir usuarios en administradores.',403);

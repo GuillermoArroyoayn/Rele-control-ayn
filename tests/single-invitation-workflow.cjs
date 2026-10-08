@@ -16,8 +16,8 @@ assert(api.includes("if(b.action==='prepareAdmin')")&&api.includes("if(b.action=
 assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
 assert(api.includes("A.manager(auth)"));
 assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
-assert(sw.includes('reles-ayn-v180-staged-admin-invite'));
-assert(sw.includes('/app.js?v=20261008-phone176'));
+assert(sw.includes('reles-ayn-v181-voice-call-feedback'));
+assert(sw.includes('/app.js?v=20261008-voice181'));
 assert(!sw.includes('/share.css?'));
-assert(index.includes('/app.js?v=20261008-phone176'));
+assert(index.includes('/app.js?v=20261008-voice181'));
 console.log('Invitación única por administración conservada; Compartir aplicación duplicado eliminado; PWA verificada.');

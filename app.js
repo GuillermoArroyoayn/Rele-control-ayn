@@ -1120,11 +1120,12 @@ buttons.forEach((btn) =>
 
 // Keep voice capture active without speaking over Bluetooth music.
 const bluetoothQuietToggle = document.getElementById("bluetoothQuiet");
-const bluetoothQuietEnabled = () => localStorage.getItem("aynBluetoothQuiet") !== "false";
+// Las confirmaciones habladas están activadas por defecto; silencio Bluetooth es optativo.
+const bluetoothQuietEnabled = () => localStorage.getItem("aynVoiceResponsesSilentV2") === "true";
 if (bluetoothQuietToggle) {
   bluetoothQuietToggle.checked = bluetoothQuietEnabled();
   bluetoothQuietToggle.addEventListener("change", () => {
-    localStorage.setItem("aynBluetoothQuiet", String(bluetoothQuietToggle.checked));
+    localStorage.setItem("aynVoiceResponsesSilentV2", String(bluetoothQuietToggle.checked));
     if (bluetoothQuietToggle.checked) {
       ++voiceSpeechGeneration;
       clearTimeout(voiceSpeechTimer);
@@ -1246,7 +1247,8 @@ const scheduleVoiceListening = (delay = 350) => {
   voiceRestartTimer = window.setTimeout(()=>{voiceRestartTimer=0;startVoiceListening();}, delay);
 };
 const speak = (text, onFinished) => {
-  if (bluetoothQuietEnabled() || !("speechSynthesis" in window)) return false;
+  if (bluetoothQuietEnabled() || !text || !("speechSynthesis" in window) ||
+      (window.AynCallPriority && !window.AynCallPriority.shouldListen())) return false;
   const generation = ++voiceSpeechGeneration;
   clearTimeout(voiceSpeechTimer);
   voiceSpeaking = true;
@@ -1254,6 +1256,8 @@ const speak = (text, onFinished) => {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
+  utterance.rate = 1.12;
+  utterance.volume = 1;
   // Keep recognition open; ignore our own spoken replies instead of stopping
   // and reopening the Android microphone after every command.
   let finished = false;
@@ -1268,7 +1272,10 @@ const speak = (text, onFinished) => {
     onFinished?.();
   };
   utterance.onend = utterance.onerror = finishSpeaking;
-  speechSynthesis.speak(utterance);
+  try {
+    speechSynthesis.speak(utterance);
+    if(speechSynthesis.paused) speechSynthesis.resume();
+  }catch(error){finishSpeaking();return false;}
   voiceSpeechTimer = window.setTimeout(finishSpeaking, Math.max(3500, text.length * 95));
   return true;
 };
@@ -1655,6 +1662,17 @@ if (!SpeechRecognition) {
     }
   };
   voiceCommand.addEventListener("click", () => {
+    // Un usuario que dejó la voz seleccionada puede recuperarla con el mismo
+    // botón después de una interrupción no notificada por Android.
+    if(voiceEnabled&&(window.AynCallPriority&&!window.AynCallPriority.shouldListen())){
+      if(!window.AynCallPriority.armFromGesture()){
+        setVoiceStatus("☎ La llamada tiene prioridad. La voz seguirá en pausa.");
+        return;
+      }
+      setVoiceStatus("Reanudando el comando por voz…");
+      startVoiceListening();
+      return;
+    }
     if (voiceEnabled) {
       stopVoiceMode();
       return;
@@ -1719,13 +1737,15 @@ if (!SpeechRecognition) {
       recognition?.abort();
       voiceListening=voiceStarting=false;
       voiceCommand.classList.remove('listening');
+      ++voiceSpeechGeneration;
+      clearTimeout(voiceSpeechTimer);
+      window.speechSynthesis?.cancel();
+      voiceSpeaking=false;
+      if(recognition)recognition.suppressAudio=false;
       if(voiceEnabled){
-        if(window.AynCallPriority?.requiresGesture()){
-          voiceEnabled=false;
-          voiceCommand.setAttribute('aria-pressed','false');
-          voiceCommand.innerHTML='<span aria-hidden="true">🎙️</span> Activar AIN por voz';
-        }
-        setVoiceStatus('☎ AIN liberó el micrófono. Los botones siguen funcionando. Activa la voz al terminar la llamada.');
+        setVoiceStatus(window.AynCallPriority?.isPhoneCallActive()?
+          '☎ Llamada en curso. AIN pausó el micrófono; usa los botones.':
+          '☎ Micrófono pausado para proteger la llamada. Si Android no avisa su final, toca el micrófono para reanudar.');
       }
     }else restoreVoiceSelection();
   });

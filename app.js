@@ -518,7 +518,7 @@ const userSettingNodes = [...document.querySelectorAll(".appearance, .accessibil
 });
 const panicSettingsSection=document.createElement("section");
 panicSettingsSection.className="appearance panic-preferences";
-panicSettingsSection.innerHTML='<div><strong>Mensajes SOS / pánico</strong><small id="panicSettingsStatus">Activa o desactiva las notificaciones de emergencia en este equipo.</small></div><button id="panicSettingsPush" type="button" class="secondary">Activar mensajes SOS</button>';
+panicSettingsSection.innerHTML='<div><strong>Recibir alertas SOS</strong><small id="sosReceiveStatus" role="status">Recibir mensajes y la sirena SOS de otros residentes. Tu botón SOS siempre seguirá disponible.</small></div><button id="sosReceiveToggle" type="button" class="secondary" aria-pressed="true">Recibir alertas SOS: activado</button><div><strong>Notificaciones del teléfono</strong><small id="panicSettingsStatus">Permite avisos fuera de la aplicación cuando Android lo autoriza.</small></div><button id="panicSettingsPush" type="button" class="secondary">Configurar notificaciones</button>';
 userSettingsPanel.append(panicSettingsSection);
 function mountPersonalSettings(){
   for(const {node} of userSettingNodes)userSettingsPanel.insertBefore(node,panicSettingsSection);

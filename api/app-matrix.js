@@ -74,8 +74,20 @@ module.exports=async(req,res)=>{
         });
       }
 
+      const stagedRaw=await A.redis('HGETALL','ayn:matrix:prepared-admins');
+      const staged=new Map();
+      for(let i=0;i<(stagedRaw||[]).length;i+=2){
+        try{
+          const record=JSON.parse(stagedRaw[i+1]);
+          staged.set(String(stagedRaw[i]),{name:record.name,phone:record.phone,
+            apartment:record.apartment||'',status:record.status,
+            inviteUrl:record.status==='sent'?record.inviteUrl:undefined,
+            expiresAt:record.expiresAt||null,whatsappSent:record.whatsappSent===true});
+        }catch{}
+      }
       const groups=[...groupsById.values()].map(group=>({
         ...group,
+        prepared:group.accountId?null:staged.get(group.id)||null,
         actuators:allActuators.filter(actuator=>actuator.groupId===group.id).map(safeActuator)
       })).sort((a,b)=>a.name.localeCompare(b.name,'es',{numeric:true}));
 

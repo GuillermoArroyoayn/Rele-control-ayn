@@ -99,3 +99,12 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
   .send-prepared-invite{width:100%;min-height:66px}
   .prepared-invite-result button,.prepared-invite-result a{display:flex;width:100%;justify-content:center}
 }
+
+/* v183 · Eliminación de administradores y limpieza de carpeta. */
+.matrix-delete-hint{flex:1 1 100%;margin:2px 0!important;font-size:13px;
+  line-height:1.5;color:#b9daf5!important}
+#deleteAdmin.danger{flex:1 1 100%;min-height:56px;font-size:15px;
+  border:1px solid #ff9e9e!important;background:#742b42!important;
+  border-radius:12px;white-space:normal}
+#deleteAdmin:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){#deleteAdmin.danger{width:100%;min-height:62px}}

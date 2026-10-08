@@ -16,14 +16,6 @@ let startupResetAttempted = false;
 let startupResetInFlight = false;
 let statusReady = false,
   liveSyncInFlight = false;
-const toggleShare = document.getElementById("toggleShare"),
-  sharePanel = document.getElementById("sharePanel"),
-  sharePhone = document.getElementById("sharePhone"),
-  shareNumber = document.getElementById("shareNumber"),
-  shareContacts = document.getElementById("shareContacts");
-const shareUrl = "https://rele-control-ayn.vercel.app/";
-const shareText =
-  "Te invito a usar A&N Control. Abre este enlace para instalar la aplicación:";
 const statusLabels = {
   pending: "Pendiente",
   active: "Activo",
@@ -65,8 +57,7 @@ const localDateTime = (value) => {
   const offset = date.getTimezoneOffset();
   return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
 };
-const relayGrid = document.querySelector(".relay-grid"),
-  shareSection = document.querySelector(".share-section");
+const relayGrid = document.querySelector(".relay-grid");
 const managedAccessPanel=document.createElement("section");
 managedAccessPanel.className="managed-access-panel";
 managedAccessPanel.hidden=true;
@@ -286,7 +277,6 @@ const menuDefinitions = [
   ["polls", "Encuestas", "📊"],
   ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
-  ["share", "Compartir aplicación", "📤"],
   ["admins", "Administradores", "🛡️"],
   ["users", "Usuarios", "👥"],
   ["temporary", "Permisos temporales", "⏳"],
@@ -322,7 +312,7 @@ function buildMenu() {
     currentRole === "super_master"
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
-        ? menuDefinitions.filter(([id]) => !["admins", "database", "share"].includes(id))
+        ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
         : menuDefinitions.filter(([id]) => ["settings"].includes(id));
   const allowed=roleMenu.filter(([id])=>id==="settings"||matrixAllowed(id,currentRole));
   for (const [id, label, icon] of allowed) {
@@ -342,7 +332,7 @@ function buildMenu() {
   mainMenu.append(managementLink);
   configureUserLayout(currentRole === "user" && statusReady);
   mainMenu.hidden = false;
-  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',share:'share',panic:'panic',wall:'wall',polls:'polls'};
+  const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',panic:'panic',wall:'wall',polls:'polls'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
   if(currentRole!=='super_master'&&masterRoute==='settings'){showView('settings');return;}
   if(["wall","polls"].includes(masterRoute)){showView(masterRoute);return;}
@@ -367,10 +357,10 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent="Inicio";
   functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,shareSection];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,share:shareSection})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   userSettingsPanel.hidden=!ready||view!=="settings";
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
@@ -428,8 +418,6 @@ function showView(view) {
   managedAccessPanel.hidden=!managedAccessVisible;
   if(managedAccessVisible)loadManagedAccess();
   refresh.hidden=!control||currentRole!=="super_master";
-  shareSection.hidden=view!=="share"||currentRole!=="super_master";
-  if(view==="share"&&currentRole==="super_master") sharePanel.hidden=false;
   adminPanel.hidden = !(
     ["admins", "users", "temporary", "history"].includes(view) &&
     ["super_master", "admin"].includes(currentRole)
@@ -2240,66 +2228,6 @@ async function loadHistory() {
 
 refreshDevices.addEventListener("click", loadDevices);
 refreshHistory.addEventListener("click", loadHistory);
-toggleShare.addEventListener("click", () => {
-  sharePanel.hidden = !sharePanel.hidden;
-  if (!sharePanel.hidden) sharePhone.focus();
-});
-shareNumber.addEventListener("click", () => {
-  const number = normalizePhone(sharePhone.value);
-  if (number.length < 10) {
-    show("Ingresa un número de teléfono válido.", true);
-    return;
-  }
-  const params = new URLSearchParams({ phone: number });
-  if (currentRole === "admin" && currentGroupId)
-    params.set("group", currentGroupId);
-  const personalizedUrl = `${shareUrl}?${params}`;
-  const text = encodeURIComponent(`${shareText} ${personalizedUrl}`);
-  window.open(`https://wa.me/${number}?text=${text}`, "_blank", "noopener");
-});
-shareContacts.addEventListener("click", async () => {
-  try {
-    if (navigator.contacts?.select) {
-      const contacts = await navigator.contacts.select(["name", "tel"], {
-        multiple: false,
-      });
-      const contact = contacts?.[0];
-      const selectedNumber = contact?.tel?.[0] || "";
-      if (!selectedNumber) return;
-      sharePhone.value = selectedNumber;
-      const selectedName = contact.name?.[0] || "el contacto";
-      show(
-        `Seleccionaste a ${selectedName}. Presiona Compartir para enviarle el enlace.`,
-      );
-      sharePhone.focus();
-      return;
-    }
-    if (navigator.share) {
-      const groupUrl =
-        currentRole === "admin" && currentGroupId
-          ? `${shareUrl}?group=${encodeURIComponent(currentGroupId)}`
-          : shareUrl;
-      await navigator.share({
-        title: "Sistema de Control AYN",
-        text: shareText,
-        url: groupUrl,
-      });
-      return;
-    }
-    const groupUrl =
-      currentRole === "admin" && currentGroupId
-        ? `${shareUrl}?group=${encodeURIComponent(currentGroupId)}`
-        : shareUrl;
-    await navigator.clipboard.writeText(`${shareText} ${groupUrl}`);
-    show("Enlace copiado. Ya puedes pegarlo en WhatsApp o Mensajes.");
-  } catch (e) {
-    if (e.name !== "AbortError")
-      show(
-        "No se pudo abrir la agenda de contactos. Puedes escribir el número manualmente.",
-        true,
-      );
-  }
-});
 if ("serviceWorker" in navigator) {
   let reloading = false;
   let hadController=Boolean(navigator.serviceWorker.controller);
@@ -2352,7 +2280,7 @@ document.addEventListener("ayn-access-restricted", event => {
   setRelayAccess([]);
   configureUserLayout(false);
   mainMenu.hidden = true;
-  for (const panel of [adminPanel, reportsPanel, bookingsPanel, databasePanel, systemPanel, shareSection]) panel.hidden = true;
+  for (const panel of [adminPanel, reportsPanel, bookingsPanel, databasePanel, systemPanel]) panel.hidden = true;
   stopVoiceMode(event.detail || "Acceso suspendido por la administración.", false);
   show(event.detail || "Acceso suspendido por la administración.", true);
 });

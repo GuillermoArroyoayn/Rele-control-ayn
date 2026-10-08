@@ -558,3 +558,9 @@ body[data-admin-view="equipment"] #groupLabel{display:none!important}
   box-shadow:none!important;
 }
 #panelToolbar .toolbar-primary:active{filter:brightness(.92)}
+
+
+/* v153 · Menú depurado e historial unificado */
+.audit-type-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 14px}
+.audit-type-tabs button{margin:0;min-height:46px;background:var(--theme-panel,#083b78);border-color:var(--theme-border,#5ee7ff99)}
+.audit-type-tabs button.active{background:var(--theme-accent,#5ee7ff);color:#052538;font-weight:900}

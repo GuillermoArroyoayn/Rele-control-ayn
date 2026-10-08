@@ -122,6 +122,8 @@ function togglePreviewDesignation(itemId){
   if(!group||group.status==='deleted')return;
   const row=[...$('modules').children,...$('actuators').children].find(node=>node.dataset.id===itemId);
   if(!row)return;
+  // La incorporación de residentes se puede designar al Administrador, nunca al Usuario final.
+  if(itemId==='users'&&previewRole==='user')return;
   const enabled=row.querySelector('[data-field="enabled"]');
   const allowed=row.querySelector('[data-field="'+(previewRole==='user'?'userVisible':'adminVisible')+'"]');
   if(!enabled||!allowed||allowed.disabled)return;

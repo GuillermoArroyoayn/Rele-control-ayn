@@ -450,3 +450,15 @@ html body #homeUsersCard[hidden],
 html body .home-quick-card[hidden],
 html body #tabs>[hidden],
 html body #people[hidden]{display:none!important}
+
+
+/* Directorio jerárquico Máster: Administrador → usuarios · v131 */
+#adminDirectory{margin:0 0 20px}
+#administrators{display:grid;gap:12px}
+#administrators .admin-folder{margin:0!important;padding:14px!important;border-radius:18px!important}
+#administrators .admin-folder.selected{box-shadow:0 0 0 2px var(--theme-accent,#5ee7ff),0 0 18px var(--theme-glow,#00a8ff66)!important}
+#administrators .admin-folder-open{display:block!important;width:100%!important;margin:0 0 6px!important;text-align:left!important;font-size:18px!important;font-weight:800!important;background:transparent!important;border:0!important;padding:4px 0!important;min-height:auto!important}
+#administrators .admin-folder-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#administrators .admin-folder-actions button{flex:1 1 100px;margin:0!important;min-height:38px!important;padding:7px 10px!important}
+#users .resident-card>strong{font-size:18px;display:block;margin-bottom:4px}
+#usersTitle{margin-top:24px}

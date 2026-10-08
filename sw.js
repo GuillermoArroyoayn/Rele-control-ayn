@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v130-promote-admin";
+const CACHE = "reles-ayn-v131-admin-directory";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -25,8 +25,8 @@ const ASSETS = [
   "/panic.js?v=20261004-release111",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261007-users129",
-  "/administracion.js?v=20261007-admin130",
+  "/administracion.css?v=20261007-directory131",
+  "/administracion.js?v=20261007-directory131",
   "/administracion-voice.js?v=20261006-voice118"
 ];
 self.addEventListener("install", (e) =>

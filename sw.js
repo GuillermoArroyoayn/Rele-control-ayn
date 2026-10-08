@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v160-relay-compact";
+const CACHE = "reles-ayn-v161-back-home";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -9,13 +9,15 @@ const ASSETS = [
   "/administracion.webmanifest",
   "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
-  "/matrix.css?v=20261007-matrix2",
+  "/matrix.css?v=20261008-nav161",
   "/matrix.js?v=20261007-matrix3",
+  "/matrix-nav.js?v=20261008-nav161",
+  "/ayn-navigation.js?v=20261008-nav161",
   "/ain-audio-worklet.js?v=20261004-release111",
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-frame157",
+  "/styles.css?v=20261008-nav161",
   "/share.css?v=20261006-orbit123",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
@@ -23,12 +25,12 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-frame157",
+  "/app.js?v=20261008-nav161",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-compact160",
-  "/administracion.js?v=20261008-compact160",
+  "/administracion.css?v=20261008-nav161",
+  "/administracion.js?v=20261008-nav161",
   "/relay-installer.js?v=20261008-compact160",
   "/administracion-voice.js?v=20261008-btaudio154"
 ];

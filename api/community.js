@@ -39,7 +39,8 @@ module.exports = async (req, res) => {
     }
     if(b.action==='vote'){
       const x=await item(b.id);
-      if(x.type!=='poll'||!Number.isInteger(b.choice)||b.choice<0||b.choice>=x.options.length)throw A.error('Alternativa inválida.');
+      if(auth.role!=='user')throw A.error('Solo los residentes pueden responder encuestas.',403);
+      if(x.type!=='poll'||!Number.isInteger(b.choice)||![0,1].includes(b.choice)||!Array.isArray(x.options)||x.options.length!==2||!['sí','si'].includes(String(x.options[0]).trim().toLowerCase())||String(x.options[1]).trim().toLowerCase()!=='no')throw A.error('Esta encuesta debe tener respuestas Sí o No.');
       const script="local r=redis.call('GET',KEYS[1]); if not r then return -1 end local x=cjson.decode(r); if x.closesEpoch<=tonumber(ARGV[3]) then return -2 end local ok=redis.call('HSETNX',KEYS[2],ARGV[1],ARGV[2]); if ok==1 then redis.call('EXPIRE',KEYS[2],ARGV[4]) end return ok";
       const result=await A.redis('EVAL',script,2,P+'item:'+x.id,P+'votes:'+x.id,auth.device.id,b.choice,Date.now(),TTL);
       if(result===-1)throw A.error('Encuesta no disponible.',404);
@@ -56,7 +57,7 @@ module.exports = async (req, res) => {
     if(b.action!=='publish')throw A.error('Acción inválida.');
     const title=typeof b.title==='string'?b.title.trim():'',text=typeof b.text==='string'?b.text.trim():'';
     if(!title||title.length>120||!text||text.length>3000)throw A.error('Escribe un título de hasta 120 caracteres y un mensaje de hasta 3000.');
-    if(!['notice','emergency','poll'].includes(b.type))throw A.error('Tipo inválido.');
+    if(!['notice','poll'].includes(b.type))throw A.error('Para una emergencia utiliza Reportes de emergencia.');
     if(!/^[a-zA-Z0-9-]{16,80}$/.test(b.requestId||''))throw A.error('Solicitud inválida.');
     let photo='';
     if(b.photo){
@@ -67,9 +68,9 @@ module.exports = async (req, res) => {
     }
     let options=[],closesAt=null,closesEpoch=null;
     if(b.type==='poll'){
-      options=Array.isArray(b.options)?b.options.map(s=>typeof s==='string'?s.trim():''):[];
+      options=['Sí','No'];
       closesEpoch=Date.parse(b.closesAt);
-      if(options.length<2||options.length>6||options.some(s=>!s||s.length>100)||new Set(options.map(s=>s.toLowerCase())).size!==options.length)throw A.error('Agrega entre 2 y 6 alternativas distintas, de hasta 100 caracteres.');
+      // Todas las encuestas nuevas son binarias: los usuarios responden Sí o No.
       if(!Number.isFinite(closesEpoch)||closesEpoch<=Date.now()||closesEpoch>Date.now()+89*86400000)throw A.error('El cierre debe ser futuro, dentro de los próximos 89 días.');
       closesAt=new Date(closesEpoch).toISOString();
     }
@@ -80,7 +81,7 @@ module.exports = async (req, res) => {
     const result=await A.redis('EVAL',script,4,P+'item:'+id,key,P+'rate:'+auth.device.id,P+'photo:'+id,JSON.stringify(record),id,TTL,P,photo?photo.split(',')[1]:'');
     if(result===-1)throw A.error('Puedes publicar hasta 20 avisos por hora.',429);
     await require('../lib/information-feed').publish({
-      id:'community-'+id,groupId,kind:b.type==='poll'?'poll':b.type==='emergency'?'emergency':'notice',
+      id:'community-'+id,groupId,kind:b.type==='poll'?'poll':'notice',
       title, message:text, author:record.author, creator:auth.device.id,
       createdAt:record.createdAt,closesAt:record.closesAt
     },auth);

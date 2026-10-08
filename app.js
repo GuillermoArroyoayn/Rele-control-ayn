@@ -612,9 +612,15 @@ function applyMatrixPresentation(){
 }
 
 function buildMenu() {
-  const masterRoute=location.hash.slice(1);
-  if(currentRole==='admin'&&['access','access-settings'].includes(masterRoute)){
-    showView(masterRoute);return;
+  const masterRoute=decodeURIComponent(location.hash.slice(1).split('?')[0]||'');
+  // Los enlaces del menú Administrador entran por /#temporary, /#bookings
+  // y /#voice. Conservar la ruta al cargar la app, no caer en control vacío.
+  const directViews={access:'access','access-settings':'access-settings',
+    temporary:'temporary',bookings:'bookings',voice:'voice',history:'history',
+    reports:'reports',reportes:'reports',wall:'wall',polls:'polls',
+    panic:'panic',settings:'settings',users:'users',admins:'admins'};
+  if(currentRole==='admin'&&directViews[masterRoute]){
+    showView(directViews[masterRoute]);return;
   }
   if(currentRole==='super_master'&&statusReady&&!masterRoute){sessionStorage.setItem("aynAdminView","home");location.replace('/administracion.html#home');return;}
   mainMenu.innerHTML = "";
@@ -680,9 +686,21 @@ function prepareFunctionScreen(view) {
   if(view==="access")accessSettingsFeedback.hidden=true;
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
   if(!user){
-    if(currentRole==="admin"||view==="settings")mountPersonalSettings();
-    else for(const {node,marker} of userSettingNodes) {
-      if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility"))) functionSettings.append(node);
+    if(view==="voice"){
+      // Tanto el Administrador como el Máster necesitan los controles
+      // reales de reconocimiento, no el panel vacío de configuración.
+      mountPersonalSettings();
+      for(const {node} of userSettingNodes)
+        if(node.classList.contains("accessibility")){
+          node.hidden=false;
+          functionSettings.append(node);
+        }
+      functionSettings.hidden=false;
+    }else if(currentRole==="admin"||view==="settings"){
+      mountPersonalSettings();
+      for(const {node} of userSettingNodes)node.hidden=false;
+    }else for(const {node,marker} of userSettingNodes) {
+      if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility")))functionSettings.append(node);
       else marker.after(node);
     }
   }
@@ -1828,6 +1846,21 @@ async function loadDevices() {
         groupContainers.set(administrator.groupId, content);
       }
     }
+    if(currentView==="temporary"){
+      const heading=document.createElement("h2");
+      heading.textContent="Permisos temporales";
+      deviceList.append(heading);
+      const help=document.createElement("p");
+      help.className="temporary-help";
+      help.textContent="Selecciona un usuario, indica Desde y Hasta y pulsa Guardar permisos. Para dejarlo permanente utiliza Dejar permanente.";
+      deviceList.append(help);
+      if(!visibleDevices.length){
+        const empty=document.createElement("p");
+        empty.className="history-empty";
+        empty.textContent="Aún no hay usuarios registrados para asignar permisos temporales. Incorpora primero un usuario desde el menú Administrador.";
+        deviceList.append(empty);
+      }
+    }
     const orderedDevices = [...visibleDevices].sort((a, b) => {
       if (a.role === "super_master") return -1;
       if (b.role === "super_master") return 1;
@@ -2121,6 +2154,13 @@ async function loadDevices() {
       destination.append(row);
     }
   } catch (e) {
+    if(currentView==="temporary"){
+      deviceList.replaceChildren();
+      const error=document.createElement("p");
+      error.className="history-empty";
+      error.textContent="No se pudieron cargar los permisos temporales: "+e.message;
+      deviceList.append(error);
+    }
     show(e.message, true);
   }
 }

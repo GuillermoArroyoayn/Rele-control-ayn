@@ -671,13 +671,15 @@ async function loadStatus() {
     recoveryPanel.hidden=!(currentRole==="super_master"&&currentView==="tools");
     if (currentRole === "super_master") applyPowerOnOff();
     if (errors.length) show(errors.join(" · "), true);
-    else
+    else if (currentRole === "super_master") {
+      clearTimeout(functionToastTimer);
+      message.textContent = "";
+      message.classList.remove("function-toast", "is-error");
+    } else
       show(
-        currentRole === "super_master"
-          ? "Este equipo es el Máster general."
-          : currentRole === "admin"
-            ? "Panel de administrador activo."
-            : "Estado actualizado.",
+        currentRole === "admin"
+          ? "Panel de administrador activo."
+          : "Estado actualizado.",
       );
   } catch (e) {
     statusReady = false;

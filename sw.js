@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v143-clean-boot";
+const CACHE = "reles-ayn-v144-master-banner";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -23,7 +23,7 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261006-voice116",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-boot143",
+  "/app.js?v=20261008-master144",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

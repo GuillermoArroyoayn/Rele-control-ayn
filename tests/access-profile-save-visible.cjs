@@ -5,11 +5,10 @@ const sw=fs.readFileSync('sw.js','utf8');
 assert(app.includes('id="accessSettingsFeedback"'),'Falta un aviso de guardado fuera del formulario');
 assert(app.includes('accessSettingsPanel.querySelector("#accessSettingsFeedback")'));
 assert(app.includes('function showAccessSettingsFeedback(text,error=false)'));
-assert(app.includes('const verification=await api(\\'/api/actuator-profiles\\')') ||
- app.includes("const verification=await api('/api/actuator-profiles')"),'Hay que consultar valores persistidos');
+assert(app.includes("const verification=await api('/api/actuator-profiles')"),'Hay que consultar valores persistidos');
 assert(app.includes("if(!saved||saved.name!==payload.name"),'No confirmar sin verificar servidor');
 assert(app.includes("showAccessSettingsFeedback('Configuración guardada: '"),'Mensaje visible persistente');
-assert(app.includes('showAccessSettingsFeedback(\\'No se pudo confirmar')||app.includes("showAccessSettingsFeedback('No se pudo confirmar"),'Errores persistentes');
+assert(app.includes("showAccessSettingsFeedback('No se pudo confirmar"),'Errores persistentes');
 assert(app.includes("const originalsByNumber=new Map()"),'Mezclar perfiles originales con estado');
 assert(app.includes("originalsByNumber.set(relay,{relay,state:null})"),'Mostrar autorizado sin inventar estado');
 assert(app.includes("const itemsById=new Map("),'Evitar duplicados de gestionados');

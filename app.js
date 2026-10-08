@@ -77,9 +77,15 @@ const accessActionsPanel=managedAccessPanel.querySelector("#accessActionsPanel")
 const accessSettingsPanel=document.createElement("section");
 accessSettingsPanel.className="access-settings-panel";
 accessSettingsPanel.hidden=true;
-accessSettingsPanel.innerHTML='<h2>Configurar accesos</h2><div class="access-settings-grid"></div>';
+accessSettingsPanel.innerHTML='<h2>Configurar accesos</h2><p id="accessSettingsFeedback" class="access-settings-feedback" role="status" aria-live="polite" hidden></p><div class="access-settings-grid"></div>';
 managedAccessPanel.after(accessSettingsPanel);
 const accessSettingsGrid=accessSettingsPanel.querySelector(".access-settings-grid");
+const accessSettingsFeedback=accessSettingsPanel.querySelector("#accessSettingsFeedback");
+function showAccessSettingsFeedback(text,error=false){
+  accessSettingsFeedback.hidden=false;
+  accessSettingsFeedback.textContent=text;
+  accessSettingsFeedback.classList.toggle('is-error',Boolean(error));
+}
 accessActionsToggle.onclick=()=>{
   accessActionsPanel.hidden=!accessActionsPanel.hidden;
   accessActionsToggle.setAttribute("aria-expanded",String(!accessActionsPanel.hidden));
@@ -115,15 +121,31 @@ function profileEditor(card,profile){
   const status=document.createElement('p');status.className='actuator-settings-status';status.setAttribute('role','status');
   form.append(save,status);details.append(form);
   form.onsubmit=async event=>{
-    event.preventDefault();save.disabled=true;status.textContent='Guardando…';
+    event.preventDefault();
+    save.disabled=true;
+    save.textContent='Guardando…';
+    status.textContent='Guardando configuración…';
+    showAccessSettingsFeedback('Guardando configuración de '+(name.value.trim()||'actuador')+'…');
     try{
-      const payload={id:profile.id,name:name.value,voiceName:voice.value,mode:mode.value,seconds:mode.value==='manual'?0:Number(seconds.value)};
-      const result=await api('/api/actuator-profiles',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-      status.textContent='Configuración guardada.';
+      const payload={id:profile.id,name:name.value.trim(),voiceName:voice.value.trim(),mode:mode.value,seconds:mode.value==='manual'?0:Number(seconds.value)};
+      await api('/api/actuator-profiles',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      // No confirmar hasta volver a leer los valores persistidos en el servidor.
+      const verification=await api('/api/actuator-profiles');
+      const saved=(verification.profiles||[]).find(item=>item.id===profile.id);
+      if(!saved||saved.name!==payload.name||saved.voiceName!==payload.voiceName||
+        saved.mode!==payload.mode||Number(saved.seconds)!==payload.seconds)
+        throw new Error('No se pudo confirmar que los cambios quedaron guardados. Reintenta sin cambiar el relé.');
+      profile.name=saved.name;profile.voiceName=saved.voiceName;
+      profile.mode=saved.mode;profile.seconds=saved.seconds;
+      summary.textContent='⚙ '+saved.name;
+      status.textContent='Configuración guardada correctamente.';
+      showAccessSettingsFeedback('Configuración guardada: '+saved.name+'. Voz: '+(saved.voiceName||'sin nombre')+'.');
+      // La confirmación vive fuera de la cuadrícula y no desaparece al refrescar.
       await loadManagedAccess();
-      const notice=document.createElement('p');notice.className='access-settings-success';notice.setAttribute('role','status');
-      notice.textContent='Guardado: '+result.profile.name+'.';accessSettingsGrid.prepend(notice);
-    }catch(error){status.textContent=error.message;}finally{save.disabled=false;}
+    }catch(error){
+      status.textContent=error.message||'No se pudo guardar.';
+      showAccessSettingsFeedback('No se pudo confirmar la configuración: '+(error.message||'error desconocido'),true);
+    }finally{save.disabled=false;save.textContent='Guardar configuración';}
   };
   card.append(details);
 }
@@ -203,11 +225,29 @@ async function loadManagedAccess(){
       issue(managedAccessGrid,'Sin conexión para comprobar los actuadores originales. Actualiza antes de accionarlos.');
     if(profilesResponse.status==='rejected'&&currentRole==='admin')
       issue(accessSettingsGrid,'No se pudieron obtener los ajustes: '+profilesResponse.reason.message);
-    const items=data.actuators||[];
-    const originalRelays=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
-    // Si falló la consulta actual, se pueden mostrar los permisos autenticados
-    // de esta misma sesión, pero nunca asumir que el actuador está encendido.
-    const originals=originalOutdated?originalRelays.map(item=>({...item,state:null})):originalRelays;
+    // El catálogo de perfiles es otra fuente autenticada de actuadores autorizados.
+    // Usarlo también cuando el servicio de estado no devuelve la lista, sin
+    // inventar estados ni conceder permisos nuevos en el servidor.
+    const itemsById=new Map((data.actuators||[]).map(item=>[item.id,item]));
+    for(const profile of profileResult.profiles||[]){
+      if(profile.kind!=='managed'||!/^managed-[a-f0-9-]{36}$/i.test(profile.id))continue;
+      const id=profile.id.slice(8);
+      if(!itemsById.has(id))itemsById.set(id,{id,name:profile.name});
+    }
+    const items=[...itemsById.values()];
+    const originalsByNumber=new Map();
+    for(const item of originalStatus.relays||[]){
+      const relay=Number(item.relay);
+      if([1,2,3].includes(relay))originalsByNumber.set(relay,originalOutdated?{...item,state:null}:item);
+    }
+    for(const profile of profileResult.profiles||[]){
+      const relay=Number(profile.relay);
+      if(profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)&&
+         relay===Number(profile.id.slice(9))&&!originalsByNumber.has(relay)){
+        originalsByNumber.set(relay,{relay,state:null});
+      }
+    }
+    const originals=[...originalsByNumber.values()].sort((a,b)=>a.relay-b.relay);
     if(!items.length&&!originals.length){
       const noNetwork=managedResponse.status==='rejected'||originalResponse.status==='rejected';
       issue(managedAccessGrid,noNetwork?'No fue posible confirmar los accesos. Vuelve a intentar.':'No hay actuadores asignados a esta cuenta.');

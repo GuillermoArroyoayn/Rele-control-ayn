@@ -347,7 +347,7 @@ const masterConfigLink=document.createElement('a');masterConfigLink.className='s
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
 functionBack.onclick=()=>showView("menu");
-const functionTitle=document.createElement("strong");
+const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{location.assign("/administracion.html");};
 const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>masterConfigLink.click();
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
 const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);
@@ -355,7 +355,7 @@ function prepareFunctionScreen(view) {
   const user=document.body.classList.contains("user-layout"), ready=statusReady;
   document.body.classList.toggle("app-screen-mode",ready);
   functionToolbar.hidden=!ready||user;
-  functionTitle.textContent=menuDefinitions.find(([id])=>id===view)?.[1]||({access:"Accesos",voice:"Control de voz",tools:"Herramientas",menu:"Más herramientas"})[view]||"AYN";
+  functionTitle.textContent="Inicio";
   functionConfig.hidden=currentRole!=="super_master"||view==="menu";
   if(!user && ready) mainMenu.hidden=view!=="menu";
   const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];

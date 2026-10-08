@@ -79,6 +79,10 @@ accessSettingsPanel.className="access-settings-panel";
 accessSettingsPanel.hidden=true;
 accessSettingsPanel.innerHTML='<h2>Configurar accesos</h2><p id="accessSettingsFeedback" class="access-settings-feedback" role="status" aria-live="polite" hidden></p><div class="access-settings-grid"></div>';
 managedAccessPanel.after(accessSettingsPanel);
+// Los dos destinos comparten la misma ventana que ya muestra bien los ajustes.
+ // Solo el contenido cambia: controles en Accesos, formulario en Configurar.
+accessSettingsPanel.prepend(managedAccessPanel);
+const accessSettingsTitle=accessSettingsPanel.querySelector("h2");
 const accessSettingsGrid=accessSettingsPanel.querySelector(".access-settings-grid");
 const accessSettingsFeedback=accessSettingsPanel.querySelector("#accessSettingsFeedback");
 function showAccessSettingsFeedback(text,error=false){
@@ -586,13 +590,16 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent="Inicio";
   functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,managedAccessPanel,accessSettingsPanel];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,accessSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,access:managedAccessPanel,"access-settings":accessSettingsPanel})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,access:accessSettingsPanel,"access-settings":accessSettingsPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   userSettingsPanel.hidden=!ready||view!=="settings";
-  accessSettingsPanel.hidden=!ready||currentRole!=='admin'||view!=="access-settings";
+  accessSettingsPanel.hidden=!ready||!(view==="access"||(currentRole==="admin"&&view==="access-settings"));
+  accessSettingsTitle.hidden=view==="access";
+  accessSettingsGrid.hidden=view==="access";
+  if(view==="access")accessSettingsFeedback.hidden=true;
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
   if(!user){
     if(currentRole==="admin"||view==="settings")mountPersonalSettings();

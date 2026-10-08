@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8'),css=fs.readFileSync('styles.css','utf8');
+const html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
+assert(app.includes('accessSettingsPanel.prepend(managedAccessPanel)'), 'Controles insertados en ventana principal ya probada');
+assert(app.includes('access:accessSettingsPanel,"access-settings":accessSettingsPanel'),'Misma ventana raíz para ambas rutas');
+assert(app.includes('accessSettingsPanel.hidden=!ready||!(view==="access"||(currentRole==="admin"&&view==="access-settings"))'),'Controles disponibles para administradores y usuarios');
+assert(app.includes('accessSettingsTitle.hidden=view==="access"'), 'No mostrar encabezado de edición en panel operativo');
+assert(app.includes('accessSettingsGrid.hidden=view==="access"'),'No mostrar formularios junto al botón Puerta');
+assert(app.includes('managedAccessPanel.hidden=!managedAccessVisible'),'Mostrar solo control operativo en Accesos');
+assert(!app.includes('userSettingsPanel,managedAccessPanel,accessSettingsPanel'),'No devolver controles al contenedor antiguo');
+assert(css.includes('section.access-settings-panel.function-screen > section.access-controls-page:not([hidden])'),'Controles internos sin capa fixed adicional');
+assert(css.includes('position:relative!important;inset:auto!important;'),'Anular posición fija anterior que ocultaba los botones');
+assert(app.includes('title.textContent=profile?.voiceName?.trim()||profile?.name||fallbackName'),'Botón Puerta guardado');
+assert(app.includes('for(const profile of profileResult.profiles||[])'),'Perfiles autorizados para generar botón sin duplicar');
+assert(sw.includes('reles-ayn-v171-single-access-shell'));
+assert(html.includes('/styles.css?v=20261008-access171'));
+assert(html.includes('/app.js?v=20261008-access171'));
+console.log('Accesos v171: raíz visual compartida con configuración, botón Puerta y rutas separadas OK.');

@@ -17,6 +17,6 @@ assert(app.includes("accessProfilesJustSaved.add(profile.id)"));
 assert(app.includes("if(!accessProfilesJustSaved.has(profile.id))"),'El botón mantiene éxito tras finally');
 assert(app.includes("accessSettingsFeedback.hidden=true"),'No duplicar la confirmación arriba');
 assert(css.includes('.access-settings-panel button.access-save-ready'));
-assert(sw.includes('reles-ayn-v170-door-controls'));
-assert(html.includes('/app.js?v=20261008-access170')&&html.includes('/styles.css?v=20261008-access170'));
+assert(sw.includes('reles-ayn-v171-single-access-shell'));
+assert(html.includes('/app.js?v=20261008-access171')&&html.includes('/styles.css?v=20261008-access171'));
 console.log('Accesos v170: pantalla aislada visible, botón Puerta y confirmación dentro del botón sin avisos duplicados.');

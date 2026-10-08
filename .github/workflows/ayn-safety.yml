@@ -40,3 +40,6 @@ jobs:
 
       - name: Verificar portada completa en todos los roles
         run: node tests/home-viewport-fit.cjs
+
+      - name: Verificar alta segura de relés pendientes
+        run: node tests/relay-installations.cjs

@@ -80,14 +80,16 @@
   }
 
   function speak(text){
-    // Visual confirmation only when Bluetooth/music compatibility is on.
-    if(localStorage.getItem('aynBluetoothQuiet')!=='false'||!('speechSynthesis' in window)||!text)return Promise.resolve();
+    // Confirmaciones audibles por defecto, excepto si el usuario eligió silencio.
+    // Nunca hablar encima de una llamada confirmada.
+    if(localStorage.getItem('aynVoiceResponsesSilentV2')==='true'||!('speechSynthesis' in window)||!text||
+       (window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return Promise.resolve();
     return new Promise(resolve=>{
       voiceSpeaking=true;
       if(recognition)recognition.suppressAudio=true;
       speechSynthesis.cancel();
       const utterance=new SpeechSynthesisUtterance(text);
-      utterance.lang='es-CL';
+      utterance.lang='es-CL';utterance.rate=1.12;utterance.volume=1;
       let done=false;
       const finish=()=>{
         if(done)return;
@@ -98,7 +100,10 @@
       };
       utterance.onend=finish;
       utterance.onerror=finish;
-      speechSynthesis.speak(utterance);
+      try{
+        speechSynthesis.speak(utterance);
+        if(speechSynthesis.paused)speechSynthesis.resume();
+      }catch{finish();}
       setTimeout(finish,Math.max(1800,text.length*90));
     });
   }
@@ -222,12 +227,18 @@
     const personalized=window.AynActuatorVoice?.match(command);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
-      try{
+      const activation=(async()=>{
         const response=await fetch('/api/administrations',{method:'POST',headers:headers(),body:JSON.stringify({action:'control',id:personalized.id.slice(8),state:true})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||'Orden rechazada.');
+        return result;
+      })();
+      await speak('OK');
+      try{
+        await activation;
         paint(personalized.name+' activado correctamente','listening');
-      }catch(error){paint(error.message,'error');}
+        await speak(personalized.name+' activado correctamente');
+      }catch(error){paint(error.message,'error');await speak('No fue posible activar '+personalized.name);}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -401,6 +412,14 @@
     event.preventDefault();
     event.stopPropagation();
     button.blur();
+    if(enabled&&window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
+      if(!window.AynCallPriority.armFromGesture()){
+        paint('☎ Teléfono en uso. La voz seguirá pausada.','idle');
+        return;
+      }
+      paint('Reanudando AYN…','starting');start();
+      return;
+    }
     if(enabled)stop(true);
     else {
       if(window.AynCallPriority&&!window.AynCallPriority.armFromGesture()){
@@ -430,10 +449,12 @@
       clearTimeout(restartTimer);restartTimer=0;
       clearTimeout(phraseTimer);phraseBuffer='';wakeUntil=0;
       recognition?.abort();listening=starting=false;
-      if(enabled){
-        if(window.AynCallPriority?.requiresGesture())enabled=false;
-        paint('☎ Micrófono liberado. Usa botones durante la llamada; activa voz al terminar.','idle');
-      }
+      window.speechSynthesis?.cancel();
+      voiceSpeaking=false;
+      if(recognition)recognition.suppressAudio=false;
+      if(enabled)paint(window.AynCallPriority?.isPhoneCallActive()?
+        '☎ Llamada en curso. Micrófono pausado; usa botones.':
+        '☎ Micrófono pausado para proteger la llamada. Si Android no confirma su final, toca el micrófono para reanudar.','idle');
     }else if(enabled)start();else restore();
   });
   window.addEventListener('pageshow',restore);
@@ -442,8 +463,8 @@
   if(localStorage.getItem('aynVoiceSelected')!=='false'){
     localStorage.setItem('aynVoiceSelected','true');
     if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
-      enabled=false;
-      paint('☎ Micrófono protegido. Activa la voz al terminar tu llamada.','idle');
+      enabled=true;
+      paint('☎ Micrófono protegido. La voz seleccionada se reanudará al quedar disponible.','idle');
     }else enable(false);
   }else paint('Toca el micrófono para activar AYN','idle');
 })();

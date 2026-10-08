@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06172f">
 <title>Constructor de App · A&N Control</title>
-<link rel="stylesheet" href="/matrix.css?v=20261008-designations178">
+<link rel="stylesheet" href="/matrix.css?v=20261008-preview179">
 </head>
 <body>
 <main class="matrix-shell">
@@ -27,8 +27,11 @@
       <div class="state-line"><span>Estado</span><strong id="adminStatus"></strong></div>
     </section>
     <section class="matrix-card preview-card">
-      <h2>Vista previa</h2>
+      <h2>Vista previa y designación</h2>
+      <p class="preview-instruction">Selecciona o desactiva funciones tocando directamente cada cuadro.</p>
       <div class="preview-switch"><button type="button" data-preview="admin" class="active">Administrador</button><button type="button" data-preview="user">Usuario</button></div>
+      <p id="previewCount" class="preview-count" role="status" aria-live="polite"></p>
+      <p id="previewHelp" class="preview-help"></p>
       <div id="preview" class="preview"></div>
     </section>
   </div>
@@ -58,6 +61,6 @@
   </section>
 </section>
 </main>
-<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-designations178" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
+<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-preview179" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
 </body>
 </html>

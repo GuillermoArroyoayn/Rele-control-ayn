@@ -35,14 +35,19 @@
     </section>
   </div>
   <section class="matrix-card">
-    <div class="section-title"><div><h2>Ventanas y funciones</h2><p>Define qué módulos existen y quién puede verlos.</p></div></div>
-    <div class="table-head"><span>Ventana</span><span>Activa</span><span>Admin</span><span>Usuario</span><span>Orden</span></div>
-    <div id="modules"></div>
+    <h2>1. Relés / actuadores</h2>
+    <p>Asigna los relés que usará este administrador. Después escribe el nombre que verá en su app, por ejemplo “Puerta”, “Portón” o “Acceso piscina”.</p>
+    <div class="assign-row">
+      <label>Relé disponible<select id="actuatorPool"></select></label>
+      <button id="assignActuator" type="button" class="primary">Asignar relé</button>
+    </div>
+    <div class="actuator-head"><span>Activo</span><span>Nombre visible</span><span>Admin</span><span>Usuario</span><span>Orden</span><span></span></div>
+    <div id="actuators"></div>
   </section>
   <section class="matrix-card">
-    <h2>Actuadores de esta administración</h2>
-    <p>Selecciona cuáles formarán parte de esta app y el nombre con que aparecerán.</p>
-    <div id="actuators"></div>
+    <div class="section-title"><div><h2>2. Pantallas y herramientas</h2><p>Define qué pantallas tendrá el Administrador y cuáles verá el Usuario final.</p></div></div>
+    <div class="table-head"><span>Pantalla</span><span>Activa</span><span>Admin</span><span>Usuario</span><span>Orden</span></div>
+    <div id="modules"></div>
   </section>
   <section class="matrix-actions matrix-card">
     <button id="saveDraft" type="button">Guardar borrador</button>
@@ -52,6 +57,6 @@
   </section>
 </section>
 </main>
-<script src="/matrix.js?v=20261007-matrix2" defer></script>
+<script src="/matrix.js?v=20261007-matrix3" defer></script>
 </body>
 </html>

@@ -1697,7 +1697,16 @@ if (!SpeechRecognition) {
   });
   const restoreVoiceSelection = () => {
     if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") === "false") return;
-    if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) return;
+    if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) {
+      // Conservar la selección visible sin reclamar el micrófono durante llamadas.
+      voiceEnabled=true;
+      voiceCommand.setAttribute("aria-pressed","true");
+      voiceCommand.innerHTML='<span aria-hidden="true">🎙️</span> Voz seleccionada · pausada';
+      setVoiceStatus(window.AynCallPriority.isPhoneCallActive()?
+        '☎ Llamada en curso. La voz se reanudará cuando el teléfono informe el fin.':
+        'Voz seleccionada y protegida. Si Android no informó el fin de llamada, toca el micrófono para reanudar.');
+      return;
+    }
     if (voiceEnabled) {
       recognition?.resume?.();
       startVoiceListening();

@@ -728,3 +728,30 @@ body[data-admin-view="equipment"] .relay-installer-toggle{
   box-shadow:0 0 0 1px var(--theme-glow,#00a8ff55),0 0 16px var(--theme-glow,#00a8ff44);
 }
 body[data-admin-view="equipment"] .relay-center-title>button{min-height:44px;font-size:15px}
+/* v160 · Central de relés compacta, sin párrafos ni títulos repetidos. */
+body[data-admin-view="equipment"] #relayCenterHead{margin:0 auto}
+body[data-admin-view="equipment"] .relay-installer{margin:0 0 10px!important;padding:8px!important;border-radius:15px}
+body[data-admin-view="equipment"] .relay-installer-toggle{width:100%;min-height:52px;font-size:16px;font-weight:750;margin:0!important;box-shadow:none!important;border-radius:12px}
+body[data-admin-view="equipment"] #relayInstallerBody{padding:6px 4px 2px}
+body[data-admin-view="equipment"] #relayInstallerForm{margin:4px 0 8px!important;padding:8px!important;background:transparent!important;border:0!important;box-shadow:none!important;display:grid;gap:8px!important}
+body[data-admin-view="equipment"] #relayInstallerForm label{margin:0!important;font-size:15px;line-height:1.3}
+body[data-admin-view="equipment"] #relayInstallerForm :is(input,select){min-height:44px;padding:8px 11px;font-size:16px;margin:4px 0 0;border-radius:10px}
+body[data-admin-view="equipment"] .relay-install-primary{display:grid;grid-template-columns:1fr;gap:9px}
+body[data-admin-view="equipment"] .relay-install-advanced,body[data-admin-view="equipment"] .relay-install-help{padding:7px 0;border-top:1px solid #ffffff24}
+body[data-admin-view="equipment"] .relay-install-advanced summary,body[data-admin-view="equipment"] .relay-install-help summary{font-size:14px;font-weight:650;color:#d6ebff;cursor:pointer;padding:7px 0}
+body[data-admin-view="equipment"] .relay-install-advanced-grid{display:grid;gap:9px;padding-top:8px}
+body[data-admin-view="equipment"] .relay-install-help p{font-size:13px;line-height:1.4;margin:8px 0}
+body[data-admin-view="equipment"] .relay-install-buttons{margin-top:4px}
+body[data-admin-view="equipment"] #relayInstallerStatus:empty{display:none}
+body[data-admin-view="equipment"] #relayInstallerStatus{margin:4px 0 8px;font-size:14px}
+body[data-admin-view="equipment"] .relay-center-secondary{margin:0 0 12px;display:flex;align-items:center}
+body[data-admin-view="equipment"] .relay-center-secondary>button{width:100%;margin:0!important;min-height:46px!important;padding:8px 12px!important;font-size:14px!important;font-weight:600;opacity:.9;background:var(--theme-panel,#083b78)!important;border:1px solid var(--theme-border,#5ee7ff99)!important;box-shadow:none!important}
+body[data-admin-view="equipment"] .relay-search{margin:8px 0 12px}
+body[data-admin-view="equipment"] .relay-connected-note{font-size:14px;margin:4px 0 10px}
+body[data-admin-view="equipment"] #relayInstallerSaved{margin:10px 0}
+body[data-admin-view="equipment"] #relayInstallerSaved>label{margin:8px 0 10px;font-size:14px}
+body[data-admin-view="equipment"] #relayInstallerSaved input{margin-top:5px}
+@media(min-width:560px){
+ body[data-admin-view="equipment"] .relay-install-primary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-admin-view="equipment"] .relay-install-advanced-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

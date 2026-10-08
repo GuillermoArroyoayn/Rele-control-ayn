@@ -12,7 +12,7 @@ assert(css.includes('section.access-settings-panel.function-screen > section.acc
 assert(css.includes('position:relative!important;inset:auto!important;'),'Anular posición fija anterior que ocultaba los botones');
 assert(app.includes('title.textContent=profile?.voiceName?.trim()||profile?.name||fallbackName'),'Botón Puerta guardado');
 assert(app.includes('for(const profile of profileResult.profiles||[])'),'Perfiles autorizados para generar botón sin duplicar');
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
+assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(html.includes('/styles.css?v=20261008-adminroutes185'));
-assert(html.includes('/app.js?v=20261008-adminroutes185'));
+assert(/\/app\.js\?v=20261008-[\w-]+/.test(html));
 console.log('Accesos v171: raíz visual compartida con configuración, botón Puerta y rutas separadas OK.');

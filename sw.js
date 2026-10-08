@@ -90,7 +90,7 @@ self.addEventListener('push',event=>{
     else if(Date.parse(data.expiresAt)<=Date.now())return;
     await self.registration.showNotification(data.title,{
       body:data.body,icon:'/app-icon-192.png',badge:'/app-icon-192.png',
-      tag,renotify:true,silent:false,vibrate:data.cancelled?[]:[250,100,250,100,500],
+      tag,renotify:true,silent:false,vibrate:data.cancelled?[]:[180,100,180,100,180,250,450,120,450,120,450,250,180,100,180,100,180],
       requireInteraction:!data.cancelled,data:{url:'/#emergency',expiresAt:data.expiresAt}
     });
   })());

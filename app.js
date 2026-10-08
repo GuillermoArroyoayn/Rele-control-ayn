@@ -1242,7 +1242,7 @@ const collectVoicePhrase = (transcript) => {
 
 const scheduleVoiceListening = (delay = 350) => {
   clearTimeout(voiceRestartTimer);
-  if (!voiceEnabled) return;
+  if (!voiceEnabled || (window.AynCallPriority && !window.AynCallPriority.shouldListen())) return;
   voiceRestartTimer = window.setTimeout(()=>{voiceRestartTimer=0;startVoiceListening();}, delay);
 };
 const speak = (text, onFinished) => {
@@ -1341,7 +1341,8 @@ const removeWakeWord = (command) =>
   command.replace(misheardWakePattern, " ").replace(wakeWordPattern, " ").replace(/\s+/g, " ").trim();
 
 function startVoiceListening() {
-  if (!voiceEnabled || voiceListening || voiceStarting || !recognition) return;
+  if (!voiceEnabled || voiceListening || voiceStarting || !recognition ||
+      (window.AynCallPriority && !window.AynCallPriority.shouldListen())) return;
   try {
     clearTimeout(voiceRestartTimer);voiceRestartTimer=0;
     voiceStarting = true;
@@ -1581,7 +1582,7 @@ if (!SpeechRecognition) {
   };
   recognition.onstart = () => {
     voiceStarting = false;
-    if (!voiceEnabled) { recognition.abort(); return; }
+    if (!voiceEnabled || (window.AynCallPriority && !window.AynCallPriority.shouldListen())) { recognition.abort(); return; }
     voiceListening = true;
     voiceRetryProvider.disabled=false;
     voiceRetryCount=0;
@@ -1591,7 +1592,7 @@ if (!SpeechRecognition) {
       setVoiceStatus(!statusReady||startupResetInFlight?"Micrófono listo. Validando el acceso; conservaré tu primera orden.":"Escucha continua. Di Ain y la orden seguida, sin esperar.");
   };
   recognition.onresult = (event) => {
-    if (!voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
+    if ((window.AynCallPriority && !window.AynCallPriority.shouldListen()) || !voiceEnabled || voiceSpeaking || Date.now() < voiceEchoUntil) return;
     // Interim results are replaceable hypotheses, never final fragments.
     // Keep them separately so a browser end cannot silently discard speech.
     const interim = [];
@@ -1665,13 +1666,16 @@ if (!SpeechRecognition) {
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';
     setVoiceStatus("Activando reconocimiento de voz…");
     // The local adapter owns one persistent getUserMedia capture.
-    startVoiceListening();
+    if(window.AynCallPriority&&!window.AynCallPriority.shouldListen())
+      setVoiceStatus('☎ Prioridad a la llamada. Controla AIN con los botones.');
+    else startVoiceListening();
   });
   window.addEventListener("pagehide", () => {
     stopVoiceMode("Preferencia de voz guardada.", false);
   });
   const restoreVoiceSelection = () => {
     if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") === "false") return;
+    if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) return;
     if (voiceEnabled) {
       recognition?.resume?.();
       startVoiceListening();
@@ -1685,7 +1689,7 @@ if (!SpeechRecognition) {
     startVoiceListening();
   };
   window.setInterval(() => {
-    if (!voiceEnabled || document.hidden) return;
+    if (!voiceEnabled || document.hidden || (window.AynCallPriority && !window.AynCallPriority.shouldListen())) return;
     recognition.resume?.();
     if (recognition.active && recognition.audioStalled?.()) {
       recognition.abort();
@@ -1698,9 +1702,21 @@ if (!SpeechRecognition) {
     if (!voiceListening && !voiceStarting && !voiceRestartTimer) startVoiceListening();
   }, 2000);
   document.addEventListener('pointerdown',event=>{
-    if(event.target.closest?.('#voiceCommand')||!voiceEnabled)return;
+    if(event.target.closest?.('#voiceCommand')||!voiceEnabled||
+      (window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     recognition.resume?.();
     if(!voiceListening&&!voiceStarting)startVoiceListening();
+  });
+  window.addEventListener('ayn:call-priority-change',()=>{
+    if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
+      clearTimeout(voiceRestartTimer);voiceRestartTimer=0;
+      clearTimeout(voiceCaptureTimer);voiceCaptureUntil=voiceWakeUntil=0;
+      voicePhrase=voiceInterimPhrase=voiceLastTranscript='';
+      recognition?.abort();
+      voiceListening=voiceStarting=false;
+      voiceCommand.classList.remove('listening');
+      if(voiceEnabled)setVoiceStatus('☎ Micrófono de AIN suspendido. Puedes usar los botones durante la llamada.');
+    }else restoreVoiceSelection();
   });
   window.addEventListener('online',restoreVoiceSelection);
   window.addEventListener("pageshow", restoreVoiceSelection);

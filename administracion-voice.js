@@ -294,12 +294,12 @@
 
   function scheduleRestart(delay=500){
     clearTimeout(restartTimer);
-    if(!enabled)return;
+    if(!enabled||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     restartTimer=setTimeout(()=>{restartTimer=0;start();},delay);
   }
 
   function start(){
-    if(!enabled||listening||starting||!recognition)return;
+    if(!enabled||listening||starting||!recognition||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     starting=true;
     paint('Activando AYN…','starting');
     try{
@@ -348,11 +348,12 @@
   if(recognition){
     recognition.onloading=text=>{if(enabled)paint(text||'Activando AYN…','starting');};
     recognition.onstart=()=>{
+      if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){recognition.abort();listening=starting=false;return;}
       starting=false;listening=true;retryCount=0;
       paint('AYN está escuchando','listening');
     };
     recognition.onresult=event=>{
-      if(!enabled||voiceSpeaking)return;
+      if(!enabled||voiceSpeaking||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
       for(let i=event.resultIndex;i<event.results.length;i++){
         const result=event.results[i];
         const alternatives=Array.from(result).map(x=>x.transcript).filter(Boolean);
@@ -405,7 +406,7 @@
   });
 
   window.setInterval(()=>{
-    if(!enabled||document.hidden||!recognition)return;
+    if(!enabled||document.hidden||!recognition||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     recognition.resume?.();
     if(recognition.active&&recognition.audioStalled?.()){
       recognition.abort();listening=starting=false;scheduleRestart(300);
@@ -414,9 +415,18 @@
 
   window.addEventListener('pagehide',()=>{clearTimeout(restartTimer);clearTimeout(phraseTimer);recognition?.abort();listening=starting=false;});
   const restore=()=>{
-    if(document.hidden||localStorage.getItem('aynVoiceSelected')!=='true'||enabled)return;
+    if(document.hidden||localStorage.getItem('aynVoiceSelected')!=='true'||enabled||
+       (window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     enable(false);
   };
+  window.addEventListener('ayn:call-priority-change',()=>{
+    if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
+      clearTimeout(restartTimer);restartTimer=0;
+      clearTimeout(phraseTimer);phraseBuffer='';wakeUntil=0;
+      recognition?.abort();listening=starting=false;
+      if(enabled)paint('☎ AIN en pausa. Puedes manejar los accesos por botón.','idle');
+    }else if(enabled)start();else restore();
+  });
   window.addEventListener('pageshow',restore);
   window.addEventListener('focus',restore);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)restore();});

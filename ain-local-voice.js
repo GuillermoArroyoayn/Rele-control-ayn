@@ -70,6 +70,7 @@
       this.providesSpeechActivity = true;
     }
     async start() {
+      if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) return;
       if (this.active || this.starting) throw new Error("La escucha ya está iniciada");
       this.starting = true;
       const generation = ++this.generation;
@@ -89,6 +90,7 @@
           catch { /* Older Android browsers may not support a silent sink. */ }
         }
         if (generation !== this.generation) return;
+        if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) { this.abort(); return; }
         this.onloading?.("Voz 100: preparando audio local…");
         this.onloading?.("Voz 100: permite el micrófono. Preparando escucha local…");
 
@@ -114,7 +116,10 @@
           delete audio.deviceId;
           stream = await media.getUserMedia({ video: false, audio });
         }
-        if (generation !== this.generation) { stream.getTracks().forEach(t => t.stop()); return; }
+        if (generation !== this.generation ||
+            (window.AynCallPriority && !window.AynCallPriority.shouldListen())) {
+          stream.getTracks().forEach(t => t.stop());this.abort();return;
+        }
         this.stream = stream;
         let resumeTimer;
         try {
@@ -156,11 +161,18 @@
         this.source = source;
         source.connect(node);
         node.connect(context.destination); // Worklet renders silence; the AudioContext sink is set to "none" where supported.
+        stream.getAudioTracks().forEach(track=>track.addEventListener('mute',()=>{
+          if(!document.hidden&&(this.active||this.starting))window.AynCallPriority?.interrupt();
+        }));
         stream.getAudioTracks().forEach(track => track.addEventListener("ended", () => {
           if (this.active) this.fail(Object.assign(new Error("El teléfono interrumpió el micrófono"),{recoverable:true}));
         }));
         context.onstatechange = () => {
-          if ((this.active||this.starting) && ["suspended","interrupted"].includes(context.state)) this.resume();
+          if ((this.active||this.starting) && context.state==="interrupted"){
+            window.AynCallPriority?.interrupt();return;
+          }
+          if ((this.active||this.starting) && context.state==="suspended" &&
+              (!window.AynCallPriority||window.AynCallPriority.shouldListen())) this.resume();
         };
         const model=await preparingModel;
         if(generation!==this.generation)return;
@@ -249,6 +261,8 @@
     fail(error) {
       const permission = error?.name === "NotAllowedError";
       this.abort();
+      if(["NotReadableError","AbortError"].includes(error?.name)&&!document.hidden)
+        window.AynCallPriority?.interrupt();
       this.onerror?.({
         error: permission ? "not-allowed" : "local-engine",
         recoverable:!permission&&(Boolean(error?.recoverable)||["NotReadableError","AbortError","NetworkError"].includes(error?.name)),
@@ -274,7 +288,8 @@
       // No onend notification/restart cycle: only an explicit start captures audio.
     }
     resume() {
-      if ((this.active||this.starting) && ["suspended","interrupted"].includes(this.context?.state)) {
+      if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) return;
+      if ((this.active||this.starting) && this.context?.state==="suspended") {
         this.context.resume().catch(() => {
           this.onloading?.("Toca el botón de voz para habilitar el audio de Ain.");
         });

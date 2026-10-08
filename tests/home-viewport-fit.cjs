@@ -17,10 +17,10 @@ for(const path of files){
   assert(!section.includes('aspect-ratio:1 / 1'),'No convertir las tarjetas en cuadrados grandes');
 }
 const index=fs.readFileSync('index.html','utf8'),admin=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
-assert(index.includes('/styles.css?v=20261008-mic182'));
+assert(index.includes('/styles.css?v=20261008-adminroutes185'));
 assert(admin.includes('/administracion.css?v=20261008-mic182'));
-assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
-assert(sw.includes('/styles.css?v=20261008-mic182'));
+assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
+assert(sw.includes('/styles.css?v=20261008-adminroutes185'));
 assert(sw.includes('/administracion.css?v=20261008-mic182'));
 assert(fs.readFileSync('app.js','utf8').includes('home-quick-card home-quick-sos'));
 assert(admin.includes('id="homeVoiceToggle"'));
@@ -49,7 +49,7 @@ assert(aj.includes("history.scrollRestoration='manual'")&&aj.includes('resetHome
 assert(aj.includes("window.addEventListener('pageshow'"));
 assert(uj.includes('history.scrollRestoration="manual"'));
 assert(uj.includes('window.addEventListener("pageshow",()=>'));
-assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v184-community-pin-confirm'));
+assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v185-admin-screen-routes'));
 console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');
 
 // Comprobación adicional: alta segura y sin conmutación de los relés.
@@ -79,3 +79,5 @@ require('./voice-spoken-feedback.cjs');
 require('./home-microphone-layout.cjs');
 
 require('./matrix-clear-administrator.cjs');
+
+require('./admin-blank-tools-recovery.cjs');

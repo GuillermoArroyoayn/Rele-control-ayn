@@ -1488,3 +1488,14 @@ body.app-screen-mode[data-user-view="access-settings"] .access-settings-panel.fu
   padding:10px 12px;border:1px solid var(--theme-border,#5ee7ff99);
   border-radius:12px;margin:8px 0;font-size:14px;line-height:1.45}
 .managed-access-grid>.small-button{grid-column:1/-1}
+
+/* v169: guardar con confirmación persistente aunque se refresquen los actuadores. */
+.access-settings-feedback:not([hidden]){
+  display:block;max-width:650px;margin:0 auto 14px;padding:13px 16px;
+  border:1px solid var(--theme-border,#5ee7ff99);border-radius:12px;
+  background:var(--theme-panel,#082d5d);font-weight:700;line-height:1.4
+}
+.access-settings-feedback.is-error{border-color:#ff9696;color:#ffdbdb}
+body.app-screen-mode[data-user-view="access"] .managed-access-panel.function-screen:not([hidden]){
+  display:block!important;visibility:visible!important;opacity:1!important;
+}

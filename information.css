@@ -23,3 +23,77 @@ html body .ayn-info-quick.ayn-info-unread{border-color:#3bd6ff!important;box-sha
 html body .ayn-info-quick.ayn-info-urgent{border:2px solid #ff3155!important;box-shadow:0 0 18px #ff315588!important}
 html body .ayn-info-quick.ayn-info-urgent .home-quick-icon{color:#ff647c!important;filter:drop-shadow(0 0 10px #f12b53)}
 @media(max-width:400px){.ayn-info-modal{padding:12px;gap:8px}.ayn-info-actions{gap:5px}html body .ayn-info-actions button{font-size:12px;padding:8px}.ayn-info-message{padding:12px}}
+
+/* Detalles ampliables de avisos y emergencias · v188 */
+html body .ayn-info-mask .ayn-info-clickable{
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+html body .ayn-info-mask .ayn-info-clickable:active{transform:scale(.985)}
+html body .ayn-info-mask .ayn-info-clickable:focus-visible{
+  outline:3px solid #c0ecff;outline-offset:3px;
+}
+html body .ayn-info-mask .ayn-info-hint{
+  display:block;margin-top:15px;color:#bce9ff;font-weight:700;
+  font-size:14px;letter-spacing:0;text-decoration:underline;text-underline-offset:3px;
+}
+html body .ayn-info-mask .ayn-info-message.urgent .ayn-info-hint{color:#ffc3cd}
+html body .ayn-info-mask .ayn-info-message.urgent:active{box-shadow:0 0 22px #ff4569bb}
+html body .ayn-info-mask .ayn-info-back{
+  flex:0 0 46px;min-width:46px;min-height:44px;
+  font:700 23px system-ui;color:#fff;background:#154b80;
+  border:1px solid #7bcbff;border-radius:12px;padding:0;
+}
+html body .ayn-info-mask .ayn-info-back[hidden]{display:none!important}
+html body .ayn-info-mask .ayn-info-modal.ayn-info-detail-mode{
+  width:min(760px,100%);
+  height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  max-height:none;
+  padding:clamp(12px,2.5vw,22px);
+  border-radius:20px;
+}
+html body .ayn-info-mask .ayn-info-detail-content{
+  margin:0;padding:14px;min-height:100%;
+  background:linear-gradient(135deg,#123e70,#081e3e);
+  border:1px solid #68b4f0;border-radius:16px;
+  color:#f4f8ff;overflow-wrap:anywhere;
+}
+html body .ayn-info-mask .ayn-info-detail-content.urgent{
+  border:2px solid #ff4765;background:linear-gradient(140deg,#48142b,#1c1e3e);
+}
+html body .ayn-info-mask .ayn-info-detail-content h3{
+  margin:0 0 12px;font-size:clamp(24px,6vw,32px);
+}
+html body .ayn-info-mask .ayn-info-detail-text,
+html body .ayn-info-mask .ayn-info-detail-field{
+  white-space:pre-wrap;line-height:1.5;font-size:16px;
+}
+html body .ayn-info-mask .ayn-info-detail-field{
+  padding:10px 12px;background:#0c2e54;border-radius:11px;
+  border:1px solid #386c9e;margin:10px 0;
+}
+html body .ayn-info-mask .ayn-info-detail-loading,
+html body .ayn-info-mask .ayn-info-photo-progress{color:#c4deff;font-style:italic}
+html body .ayn-info-mask .ayn-info-photo-area{
+  margin-top:16px;padding:10px;border:1px solid #6a9dbc;
+  border-radius:15px;background:#091b31;
+}
+html body .ayn-info-mask .ayn-info-full-photo{
+  display:block;width:100%;max-width:100%;height:auto;
+  max-height:none;object-fit:contain;border-radius:12px;
+}
+html body .ayn-info-mask .ayn-info-poll-choices{
+  padding:12px;background:#103259;border-radius:13px;margin:12px 0;
+}
+html body .ayn-info-mask .ayn-info-poll-choices h4{margin:0 0 10px}
+html body .ayn-info-mask .ayn-info-photo-retry,
+html body .ayn-info-mask .ayn-info-open-original{
+  min-height:44px;border:1px solid #80dcff;
+  padding:10px 14px;border-radius:12px;
+  color:#041e32;background:#8de4ff;font:700 14px system-ui;
+}
+@media(max-width:440px){
+  html body .ayn-info-mask .ayn-info-modal.ayn-info-detail-mode{border-radius:15px}
+  html body .ayn-info-mask .ayn-info-detail-content{padding:12px}
+  html body .ayn-info-mask .ayn-info-detail-content h3{font-size:24px}
+}

@@ -667,6 +667,8 @@ const functionTitle=document.createElement("button"); functionTitle.type="button
 const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>showView("settings");
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
 const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);
+const voiceScreenTitle=document.createElement("h2");voiceScreenTitle.textContent="Control por voz";voiceScreenTitle.className="function-voice-title";
+functionSettings.append(voiceScreenTitle);
 function prepareFunctionScreen(view) {
   const user=document.body.classList.contains("user-layout"), ready=statusReady;
   document.body.classList.toggle("app-screen-mode",ready);
@@ -685,6 +687,7 @@ function prepareFunctionScreen(view) {
   accessSettingsGrid.hidden=view==="access";
   if(view==="access")accessSettingsFeedback.hidden=true;
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
+  voiceScreenTitle.hidden=view!=="voice";
   if(!user){
     if(view==="voice"){
       // Tanto el Administrador como el Máster necesitan los controles

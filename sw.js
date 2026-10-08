@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v145-share-menu";
+const CACHE = "reles-ayn-v146-config-style";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -15,7 +15,7 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-layout145",
+  "/styles.css?v=20261008-style146",
   "/share.css?v=20261006-orbit123",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
@@ -23,7 +23,7 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261006-voice116",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-layout145",
+  "/app.js?v=20261008-style146",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

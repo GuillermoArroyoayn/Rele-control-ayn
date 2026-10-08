@@ -1207,6 +1207,6 @@ body[data-user-view="settings"] #refresh{display:none!important}
 
 
 /* v145 · Configuración al pie de Inicio y Compartir como vista del menú */
-.section-config-bottom{display:block;width:100%;margin-top:16px;text-align:center;text-decoration:none;box-sizing:border-box}
+.section-config-bottom{display:flex;width:100%;height:50px;margin-top:16px;align-items:center;justify-content:center;text-align:center;text-decoration:none;box-sizing:border-box;font-size:16px;font-weight:800;cursor:pointer}
 .share-section.function-screen{display:block}
 .share-section.function-screen .share-main{width:100%;min-height:54px}

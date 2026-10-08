@@ -27,7 +27,7 @@ assert(app.includes('homeVoiceText.textContent'),'Los avisos siguen actualizánd
 assert(admHtml.includes('id="homeVoiceText" role="status" aria-live="polite"'),'Confirmación accesible conservada');
 assert(index.includes('/styles.css?v=20261008-mic182'));
 assert(admHtml.includes('/administracion.css?v=20261008-mic182'));
-assert(sw.includes('reles-ayn-v182-home-mic-layout'));
+assert(sw.includes('reles-ayn-v183-clear-admin-folder'));
 assert(sw.includes('/styles.css?v=20261008-mic182'));
 assert(sw.includes('/administracion.css?v=20261008-mic182'));
 // Aun en pantallas cortas la altura flexible permite desplazamiento en vez de superposición.

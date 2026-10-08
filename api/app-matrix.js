@@ -62,6 +62,9 @@ module.exports=async(req,res)=>{
 
       for(const [accountId,item] of Object.entries(auth.registry.devices)){
         if(item.role!=='admin'||!item.groupId)continue;
+        // Una cuenta eliminada permanece en auditoría, pero su carpeta vaciada
+        // no se debe reconstruir automáticamente al consultar el Constructor.
+        if(item.status==='deleted'&&!await M.getPublished(item.groupId))continue;
         const published=await M.ensure(item.groupId,item.adminName||item.name||'Administración',item.status==='deleted'?'deleted':'active');
         const draft=await M.getDraft(item.groupId)||published;
         groupsById.set(item.groupId,{
@@ -209,20 +212,70 @@ module.exports=async(req,res)=>{
       return res.json({ok:true,config});
     }
 
-    if(b.action==='deleteAdministration'){
+    if(b.action==='deleteAndClearAdministrator'){
+      // El Máster puede liberar la carpeta solo si ya no depende de ella
+      // ningún residente. Los historiales y equipos archivados se conservan.
+      if(!groupId||groupId==='master'||groupId==='unassigned')
+        throw A.error('Esta carpeta no se puede eliminar.',403);
+      const allAccounts=Object.entries(auth.registry.devices).filter(([,d])=>d.groupId===groupId);
+      const people=allAccounts.filter(([,d])=>d.role==='user'&&d.status!=='deleted');
+      if(people.length)
+        throw A.error('La carpeta tiene residentes. Reemplaza primero al administrador o traslada los usuarios para conservar sus accesos.',409);
+      const administrators=allAccounts.filter(([,d])=>d.role==='admin'&&d.status!=='deleted');
+      if(administrators.length>1)
+        throw A.error('Esta carpeta tiene más de un administrador. Gestiona primero los administradores adicionales.',409);
+      const relays=await A.records();
+      const assigned=relays.filter(item=>item.groupId===groupId);
+      const preparedKey='ayn:matrix:prepared-admins';
+      const preparedRaw=await A.redis('HGET',preparedKey,groupId);
+      let prepared=null;
+      if(preparedRaw){
+        try{prepared=JSON.parse(preparedRaw);}catch{throw A.error('La invitación pendiente requiere revisión antes de eliminar.',409);}
+        const canceled={...prepared,status:'canceled',canceledAt:new Date().toISOString()};
+        const success=await A.redis('EVAL',
+          "if redis.call('HGET',KEYS[1],ARGV[1])==ARGV[2] then redis.call('HSET',KEYS[1],ARGV[1],ARGV[3]); return 1 else return 0 end",
+          1,preparedKey,groupId,preparedRaw,JSON.stringify(canceled));
+        if(!success)throw A.error('La invitación cambió desde otro equipo. Actualiza y vuelve a intentar.',409);
+        const token=String(prepared.inviteUrl||'').split('#invite=')[1]?.split(/[?&]/)[0]||'';
+        if(/^[a-f0-9]{64}$/.test(token))
+          await A.redis('DEL','ayn:managed:invite:'+A.hash(token));
+      }
+      // Registrar la baja del administrador sin borrar el historial ni las
+      // identidades de equipos: los antiguos permisos no vuelven a activarse.
       await A.updateRegistry(registry=>{
-        for(const item of Object.values(registry.devices)){
-          if(item.groupId!==groupId)continue;
-          if(item.role==='admin'||item.role==='user'){
-            item.status='deleted';
-            item.statusChangedAt=new Date().toISOString();
-            item.statusChangedBy=auth.device.id;
-          }
+        const accounts=Object.values(registry.devices).filter(d=>d.groupId===groupId);
+        if(accounts.some(d=>d.role==='user'&&d.status!=='deleted'))
+          throw A.error('Esta comunidad ya tiene residentes. No es seguro vaciarla.',409);
+        if(accounts.filter(d=>d.role==='admin'&&d.status!=='deleted').length>1)
+          throw A.error('Otra cuenta de administrador se incorporó. Actualiza la pantalla.',409);
+        for(const admin of accounts.filter(d=>d.role==='admin')){
+          admin.relays=[];
+          admin.status='deleted';
+          admin.statusChangedBy=auth.device.id;
+          admin.statusChangedAt=new Date().toISOString();
         }
       });
-      await M.markStatus(groupId,'deleted',actor);
-      await addHistory({kind:'matrix',groupId,userName:owner?.[1]?.adminName||existing?.branding?.communityName||groupId,actor,action:'Administración eliminada (datos conservados)'}).catch(()=>{});
-      return res.json({ok:true,status:'deleted'});
+      // Los relés físicos no se accionan: solo se liberan los permisos.
+      for(const item of assigned){
+        item.groupId='unassigned';
+        await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
+      }
+      const reservations=await originalReservations();
+      for(const [relay,reservedGroup] of Object.entries(reservations))
+        if(reservedGroup===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
+      await M.clearFolder(groupId);
+      if(preparedRaw)await A.redis('HDEL',preparedKey,groupId);
+      await addHistory({kind:'permissions',groupId,
+        userName:prepared?.name||owner?.[1]?.adminName||existing?.branding?.communityName||'Administrador',
+        actor,action:'Administrador eliminado y carpeta vaciada; relés liberados para nueva asignación'}).catch(()=>{});
+      return res.json({ok:true,cleared:true,groupId,releasedActuators:assigned.length,
+        releasedOriginalRelays:Object.entries(reservations).filter(([,id])=>id===groupId).length});
+    }
+
+    if(b.action==='deleteAdministration'){
+      // No permitir que una versión antigua de la interfaz elimine a todos
+      // los residentes de la comunidad sin verificar su continuidad.
+      throw A.error('Actualiza el Constructor de App y usa “Eliminar administrador y vaciar carpeta”. Los residentes no pueden eliminarse por accidente.',409);
     }
 
     if(b.action==='restoreAdministration'){

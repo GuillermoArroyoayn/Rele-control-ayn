@@ -141,7 +141,12 @@ function loadGroup(){
   if(!(group.actuators||[]).length)$('actuators').append(el('p','Todavía no hay relés/actuadores asignados. Usa el selector superior para asignarlos.'));
   const deleted=group.status==='deleted';
   $('saveDraft').disabled=deleted;$('publish').disabled=deleted;
-  $('deleteAdmin').hidden=deleted||Boolean(group.prepared&&group.status==='pending');
+  // Eliminar también cuando la invitación aún no fue aceptada o la
+  // administración ya fue archivada: la carpeta debe quedar libre.
+  $('deleteAdmin').hidden=false;
+  $('deleteAdmin').disabled=false;
+  $('deleteAdmin').textContent=deleted?'Vaciar carpeta del administrador eliminado':
+    'Eliminar administrador y vaciar carpeta';
   $('restoreAdmin').hidden=!deleted;
   showPreparedInvitation(group);
   renderPool();renderOriginalAssigned();renderPreview();
@@ -216,7 +221,9 @@ function renderGroups(preferred=requestedGroup){
     const target=(payload.groups||[]).some(group=>group.id===preferred)?preferred:payload.groups[0].id;
     $('group').value=target;loadGroup();
     if(setupMode&&target===requestedGroup)message('Configura ahora los relés, sus nombres y las pantallas disponibles. Cuando termines, pulsa Publicar cambios.');
-  }else message('Todavía no hay administradores. Crea el primero desde Administración general.');
+  }else{
+    message('La carpeta quedó libre. Puedes crear un nuevo administrador desde Administración general.');
+  }
 }
 
 async function reload(groupId){
@@ -307,8 +314,20 @@ $('assignActuator').onclick=async()=>{
 };
 
 $('deleteAdmin').onclick=async()=>{
-  const group=selected();if(!group||!confirm('¿Eliminar este administrador y suspender su comunidad? Los datos se conservarán para poder restaurarla.'))return;
-  try{await api({action:'deleteAdministration',groupId:group.id});group.status='deleted';group.published.status='deleted';group.draft.status='deleted';message('Administrador eliminado. Los datos quedaron conservados.');loadGroup();}catch(error){message(error.message,true);}
+  const group=selected();if(!group)return;
+  const adminName=group.prepared?.name||group.name;
+  const warned='¿Eliminar a '+adminName+' y VACIAR su carpeta?\n\n'+
+    'Se anulará la invitación (si está pendiente), se quitarán las autorizaciones y los relés quedarán libres para otro administrador.\n\n'+
+    'Esta operación no se puede restaurar. El historial de seguridad se conserva.';
+  if(!confirm(warned))return;
+  const button=$('deleteAdmin');button.disabled=true;
+  try{
+    const result=await api({action:'deleteAndClearAdministrator',groupId:group.id});
+    await reload();
+    message('✓ '+adminName+' eliminado. Carpeta vacía; relés disponibles para asignar a otro administrador.'+
+      (result.releasedActuators?' Se liberaron '+result.releasedActuators+' actuadores.':''));
+  }catch(error){message(error.message,true);}
+  finally{button.disabled=false;}
 };
 $('restoreAdmin').onclick=async()=>{
   const group=selected();if(!group)return;

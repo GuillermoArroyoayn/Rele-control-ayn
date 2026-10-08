@@ -348,7 +348,7 @@ const functionToolbar=document.createElement("nav"); functionToolbar.className="
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
 functionBack.onclick=()=>showView("menu");
 const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{location.assign("/administracion.html");};
-const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>masterConfigLink.click();
+const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>showView("settings");
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
 const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);
 function prepareFunctionScreen(view) {
@@ -356,7 +356,7 @@ function prepareFunctionScreen(view) {
   document.body.classList.toggle("app-screen-mode",ready);
   functionToolbar.hidden=!ready||user;
   functionTitle.textContent="Inicio";
-  functionConfig.hidden=currentRole!=="super_master"||view==="menu";
+  functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
   const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
@@ -381,7 +381,7 @@ function showView(view) {
   masterConfigLink.hidden=currentRole!=='super_master';
   masterConfigLink.href=view==='control'?'/administracion.html#timers':view==='temporary'?'/#temporary':view==='bookings'?'/#bookings':view==='voice'?'/#voice':'/#tools';
   if(currentRole==='super_master'){
-    for(const {node} of userSettingNodes)node.hidden=view==='voice'?!node.classList.contains('accessibility'):view==='tools'?node.classList.contains('accessibility'):true;
+    for(const {node} of userSettingNodes)node.hidden=view==='settings'?false:view==='voice'?!node.classList.contains('accessibility'):view==='tools'?node.classList.contains('accessibility'):true;
   }
   const user = document.body.classList.contains("user-layout");
   document.body.dataset.userView = view;
@@ -420,6 +420,7 @@ function showView(view) {
   bookingsPanel.hidden = view !== "bookings";
   databasePanel.hidden = view !== "database";
   systemPanel.hidden = view !== "system";
+  recoveryPanel.hidden=!(currentRole==="super_master"&&view==="tools");
   const deviceArea = ["admins", "users", "temporary"].includes(view);
   adminPanel.querySelector(".admin-title").hidden = !deviceArea;
   const intro = adminPanel.querySelector(":scope > p");
@@ -657,7 +658,7 @@ async function loadStatus() {
           : "Mis usuarios";
     buildMenu();
     if(currentRole!=="super_master")loadManagedAccess().catch(()=>{});
-    recoveryPanel.hidden = currentRole !== "super_master";
+    recoveryPanel.hidden=!(currentRole==="super_master"&&currentView==="tools");
     if (currentRole === "super_master") applyPowerOnOff();
     if (errors.length) show(errors.join(" · "), true);
     else

@@ -6,6 +6,7 @@
   const TYPES={report:'Reporte',notice:'Aviso',poll:'Encuesta',emergency:'Emergencia',sos:'Emergencia', 'sos-cancelled':'Emergencia cancelada'};
   let items=[],role='',deviceId='',seen=new Set(),dialogItem=null,opened=false,soundContext=null,loading=false;
   let previousFocused=null,initialized=false,firstLoad=true,activeView='new';
+  let detailOrigin='new',detailItem=null,detailGeneration=0,photoUrl=null;
   const soundEnabled=()=>localStorage.getItem(SOUND)!=='off';
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
   const sorted=records=>[...records].sort((a,b)=>(isEmergency(b)?1:0)-(isEmergency(a)?1:0)||eventTime(b.createdAt)-eventTime(a.createdAt));
@@ -20,7 +21,8 @@
   const head=el('header','ayn-info-header'),symbol=el('span','ayn-info-head-icon','ℹ️'),heading=el('h2','', 'Información');
   heading.id='aynInfoTitle';
   const close=el('button','ayn-info-close','✕');close.type='button';close.setAttribute('aria-label','Cerrar información');
-  head.append(symbol,heading,close);
+  const detailBack=el('button','ayn-info-back','←');detailBack.type='button';detailBack.hidden=true;detailBack.setAttribute('aria-label','Volver al aviso anterior');
+  head.append(detailBack,symbol,heading,close);
   const subtitle=el('p','ayn-info-subtitle'),body=el('div','ayn-info-body'),actions=el('footer','ayn-info-actions');
   const sound=el('button','ayn-info-sound');sound.type='button';
   const push=el('button','ayn-info-push');push.type='button';
@@ -55,7 +57,13 @@
     sound.textContent=!soundEnabled()?'🔇 Activar sonido':soundContext?.state==='running'?'🔊 Sonido activado':'🔊 Tocar para activar sonido';
     push.textContent=window.AynPushNotifications?.enabled?.()?'🔔 Avisos al teléfono ✓':'🔔 Activar avisos al teléfono';
   }
+  const releaseDetail=()=>{
+    detailGeneration++;
+    if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}
+    detailItem=null;
+  };
   const hide=()=>{
+    releaseDetail();detailBack.hidden=true;
     opened=false;mask.hidden=true;mask.classList.remove('ayn-info-emergency');
     document.body.classList.remove('ayn-info-dialog-open');
     previousFocused?.focus?.();
@@ -73,6 +81,13 @@
     div.append(kind,title,detail);
     if(item.kind==='sos'&&item.apartment)div.append(el('p','ayn-info-resident','Departamento: '+item.apartment));
     div.append(foot);
+    div.classList.add('ayn-info-clickable');
+    div.setAttribute('role','button');div.setAttribute('tabindex','0');
+    div.setAttribute('aria-label','Ver información completa: '+(item.title||TYPES[item.kind]||'Aviso'));
+    div.onclick=e=>{if(e.target.closest('button'))return;openDetail(item);};
+    div.onkeydown=e=>{if(e.target!==div)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();openDetail(item);}};
+    const hint=el('small','ayn-info-hint','Toca este recuadro para ver la información completa y la fotografía');
+    div.append(hint);
     if(withActions){
       const bottom=el('div','ayn-info-card-actions');
       const unread=!seen.has(item.id);
@@ -81,13 +96,15 @@
         mark.onclick=()=>{acknowledgeIds([item.id]);renderAll();};
         bottom.append(mark);
       }
-      const details=el('button','','Abrir sección');details.type='button';
-      details.onclick=()=>openSection(item);
-      bottom.append(details);div.append(bottom);
+      const details=el('button','','Ver información y foto');details.type='button';
+      details.onclick=()=>openDetail(item);
+      const section=el('button','','Abrir sección');section.type='button';section.onclick=()=>openSection(item);
+      bottom.append(details,section);div.append(bottom);
     }
     return div;
   }
   function renderNew(item){
+    releaseDetail();detailBack.hidden=true;modal.classList.remove('ayn-info-detail-mode');
     activeView='new';dialogItem=item;body.replaceChildren(card(item));
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
@@ -99,6 +116,7 @@
     show();
   }
   function renderAll(){
+    releaseDetail();detailBack.hidden=true;modal.classList.remove('ayn-info-detail-mode');
     activeView='all';mask.classList.remove('ayn-info-emergency');
     heading.textContent='Información';symbol.textContent='ℹ️';
     subtitle.textContent=fresh().length ? fresh().length+' mensaje(s) pendiente(s)' : 'No tienes mensajes pendientes';
@@ -108,6 +126,152 @@
     seeAll.hidden=true;acknowledge.textContent='Marcar todo leído';
   }
   function openInbox(){renderAll();show();}
+
+  const credentials=()=>{
+    const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'';
+    const id=localStorage.getItem('relayDeviceId')||'';
+    if(!pin||!id)throw new Error('Necesitas iniciar sesión para ver los detalles.');
+    return {'x-app-pin':pin,'x-device-id':id};
+  };
+  async function authenticated(url,asBlob=false){
+    const response=await fetch(url,{headers:credentials(),cache:'no-store'});
+    if(!response.ok){
+      const data=await response.json().catch(()=>({}));
+      throw new Error(data.error||(response.status===403?'No tienes permiso para ver el contenido.':'No fue posible cargar el contenido.'));
+    }
+    return asBlob?response.blob():response.json();
+  }
+  function appendDetail(container,label,value){
+    if(value===undefined||value===null||value==='')return;
+    const row=el('p','ayn-info-detail-field');
+    row.append(el('strong','',label+': '),document.createTextNode(String(value)));
+    container.append(row);
+  }
+  async function showPhoto(container,url,token){
+    const photoArea=el('div','ayn-info-photo-area');
+    const msg=el('p','ayn-info-photo-progress','Cargando fotografía adjunta…');
+    container.append(photoArea);photoArea.append(msg);
+    const loadPhoto=async()=>{
+      msg.textContent='Cargando fotografía adjunta…';
+      try{
+        const blob=await authenticated(url,true);
+        if(token!==detailGeneration||!detailItem||!container.isConnected)return;
+        if(!blob.type.startsWith('image/'))throw new Error('El archivo adjunto no es una imagen.');
+        if(photoUrl)URL.revokeObjectURL(photoUrl);
+        photoUrl=URL.createObjectURL(blob);
+        const img=document.createElement('img');
+        img.className='ayn-info-full-photo';img.alt='Fotografía adjunta al aviso';img.src=photoUrl;
+        msg.replaceWith(img);
+      }catch(err){
+        if(token!==detailGeneration||!container.isConnected)return;
+        msg.textContent='No se pudo cargar la fotografía: '+err.message;
+        const retry=el('button','ayn-info-photo-retry','Reintentar fotografía');retry.type='button';
+        retry.onclick=()=>{retry.remove();loadPhoto();};photoArea.append(retry);
+      }
+    };
+    await loadPhoto();
+  }
+  async function loadDetail(item,container,token){
+    const rawId=String(item.id||'');
+    const group=String(item.groupId||'');
+    const status=el('p','ayn-info-detail-loading','Buscando la información original…');
+    container.append(status);
+    try{
+      if(['notice','emergency','poll'].includes(item.kind)&&/^community-[a-f0-9]{32}$/.test(rawId)){
+        const srcId=rawId.slice('community-'.length);
+        const data=await authenticated('/api/community?'+new URLSearchParams({groupId:group}));
+        const original=data.items?.find(row=>row.id===srcId);
+        if(token!==detailGeneration)return;
+        if(!original)throw new Error('Esta publicación ya no está disponible o fue eliminada.');
+        status.remove();
+        appendDetail(container,'Publicado por',original.author);
+        appendDetail(container,'Mensaje completo',original.text);
+        if(original.type==='poll'){
+          const choices=el('div','ayn-info-poll-choices');
+          choices.append(el('h4','','Alternativas de la encuesta'));
+          (original.options||[]).forEach((option,i)=>{
+            choices.append(el('p','',(i+1)+'. '+option+' · '+(original.counts?.[i]||0)+' votos'));
+          });
+          container.append(choices);
+          appendDetail(container,'Cierre',original.closesAt?new Date(original.closesAt).toLocaleString('es-CL'):'');
+          const vote=el('button','ayn-info-open-original','Ir a votar / ver resultados');
+          vote.type='button';vote.onclick=()=>openSection(item);container.append(vote);
+        }
+        if(original.hasPhoto)await showPhoto(container,'/api/community?'+new URLSearchParams({groupId:group,photo:srcId}),token);
+      }else if(item.kind==='report'&&/^report-[a-f0-9]{32}$/.test(rawId)){
+        if(!['admin','super_master'].includes(role)){
+          status.textContent='Los detalles y fotografías de los reportes son privados de la administración.';
+          return;
+        }
+        const srcId=rawId.slice('report-'.length);
+        const data=await authenticated('/api/reports');
+        if(token!==detailGeneration)return;
+        const original=data.reports?.find(row=>row.id===srcId);
+        status.remove();
+        if(!original){
+          appendDetail(container,'Observación','El reporte original no figura en tu bandeja. Puedes consultar el texto disponible arriba.');
+          return;
+        }
+        appendDetail(container,'Reportado por',original.name);
+        appendDetail(container,'Departamento',original.apartment||'Sin registrar');
+        appendDetail(container,'Teléfono',original.phone||'Sin registrar');
+        appendDetail(container,'Descripción completa',original.text);
+        if(original.hasPhoto)await showPhoto(container,'/api/reports?photo='+encodeURIComponent(srcId),token);
+      }else if(item.kind==='sos'&&/^sos-[a-f0-9]{32}$/.test(rawId)){
+        const srcId=rawId.slice('sos-'.length);
+        const data=await authenticated('/api/panic?groupId='+encodeURIComponent(group));
+        if(token!==detailGeneration)return;
+        const original=data.events?.find(row=>row.id===srcId);
+        status.remove();
+        if(!original){appendDetail(container,'Estado','El detalle de este SOS ya no está disponible.');return;}
+        appendDetail(container,'Persona',original.name);
+        appendDetail(container,'Departamento',original.apartment||'Sin registrar');
+        appendDetail(container,'Teléfono',original.phone||'Sin registrar');
+        appendDetail(container,'Solicitud',original.message);
+        appendDetail(container,'Estado',original.apology?'Cancelada por activación accidental':original.active?'Emergencia activa':'Alerta finalizada');
+      }else{
+        status.remove();
+        appendDetail(container,'Detalle',item.message||'Sin información adicional.');
+      }
+    }catch(error){
+      if(token!==detailGeneration||!container.isConnected)return;
+      status.textContent='No se pudo cargar el detalle: '+error.message;
+      const retry=el('button','ayn-info-open-original','Reintentar cargar información');
+      retry.type='button';retry.onclick=()=>{retry.remove();status.remove();loadDetail(item,container,token);};
+      container.append(retry);
+    }
+  }
+  function openDetail(item){
+    if(!item)return;
+    detailOrigin=activeView==='detail'?detailOrigin:activeView;
+    releaseDetail();activeView='detail';detailItem=item;
+    const token=detailGeneration;
+    detailBack.hidden=false;seeAll.hidden=true;acknowledge.textContent='Cerrar';
+    modal.classList.add('ayn-info-detail-mode');
+    const urgent=isEmergency(item);
+    mask.classList.toggle('ayn-info-emergency',urgent);
+    heading.textContent=urgent?'Detalle de emergencia':'Información completa';
+    symbol.textContent=urgent?'🚨':'ℹ️';
+    subtitle.textContent='Revisa la información completa y sus archivos adjuntos.';
+    const article=el('article','ayn-info-detail-content'+(urgent?' urgent':''));
+    article.append(el('h3','',item.title||'Información'),
+      el('p','ayn-info-detail-text',item.message||''),
+      el('small','',new Date(item.createdAt).toLocaleString('es-CL')));
+    body.replaceChildren(article);
+    if(!opened)show();
+    acknowledgeIds([item.id]);
+    body.scrollTop=0;
+    loadDetail(item,article,token);
+  }
+  detailBack.onclick=()=>{
+    if(activeView!=='detail')return;
+    const item=detailItem,origin=detailOrigin;
+    if(origin==='new'&&item)renderNew(item);
+    else renderAll();
+    body.scrollTop=0;
+    detailBack.hidden=true;
+  };
+
   function openSection(item){
     acknowledgeIds([item.id]);hide();
     const section=item.kind==='report'?'reports':item.kind==='poll'?'polls':item.kind==='notice'||item.kind==='emergency'?'wall':'panic';
@@ -185,10 +349,12 @@
   }
   close.onclick=()=>{
     if(activeView==='new'&&dialogItem)acknowledgeIds([dialogItem.id]);
+    if(activeView==='detail'&&detailItem)acknowledgeIds([detailItem.id]);
     hide();const more=fresh();if(more.length)maybeDisplay(more);
   };
   acknowledge.onclick=()=>{
     if(activeView==='new'&&dialogItem)acknowledgeIds([dialogItem.id]);
+    else if(activeView==='detail'&&detailItem)acknowledgeIds([detailItem.id]);
     else acknowledgeIds(items.map(item=>item.id));
     hide();if(fresh().length)maybeDisplay(fresh());
   };

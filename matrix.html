@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06172f">
 <title>Constructor de App · A&N Control</title>
-<link rel="stylesheet" href="/matrix.css?v=20261008-onboard180">
+<link rel="stylesheet" href="/matrix.css?v=20261008-delete183">
 </head>
 <body>
 <main class="matrix-shell">
@@ -71,11 +71,13 @@
     <button id="saveDraft" type="button">Guardar borrador</button>
     <button id="publish" type="button" class="primary">Publicar cambios</button>
     <button id="sendPreparedInvite" type="button" class="primary send-prepared-invite" hidden>✓ Finalizar autorizaciones y enviar invitación al administrador</button>
-    <button id="deleteAdmin" type="button" class="danger">Eliminar administrador</button>
+    <button id="deleteAdmin" type="button" class="danger">Eliminar administrador y vaciar carpeta</button>
     <button id="restoreAdmin" type="button" class="secondary" hidden>Restaurar administrador</button>
+    <p class="matrix-delete-hint">Esta opción cancela la invitación pendiente, elimina las autorizaciones y libera los relés para crear otro administrador. Si existen residentes activos, debes reemplazar primero al administrador.</p>
+    <a id="createAdminAfterDelete" class="secondary matrix-create-again" href="/administracion.html#people" hidden>＋ Crear nuevo administrador</a>
   </section>
 </section>
 </main>
-<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-onboard180" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
+<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-delete183" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
 </body>
 </html>

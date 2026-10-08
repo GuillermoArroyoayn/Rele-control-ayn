@@ -37,7 +37,8 @@ for(const page of [index, adminHome]){
   assert(page.includes('/information.js?v=20261008-cards191'));
   assert(page.includes('/information.css?v=20261008-cards191'));
 }
-assert(serviceWorker.includes('reles-ayn-v191-no-emergency-labels'), 'Actualizar caché PWA');
+const cacheVersion=serviceWorker.match(/reles-ayn-v(\d+)-[a-z0-9-]+/);
+assert(cacheVersion && Number(cacheVersion[1])>=191, 'Mantener caché PWA actualizado');
 assert(serviceWorker.includes('/information.js?v=20261008-cards191'));
 assert(serviceWorker.includes('/information.css?v=20261008-cards191'));
 

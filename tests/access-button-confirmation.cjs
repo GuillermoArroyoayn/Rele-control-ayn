@@ -21,6 +21,6 @@ assert(!app.includes("symbol.textContent='⏻'"),'No dejar el símbolo de encend
 assert(app.includes("symbol.textContent=state===true?'ON':state===false?'OFF':'—'"),'El círculo muestra ON y OFF reales');
 assert(css.includes('.access-controls-page .access-actuator-status{'),'La segunda línea de estado existe solo para lectores de pantalla');
 assert(css.includes('clip-path:inset(50%)!important'),'OFF no se repite debajo de Puerta');
-assert(sw.includes('reles-ayn-v178-matrix-designations'));
+assert(sw.includes('reles-ayn-v179-interactive-preview'));
 assert(html.includes('/app.js?v=20261008-phone176')&&html.includes('/styles.css?v=20261008-access173'));
 console.log('Accesos v170: pantalla aislada visible, botón Puerta y confirmación dentro del botón sin avisos duplicados.');

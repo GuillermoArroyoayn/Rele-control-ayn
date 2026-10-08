@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8');
+const index=fs.readFileSync('index.html','utf8');
+const admin=fs.readFileSync('administracion.html','utf8');
+const api=fs.readFileSync('api/administrations.js','utf8');
+const sw=fs.readFileSync('sw.js','utf8');
+assert(!admin.includes('Compartir aplicación'),'Compartir duplicado en menú de administración');
+assert(!admin.includes('href="/#share"'),'Ruta obsoleta de compartir');
+assert(!app.includes('"share", "Compartir aplicación"'),'Menú principal contiene duplicado');
+assert(!index.includes('class="share-section"'),'Pantalla de compartir duplicada');
+for(const word of ['toggleShare','shareNumber','shareContacts','shareSection','sharePanel'])
+ assert(!app.includes(word),'Escucha o referencia obsoleta: '+word);
+assert(admin.includes('id="invite"')&&admin.includes('id="whatsappFallback"'));
+assert(admin.includes('id="phone"')&&admin.includes('id="apartment"'));
+assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
+assert(api.includes("A.manager(auth)"));
+assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
+assert(sw.includes('reles-ayn-v162-remove-share'));
+assert(sw.includes('/app.js?v=20261008-noshare162'));
+assert(!sw.includes('/share.css?'));
+assert(index.includes('/app.js?v=20261008-noshare162'));
+console.log('Invitación única por administración conservada; Compartir aplicación duplicado eliminado; PWA verificada.');

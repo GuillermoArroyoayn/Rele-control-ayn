@@ -102,12 +102,16 @@ function renderOriginalAssigned(){
 
 function showPreparedInvitation(group,confirmation){
   const details=group?.prepared&&group.status==='pending'&&!group.accountId?group.prepared:null;
-  const pending=details?.status==='prepared',sent=details?.status==='sent';
+  const expired=details?.status==='sent'&&Date.parse(details.expiresAt||'')<=Date.now();
+  const pending=details?.status==='prepared'||expired;
+  const sent=details?.status==='sent'&&!expired;
   $('preparedAdminBanner').hidden=!pending;
   if(pending)$('preparedAdminInfo').textContent=
     'Administrador: '+details.name+' · Teléfono: '+details.phone+
     (details.apartment?' · Departamento: '+details.apartment:' · Sin departamento asignado');
   $('sendPreparedInvite').hidden=!pending;
+  $('sendPreparedInvite').textContent=expired?'Renovar invitación vencida para el administrador':
+    '✓ Finalizar autorizaciones y enviar invitación al administrador';
   $('publish').hidden=pending;
   $('preparedInviteResult').hidden=!sent;
   if(sent){
@@ -244,7 +248,9 @@ $('preparedInviteCopy').onclick=async()=>{
 };
 $('sendPreparedInvite').onclick=async()=>{
   const group=selected();
-  if(!group?.prepared||group.prepared.status!=='prepared')return;
+  if(!group?.prepared||
+    !(group.prepared.status==='prepared'||
+      group.prepared.status==='sent'&&Date.parse(group.prepared.expiresAt||'')<=Date.now()))return;
   const button=$('sendPreparedInvite');
   button.disabled=true;
   // Abrir una pestaña vacía desde el gesto real permite usar WhatsApp si falla la API automática.

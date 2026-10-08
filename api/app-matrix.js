@@ -1,5 +1,6 @@
 const A=require('../lib/administrations');
 const M=require('../lib/app-matrix');
+const {checkPin}=require('../lib/tuya');
 const {addHistory}=require('../lib/history');
 
 function ownerFor(registry,groupId){
@@ -238,6 +239,11 @@ module.exports=async(req,res)=>{
       if(!cascade&&administrators.length>1)
         throw A.error('Esta carpeta tiene más de un administrador. Gestiona primero los administradores adicionales.',409);
       if(cascade){
+        // Exigir NUEVAMENTE la clave: el PIN usado para abrir la sesión no
+        // equivale a confirmación de una operación irreversible.
+        const entered=typeof b.confirmationPin==='string'?b.confirmationPin:'';
+        if(!entered||!checkPin({headers:{'x-app-pin':entered}}))
+          throw A.error('Clave de acceso incorrecta. No se eliminó la comunidad.',403);
         if(b.confirmation!=='ELIMINAR '+groupId)
           throw A.error('Confirma la eliminación completa escribiendo la frase solicitada.',400);
         const expectation=b.expectedImpact||{};

@@ -16,6 +16,16 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      // Las invitaciones del Constructor pueden ser canceladas por el Máster:
+      // el enlace antiguo no puede recrear una carpeta eliminada.
+      if(invitation.stagedAdmin){
+        const stagedRaw=await A.redis('HGET','ayn:matrix:prepared-admins',invitation.groupId);
+        let staged=null;
+        try{staged=JSON.parse(stagedRaw);}catch{}
+        const matrix=await Matrix.getPublished(invitation.groupId);
+        if(!staged||staged.status!=='sent'||!matrix||matrix.status==='deleted')
+          throw A.error('Esta invitación fue cancelada por el Máster.',410);
+      }
       // Relés originales designados por el Máster antes de aceptar una invitación.
       const reservations=invitation.role==='admin'?await A.redis('HGETALL','ayn:matrix:original:reservations'):[];
       const reservedRelays=[];
@@ -110,7 +120,7 @@ module.exports=async(req,res)=>{
         throw A.error('Esta comunidad ya tiene un administrador registrado.',409);
       const token=A.token(),inviteHash=A.hash(token);
       const invitation={creator:auth.device.id,role:'admin',groupId,name:staged.name,phone:staged.phone,
-        apartment:staged.apartment||'',createdAt:new Date().toISOString()};
+        apartment:staged.apartment||'',stagedAdmin:true,createdAt:new Date().toISOString()};
       const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
       const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();
       const base=String(process.env.APP_PUBLIC_URL||'').trim().replace(/\/$/,'')||proto+'://'+host;

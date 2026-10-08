@@ -74,11 +74,25 @@
     <button id="deleteAdmin" type="button" class="danger">Eliminar administrador y vaciar carpeta</button>
     <p class="matrix-delete-hint">Elimina al administrador y vacía su carpeta cuando no tenga residentes activos. Mantiene las demás comunidades intactas.</p>
     <button id="deleteEntireCommunity" type="button" class="danger matrix-delete-community">Eliminar comunidad completa y administradores</button>
-    <p class="matrix-delete-hint">Esta opción también elimina todos los accesos de residentes de esa comunidad. Muestra un resumen previo y exige confirmación escrita.</p>
+    <p class="matrix-delete-hint">Esta opción también elimina todos los accesos de residentes de esa comunidad. Muestra el resumen de afectados y exige volver a ingresar la clave de acceso del Máster.</p>
     <button id="restoreAdmin" type="button" class="secondary" hidden>Restaurar administrador</button>
 
   </section>
 </section>
+<dialog id="communityDeleteDialog" class="community-delete-dialog" aria-labelledby="communityDeleteTitle">
+  <form id="communityDeleteForm" autocomplete="off">
+    <h2 id="communityDeleteTitle">Confirmar eliminación de comunidad</h2>
+    <p id="communityDeleteImpact" class="community-delete-impact"></p>
+    <p class="community-delete-warning">Se desactivarán los accesos de todos los administradores y residentes de esta comunidad. Los relés quedarán libres y el historial de seguridad se conservará. Esta acción no se puede deshacer desde este menú.</p>
+    <label for="communityDeletePin">Vuelve a ingresar tu clave de acceso de A&N Control</label>
+    <input id="communityDeletePin" type="password" autocomplete="off" required aria-required="true" placeholder="Clave del Máster">
+    <p id="communityDeleteError" role="alert" class="community-delete-error"></p>
+    <div class="community-delete-actions">
+      <button type="button" id="communityDeleteCancel">Cancelar</button>
+      <button type="submit" id="communityDeleteConfirm" class="danger">Confirmar eliminación total</button>
+    </div>
+  </form>
+</dialog>
 </main>
 <script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-cascade184" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
 </body>

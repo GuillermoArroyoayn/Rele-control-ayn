@@ -85,7 +85,7 @@ function renderOriginalAssigned(){
     remove.onclick=async()=>{
       if(!confirm('¿Liberar '+item.name+' y devolverlo al Máster?'))return;
       remove.disabled=true;
-      try{await api({action:'assignOriginal',groupId:group.id,relay:item.relay,destination:'master'});message('Relé devuelto al Máster.');await reload(group.id);}
+      try{if($('publish').dataset.unsaved==='true'&&!(await save('saveDraft')))return;await api({action:'assignOriginal',groupId:group.id,relay:item.relay,destination:'master'});await reload(group.id);message('✓ Relé devuelto al Máster.');}
       catch(error){message(error.message,true);}
       finally{remove.disabled=false;}
     };
@@ -154,23 +154,25 @@ async function save(action){
     group.draft=result.config;if(action==='publish')group.published=result.config;
     current=JSON.parse(JSON.stringify(result.config));
     delete $('publish').dataset.unsaved;
-    message(action==='publish'?'Cambios publicados. Los nombres de los relés y las pantallas ya quedaron aplicados.':'Borrador guardado.');
-  }catch(error){message(error.message,true);}finally{button.disabled=false;}
+    message(action==='publish'?'✓ Configuración publicada. Funciones y nombres aplicados al administrador.':'✓ Borrador guardado. Pulsa Publicar cambios para activarlos.');
+    return true;
+  }catch(error){message(error.message,true);return false;}finally{button.disabled=false;}
 }
 
 $('group').addEventListener('change',()=>{history.replaceState(null,'','/matrix.html?group='+encodeURIComponent($('group').value));loadGroup();});
-$('appName').addEventListener('input',renderPreview);$('communityName').addEventListener('input',renderPreview);
+$('appName').addEventListener('input',()=>{renderPreview();markDirty();});$('communityName').addEventListener('input',()=>{renderPreview();markDirty();});
 for(const button of document.querySelectorAll('[data-preview]'))button.addEventListener('click',()=>{previewRole=button.dataset.preview;for(const item of document.querySelectorAll('[data-preview]'))item.classList.toggle('active',item===button);renderPreview();});
 $('saveDraft').onclick=()=>save('saveDraft');$('publish').onclick=()=>save('publish');
 
 $('assignActuator').onclick=async()=>{
   const group=selected(),item=selectedPoolItem();if(!group||!item)return;
+  if($('publish').dataset.unsaved==='true'&&!(await save('saveDraft')))return;
   if(item.kind==='original'){
     $('assignActuator').disabled=true;
     try{
       const result=await api({action:'assignOriginal',groupId:group.id,relay:item.relay,destination:'admin'});
-      message(result.pending?'✓ Relé reservado. Se activará cuando el administrador acepte la invitación.':'✓ Relé asignado al administrador.');
       await reload(group.id);
+      message(result.pending?'✓ Relé reservado. Se activará cuando el administrador acepte la invitación.':'✓ Relé asignado al administrador.');
     }catch(error){message(error.message,true);}
     finally{$('assignActuator').disabled=false;}
     return;
@@ -181,7 +183,7 @@ $('assignActuator').onclick=async()=>{
     if(!forceMove)return;
   }
   $('assignActuator').disabled=true;
-  try{await api({action:'assignActuator',groupId:group.id,actuatorId:item.id,forceMove});message('Relé asignado. Ahora puedes cambiar su nombre visible.');await reload(group.id);}
+  try{await api({action:'assignActuator',groupId:group.id,actuatorId:item.id,forceMove});await reload(group.id);message('✓ Relé asignado. Ahora puedes cambiar su nombre visible.');}
   catch(error){message(error.message,true);}
   finally{$('assignActuator').disabled=false;}
 };

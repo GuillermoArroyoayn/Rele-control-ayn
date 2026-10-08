@@ -61,6 +61,9 @@ async function check(name,condition){
   await check('Usuarios limitados a su comunidad',listing.data.admins[0].usersCount===1);
   await check('No permite reemplazar por otra comunidad',(await request(manage,{action:'replaceExisting',adminId:admin,userId:outside})).code===403);
   await check('No permite eliminar al único administrador con usuarios',(await request(manage,{action:'deleteAdmin',adminId:admin})).code===409);
+  await check('No permite pausar al único administrador con residentes',(await request(manage,{action:'setStatus',adminId:admin,status:'paused'})).code===409);
+  await check('No permite bloquear al único administrador con residentes',(await request(manage,{action:'setStatus',adminId:admin,status:'blocked'})).code===409);
+  await check('El administrador protegido continúa activo',registry.devices[admin].status==='active');
   const invite=await request(manage,{action:'replaceInvite',adminId:admin,name:'Nuevo',phone:'56912345678'});
   await check('Invitación de reemplazo con comunidad conservada',invite.code===200&&invite.data.inviteUrl.includes('#invite=')&&registry.devices[admin].status==='active');
   const claimed=await request(claim,{action:'claim',token:'f'.repeat(64)},'POST',fresh);

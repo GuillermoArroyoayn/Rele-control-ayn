@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v177-master-admin-manager";
+const CACHE = "reles-ayn-v178-matrix-designations";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -9,8 +9,8 @@ const ASSETS = [
   "/administracion.webmanifest",
   "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
-  "/matrix.css?v=20261008-nav161",
-  "/matrix.js?v=20261007-matrix3",
+  "/matrix.css?v=20261008-designations178",
+  "/matrix.js?v=20261008-designations178",
   "/matrix-nav.js?v=20261008-nav161",
   "/ayn-navigation.js?v=20261008-nav161",
   "/ain-audio-worklet.js?v=20261004-release111",

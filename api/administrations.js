@@ -16,6 +16,12 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      // Relés originales designados por el Máster antes de aceptar una invitación.
+      const reservations=invitation.role==='admin'?await A.redis('HGETALL','ayn:matrix:original:reservations'):[];
+      const reservedRelays=[];
+      for(let i=0;i<(reservations||[]).length;i+=2)
+        if(String(reservations[i+1])===invitation.groupId&&[1,2,3].includes(Number(reservations[i])))
+          reservedRelays.push(Number(reservations[i]));
       let upgradedExistingUser=false;
       await A.updateRegistry(registry=>{
         const creator=registry.devices[invitation.creator];
@@ -35,14 +41,18 @@ module.exports=async(req,res)=>{
         if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
         upgradedExistingUser=masterAdminUpgrade||alreadySameAdmin;
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:replacedAdmin?[...(replacedAdmin.relays||[])]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[...new Set([...(replacedAdmin?.relays||[]),...reservedRelays])].sort((a,b)=>a-b),actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
         if(replacedAdmin){
           replacedAdmin.status='deleted';replacedAdmin.replacedBy=id;
           replacedAdmin.statusChangedAt=new Date().toISOString();replacedAdmin.statusChangedBy=invitation.creator;
         }
         if(invitation.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
       });
-      if(invitation.role==='admin')await Matrix.markStatus(invitation.groupId,'active',invitation.name);
+      if(invitation.role==='admin'){
+        for(const relay of reservedRelays)
+          await A.redis('HDEL','ayn:matrix:original:reservations',String(relay)).catch(()=>{});
+        await Matrix.markStatus(invitation.groupId,'active',invitation.name);
+      }
       if(upgradedExistingUser||invitation.replaceAdminId)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:invitation.replaceAdminId?'Reemplazo de administrador confirmado; acceso anterior eliminado':'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
       await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
@@ -126,6 +136,9 @@ module.exports=async(req,res)=>{
       const relay=Number(b.relay);
       if(!Number.isInteger(relay)||![1,2,3].includes(relay)||!process.env['TUYA_DEVICE_'+relay])throw A.error('Actuador original no disponible.',400);
       const groupId=A.group(auth,b.groupId);
+      const reservedFor=await A.redis('HGET','ayn:matrix:original:reservations',String(relay));
+      if(reservedFor&&reservedFor!==groupId)
+        throw A.error('Este relé fue reservado para otro administrador. Libera primero la reserva desde Constructor de App.',409);
       if(!['master','unassigned'].includes(groupId)&&!Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
         throw A.error('La administración seleccionada debe estar activa.',409);
       await A.updateRegistry(registry=>{
@@ -140,6 +153,7 @@ module.exports=async(req,res)=>{
         }
         if(!destinationFound)throw A.error('Administrador no disponible.',409);
       });
+      if(reservedFor===groupId)await A.redis('HDEL','ayn:matrix:original:reservations',String(relay)).catch(()=>{});
       await addHistory({kind:'permissions',groupId,userName:'Actuador '+relay,actor:auth.device.name,action:'Asignación de actuador original '+relay}).catch(()=>{});
       return res.json({ok:true,relay,groupId});
     }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06172f">
 <title>Constructor de App · A&N Control</title>
-<link rel="stylesheet" href="/matrix.css?v=20261008-nav161">
+<link rel="stylesheet" href="/matrix.css?v=20261008-designations178">
 </head>
 <body>
 <main class="matrix-shell">
@@ -36,15 +36,18 @@
     <h2>1. Relés / actuadores</h2>
     <p>Asigna los relés que usará este administrador. Después escribe el nombre que verá en su app, por ejemplo “Puerta”, “Portón” o “Acceso piscina”.</p>
     <div class="assign-row">
-      <label>Relé disponible<select id="actuatorPool"></select></label>
+      <label>Relés disponibles<select id="actuatorPool"></select></label>
       <button id="assignActuator" type="button" class="primary">Asignar relé</button>
     </div>
+    <p id="originalPoolStatus" class="matrix-pool-status" role="status"></p>
+    <div id="originalAssigned" class="matrix-original-assigned"></div>
     <div class="actuator-head"><span>Activo</span><span>Nombre visible</span><span>Admin</span><span>Usuario</span><span>Orden</span><span></span></div>
     <div id="actuators"></div>
   </section>
   <section class="matrix-card">
     <div class="section-title"><div><h2>2. Pantallas y herramientas</h2><p>Define qué pantallas tendrá el Administrador y cuáles verá el Usuario final.</p></div></div>
     <div class="table-head"><span>Pantalla</span><span>Activa</span><span>Admin</span><span>Usuario</span><span>Orden</span></div>
+    <p class="matrix-selection-help">Toca cada opción para cambiar entre ✓ Seleccionado y No seleccionado. Después pulsa Publicar cambios para guardarlo definitivamente.</p>
     <div id="modules"></div>
   </section>
   <section class="matrix-actions matrix-card">
@@ -55,6 +58,6 @@
   </section>
 </section>
 </main>
-<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261007-matrix3" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
+<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-designations178" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
 </body>
 </html>

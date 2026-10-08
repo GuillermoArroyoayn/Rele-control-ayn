@@ -44,3 +44,23 @@ assert.equal(pending.devices.user.groupId,'new-group');
 assert.equal(pending.devices.user.pendingAdminUpgrade,undefined);
 
 console.log('Recuperación de rol Administrador entre navegador y PWA verificada.');
+
+
+const immediate={
+  masterId:'master',
+  devices:{
+    master:{role:'super_master',status:'active'},
+    phoneA:{role:'user',status:'active',groupId:'oldA',phone:'56933333333',actuatorIds:['x']},
+    phoneB:{role:'user',status:'active',groupId:'oldB',phone:'+56 9 3333 3333',actuatorIds:['y']}
+  }
+};
+for(const item of Object.values(immediate.devices)){
+  if(item.role==='user'&&D.normalizedPhone(item.phone)==='56933333333'){
+    item.role='admin';item.groupId='group-new';item.adminName='Katherine';item.status='active';item.relays=[];item.actuatorIds=[];
+  }
+}
+assert.equal(immediate.devices.phoneA.role,'admin');
+assert.equal(immediate.devices.phoneB.role,'admin');
+assert.equal(immediate.devices.phoneA.groupId,'group-new');
+assert.deepEqual(immediate.devices.phoneB.actuatorIds,[]);
+console.log('Promoción inmediata por número verificada.');

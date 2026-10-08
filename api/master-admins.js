@@ -5,7 +5,7 @@ const {addHistory}=require('../lib/history');
 
 function adminIn(registry,id){
   const item=registry.devices[String(id||'')];
-  if(!item||item.role!=='admin'||!item.groupId||item.status==='deleted')
+  if(!item||item.role!=='admin'||item.status==='deleted')
     throw A.error('Administrador no disponible.',404);
   return item;
 }
@@ -42,15 +42,20 @@ module.exports=async(req,res)=>{
     if(req.method==='GET'){
       const devices=Object.entries(auth.registry.devices);
       const managed=await A.records();
-      const admins=await Promise.all(devices.filter(([,d])=>d.role==='admin'&&d.groupId&&d.status!=='deleted').map(async([id,d])=>{
-        const matrix=await Matrix.getPublished(d.groupId);
-        const modules=(matrix?.modules||Matrix.defaultConfig(d.groupId).modules).filter(m=>m.enabled&&m.adminVisible)
+      const admins=await Promise.all(devices.filter(([,d])=>d.role==='admin'&&d.status!=='deleted').map(async([id,d])=>{
+        const matrix=d.groupId?await Matrix.getPublished(d.groupId):null;
+        const modules=(matrix?.modules||[]).filter(m=>m.enabled&&m.adminVisible)
           .map(m=>({id:m.id,label:m.label}));
-        const users=devices.filter(([,u])=>u.role==='user'&&u.groupId===d.groupId)
+        const users=devices.filter(([,u])=>Boolean(d.groupId)&&u.role==='user'&&u.groupId===d.groupId)
           .map(([userId,u])=>({id:userId,name:u.adminName||u.name||'Usuario',status:u.status,phone:u.phone||''}));
-        const actuators=managed.filter(a=>a.groupId===d.groupId);
-        return {id,groupId:d.groupId,name:d.adminName||d.name||'Administrador',phone:d.phone||'',
-          status:d.status,role:'Administrador',community:matrix?.branding?.communityName||d.adminName||d.name||'Comunidad',
+        const actuators=managed.filter(a=>Boolean(d.groupId)&&a.groupId===d.groupId);
+        const linked=users.some(u=>u.status!=='deleted')||
+          devices.some(([otherId,other])=>otherId!==id&&other.groupId===d.groupId&&other.status!=='deleted');
+        const hasCommunity=Boolean(d.groupId&&(d.groupId!==id||linked));
+        return {id,groupId:d.groupId||'',hasCommunity,
+          name:d.adminName||d.name||'Administrador',phone:d.phone||'',
+          status:d.status,role:'Administrador',community:hasCommunity?
+            matrix?.branding?.communityName||d.adminName||d.name||'Comunidad':'Sin comunidad asignada',
           users,usersCount:users.length,activeUsers:users.filter(u=>u.status==='active').length,
           modules,modulesCount:modules.length,actuatorsCount:actuators.length,originalRelays:(d.relays||[]).filter(n=>[1,2,3].includes(n))};
       }));
@@ -100,23 +105,43 @@ module.exports=async(req,res)=>{
     }
     if(b.action==='deleteAdmin'){
       const old=adminIn(auth.registry,id);
-      const peers=Object.entries(auth.registry.devices).filter(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===old.groupId&&d.status==='active');
-      const users=Object.values(auth.registry.devices).some(d=>d.role==='user'&&d.groupId===old.groupId&&d.status!=='deleted');
-      const managed=(await A.records()).some(d=>d.groupId===old.groupId);
-      if(!peers.length&&(users||managed||(old.relays||[]).length))
-        throw A.error('Esta comunidad tiene usuarios o actuadores. Primero reemplaza al administrador para conservar sus accesos.',409);
+      const groupId=old.groupId||'';
+      const orphan=!groupId||groupId===id;
+      const peers=Object.entries(auth.registry.devices).filter(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===groupId&&d.status==='active');
+      const users=Object.values(auth.registry.devices).some(d=>Boolean(groupId)&&d.role==='user'&&d.groupId===groupId&&d.status!=='deleted');
+      const allManaged=await A.records(),assigned=allManaged.filter(d=>Boolean(groupId)&&d.groupId===groupId);
+      if(!peers.length&&(users||(!orphan&&(assigned.length||(old.relays||[]).length))))
+        throw A.error('Esta comunidad tiene residentes o actuadores. Primero reemplaza al administrador o elimina toda la comunidad desde Constructor de App.',409);
+      // Una cuenta sin comunidad puede eliminarse sin buscar sustituto. Si
+      // tenía relés sueltos, regresan al Máster sin accionarlos físicamente.
       await A.updateRegistry(registry=>{
         const current=adminIn(registry,id);
         const activePeer=Object.entries(registry.devices).some(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===current.groupId&&d.status==='active');
-        const usersRemain=Object.values(registry.devices).some(d=>d.role==='user'&&d.groupId===current.groupId&&d.status!=='deleted');
-        if(!activePeer&&(usersRemain||managed||(current.relays||[]).length))
-          throw A.error('Primero reemplaza al administrador de esta comunidad.',409);
+        const usersRemain=Object.values(registry.devices).some(d=>Boolean(current.groupId)&&d.role==='user'&&d.groupId===current.groupId&&d.status!=='deleted');
+        if(!activePeer&&(usersRemain||(!orphan&&(assigned.length||(current.relays||[]).length))))
+          throw A.error('Para conservar los accesos debes reemplazar al administrador o eliminar la comunidad completa.',409);
         const recipient=Object.entries(registry.devices).find(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===current.groupId&&d.status==='active');
         if(recipient)recipient[1].relays=[...new Set([...(recipient[1].relays||[]),...(current.relays||[])])].sort();
+        current.relays=[];
         mark(current,'deleted',auth.device.id);
       });
-      await addHistory({kind:'permissions',groupId:old.groupId,userName:old.adminName||old.name,actor:auth.device.name,action:'Cuenta de administrador eliminada (datos de la comunidad conservados)'}).catch(()=>{});
-      return res.json({ok:true});
+      if(orphan){
+        for(const item of assigned){
+          item.groupId='unassigned';
+          await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
+        }
+        if(groupId){
+          const raw=await A.redis('HGETALL','ayn:matrix:original:reservations');
+          for(let i=0;i<(raw||[]).length;i+=2)
+            if(String(raw[i+1])===groupId)
+              await A.redis('HDEL','ayn:matrix:original:reservations',String(raw[i]));
+          await Matrix.clearFolder(groupId);
+        }
+      }
+      await addHistory({kind:'permissions',groupId:groupId||'master',userName:old.adminName||old.name,
+        actor:auth.device.name,action:orphan?'Administrador sin comunidad eliminado; carpeta y relés liberados':
+          'Cuenta de administrador eliminada (datos de la comunidad conservados)'}).catch(()=>{});
+      return res.json({ok:true,withoutCommunity:orphan});
     }
     throw A.error('Acción desconocida.',400);
   }catch(e){

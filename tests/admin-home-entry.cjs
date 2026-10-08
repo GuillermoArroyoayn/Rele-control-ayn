@@ -13,10 +13,10 @@ assert(admin.includes("if(['home','menu','timers','equipment','people','history'
 assert(admin.includes("if(invitationToken)"),'Personal invitations remain supported');
 assert(adminHtml.includes('id="homeDashboard"'),'Administrator home remains present');
 assert(adminHtml.includes('/administracion.js?v=20261008-enrolled164'));
-assert(html.includes('/app.js?v=20261008-access166'));
-assert(sw.includes('reles-ayn-v166-access-clean'));
+assert(html.includes('/app.js?v=20261008-access167'));
+assert(sw.includes('reles-ayn-v167-access-recovery'));
 assert(sw.includes('/administracion.js?v=20261008-enrolled164'));
-assert(sw.includes('/app.js?v=20261008-access166'));
+assert(sw.includes('/app.js?v=20261008-access167'));
 function shouldShowAdminHome(role,hash='',search=''){
  return (role==='super_master'&&!hash)||(role==='admin'&&!hash&&!search);
 }

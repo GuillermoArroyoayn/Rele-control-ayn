@@ -129,6 +129,7 @@ function profileEditor(card,profile){
 }
 
 let managedAccessLoading=false;
+let lastKnownAccessStatus=null;
 async function managedAccessApi(body){
   return api("/api/administrations",body?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}:{});
 }
@@ -176,27 +177,45 @@ async function loadManagedAccess(){
   accessSettingsGrid.replaceChildren();
   const loading=document.createElement('p');loading.textContent='Cargando accesos…';managedAccessGrid.append(loading);
   try{
-    const [data,originalStatus,profileResult]=await Promise.all([
-      managedAccessApi(),api("/api/status").catch(()=>({relays:[]})),
-      api("/api/actuator-profiles").catch(error=>({profiles:[],error:error.message}))
+    // Las tres fuentes son independientes: un error del catálogo no debe ocultar
+    // los relés originales que el servicio de autorización ya confirmó.
+    const [managedResponse,originalResponse,profilesResponse]=await Promise.allSettled([
+      managedAccessApi(),api("/api/status"),api("/api/actuator-profiles")
     ]);
+    const data=managedResponse.status==='fulfilled'?managedResponse.value:{actuators:[]};
+    const liveOriginals=originalResponse.status==='fulfilled'?originalResponse.value:null;
+    if(liveOriginals)lastKnownAccessStatus=liveOriginals;
+    const originalStatus=liveOriginals||lastKnownAccessStatus||{relays:[],allowedRelays:[]};
+    const originalOutdated=!liveOriginals;
+    const profileResult=profilesResponse.status==='fulfilled'?profilesResponse.value:{profiles:[]};
     managedAccessGrid.replaceChildren();
     accessSettingsGrid.replaceChildren();
-    window.AynActuatorVoice?.setProfiles(profileResult.profiles||[]);
+    // Solo sustituir el diccionario cuando la consulta a perfiles respondió.
+    if(profilesResponse.status==='fulfilled')window.AynActuatorVoice?.setProfiles(profileResult.profiles||[]);
     const profiles=new Map((profileResult.profiles||[]).map(item=>[item.id,item]));
-    if(profileResult.error&&currentRole==='admin'){
-      const warning=document.createElement('p');warning.textContent='Configuración no disponible: '+profileResult.error;
-      accessSettingsGrid.append(warning);
-    }
+    const issue=(target,text)=>{
+      const warning=document.createElement('p');warning.className='access-load-warning';
+      warning.textContent=text;warning.setAttribute('role','status');target.append(warning);
+    };
+    if(managedResponse.status==='rejected')
+      issue(managedAccessGrid,'No se pudo consultar el listado de relés adicionales: '+managedResponse.reason.message);
+    if(originalResponse.status==='rejected')
+      issue(managedAccessGrid,'Sin conexión para comprobar los actuadores originales. Actualiza antes de accionarlos.');
+    if(profilesResponse.status==='rejected'&&currentRole==='admin')
+      issue(accessSettingsGrid,'No se pudieron obtener los ajustes: '+profilesResponse.reason.message);
     const items=data.actuators||[];
-    const originals=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
+    const originalRelays=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
+    // Si falló la consulta actual, se pueden mostrar los permisos autenticados
+    // de esta misma sesión, pero nunca asumir que el actuador está encendido.
+    const originals=originalOutdated?originalRelays.map(item=>({...item,state:null})):originalRelays;
     if(!items.length&&!originals.length){
-      const empty=document.createElement('p');empty.textContent='No hay actuadores asignados a esta cuenta.';
-      managedAccessGrid.append(empty);
-      if(currentRole==='admin'){
-        const settingEmpty=document.createElement('p');settingEmpty.textContent='Todavía no tienes actuadores para configurar.';
-        accessSettingsGrid.append(settingEmpty);
-      }
+      const noNetwork=managedResponse.status==='rejected'||originalResponse.status==='rejected';
+      issue(managedAccessGrid,noNetwork?'No fue posible confirmar los accesos. Vuelve a intentar.':'No hay actuadores asignados a esta cuenta.');
+      const retry=document.createElement('button');retry.type='button';retry.className='small-button';
+      retry.textContent='Reintentar carga';retry.onclick=()=>loadManagedAccess();
+      managedAccessGrid.append(retry);
+      if(currentRole==='admin'&&profilesResponse.status==='fulfilled')
+        issue(accessSettingsGrid,noNetwork?'No se pudo cargar la configuración.':'No hay actuadores para configurar.');
       return;
     }
     for(const original of originals){
@@ -445,6 +464,9 @@ function applyMatrixPresentation(){
 
 function buildMenu() {
   const masterRoute=location.hash.slice(1);
+  if(currentRole==='admin'&&['access','access-settings'].includes(masterRoute)){
+    showView(masterRoute);return;
+  }
   if(currentRole==='super_master'&&statusReady&&!masterRoute){sessionStorage.setItem("aynAdminView","home");location.replace('/administracion.html#home');return;}
   mainMenu.innerHTML = "";
   if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.dataset.view='master';back.innerHTML='<span class="menu-icon" aria-hidden="true">👑</span><span class="menu-label">Menú Máster</span>';mainMenu.append(back);}
@@ -497,10 +519,10 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent="Inicio";
   functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,accessSettingsPanel];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,managedAccessPanel,accessSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,"access-settings":accessSettingsPanel})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,access:managedAccessPanel,"access-settings":accessSettingsPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   userSettingsPanel.hidden=!ready||view!=="settings";
   accessSettingsPanel.hidden=!ready||currentRole!=='admin'||view!=="access-settings";
@@ -792,6 +814,7 @@ async function loadStatus() {
   try {
     let data = await api("/api/status");
     data = await initializeActuatorsOff(data);
+    lastKnownAccessStatus=data;
     setRelayAccess(data.allowedRelays || []);
     const errors = [];
     for (const item of data.relays) {

@@ -192,7 +192,7 @@ function accessButton(profile,fallbackName,initialState,command,read) {
   const card=document.createElement('article');card.className='access-button-card';
   card.dataset.actuator=id;
   const button=document.createElement('button');button.type='button';button.className='access-activation-button';
-  const symbol=document.createElement('span');symbol.className='access-power-symbol';symbol.textContent='⏻';symbol.setAttribute('aria-hidden','true');
+  const symbol=document.createElement('span');symbol.className='access-power-symbol';symbol.textContent='—';
   const title=document.createElement('strong');title.className='access-actuator-name';
   // La orden definida por el residente («Puerta») es también el texto del botón.
   title.textContent=profile?.voiceName?.trim()||profile?.name||fallbackName;
@@ -203,7 +203,8 @@ function accessButton(profile,fallbackName,initialState,command,read) {
   const paintState=(next)=>{
     state=typeof next==='boolean'?next:null;
     card.classList.toggle('on',state===true);
-    status.textContent=state===true?'ON':state===false?'OFF':'Estado pendiente';
+    symbol.textContent=state===true?'ON':state===false?'OFF':'—';
+    status.textContent=state===true?'Encendido':state===false?'Apagado':'Estado pendiente';
     button.setAttribute('aria-label',title.textContent+' · '+(state===true?'encendido':state===false?'apagado':'estado por consultar'));
     button.setAttribute('aria-pressed',String(state===true));
   };
@@ -221,7 +222,7 @@ function accessButton(profile,fallbackName,initialState,command,read) {
       if(result.timerSeconds&&!result.autoOffConfirmed){
         window.setTimeout(()=>read().then(paintState).catch(()=>{}),(result.timerSeconds+1)*1000);
       }
-    }catch(error){paintState(state);status.textContent=error.message||'Sin conexión';}
+    }catch(error){paintState(state);status.textContent=error.message||'Sin conexión';show(error.message||'Sin conexión',true);}
     finally{busy=false;button.disabled=false;}
   };
   return {card,paintState};

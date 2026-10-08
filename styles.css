@@ -1581,3 +1581,20 @@ html body.user-layout[data-user-view="access"] section.access-settings-panel.fun
 html body[data-user-view="access"] section.access-settings-panel .access-activation-grid:not([hidden]){
   display:grid!important;visibility:visible!important;opacity:1!important;
 }
+
+/* Accesos: indicador ON / OFF dentro del círculo; debajo, solo el nombre. */
+html body .access-controls-page .access-power-symbol{
+  font-size:calc(21px * var(--accessibility-scale, 1))!important;
+  font-weight:800!important;
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
+html body .access-controls-page .access-actuator-status{
+  position:absolute!important;
+  width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;
+  overflow:hidden!important;border:0!important;
+  clip:rect(0 0 0 0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+}

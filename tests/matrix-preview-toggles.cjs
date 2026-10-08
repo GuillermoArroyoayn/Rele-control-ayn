@@ -35,14 +35,30 @@ access.fields.enabled.checked=false;access.fields.userVisible.checked=false;
 toggle('access');
 assert.equal(access.fields.enabled.checked,true,'Seleccionar una función desactivada la habilita');
 assert.equal(access.fields.userVisible.checked,true);
+scope.previewRole='admin';
 const before=dirty;
 toggle('users');
-assert.equal(dirty,before,'Función obligatoria no debe alterarse');
-assert(lastMessage.includes('obligatorio'));
-status='deleted';toggle('access');assert.equal(dirty,before,'Grupo eliminado no modifica permisos');
+assert.equal(users.fields.adminVisible.checked,false,'Incorporar usuarios también se puede desactivar para admin');
+assert.equal(dirty,before+1);
+assert(lastMessage.includes('desactivada'));
+scope.previewRole='user';toggle('users');
+assert.equal(users.fields.userVisible.checked,false,'Usuario no puede incorporar residentes');
+assert.equal(dirty,before+1);
+status='deleted';toggle('access');assert.equal(dirty,before+1,'Grupo eliminado no modifica permisos');
+
+const matrixSource=fs.readFileSync('lib/app-matrix.js','utf8');
+const matrixModule={exports:{}};
+vm.runInNewContext(matrixSource,{module:matrixModule,require:()=>({error:(m)=>new Error(m)}),Date});
+const normalized=matrixModule.exports.normalize({groupId:'community-test',modules:[
+ {id:'users',label:'Incorporar usuarios',enabled:false,adminVisible:false,userVisible:true}
+]});
+const restricted=normalized.modules.find(item=>item.id==='users');
+assert.equal(restricted.enabled,false,'Desactivación debe persistir en backend');
+assert.equal(restricted.adminVisible,false,'Permiso de admin configurable');
+assert.equal(restricted.userVisible,false,'No se permite conceder incorporación a usuarios');
 const html=fs.readFileSync('matrix.html','utf8'),css=fs.readFileSync('matrix.css','utf8'),sw=fs.readFileSync('sw.js','utf8');
 for(const fragment of ['id="previewCount"','id="previewHelp"','Vista previa y designación'])assert(html.includes(fragment),fragment);
 for(const fragment of ['card.type=\'button\'','aria-pressed','card.addEventListener(\'click\'','✓ Seleccionado','○ No seleccionado'])assert(source.includes(fragment),fragment);
 assert(css.includes('user-select:none')&&css.includes('.preview-item[aria-pressed="true"]'));
 assert(sw.includes('reles-ayn-v179-interactive-preview'));
-console.log('Vista previa v179: tocar designa funciones admin/usuario, confirma selección, preserva obligatorias y respeta invitaciones pendientes OK.');
+console.log('Vista previa v179: tocar designa funciones admin/usuario, confirma selección, permite configurar altas de usuarios sin elevar permisos de residentes y respeta invitaciones pendientes OK.');

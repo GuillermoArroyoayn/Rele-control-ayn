@@ -18,9 +18,9 @@ const A={
   if(cmd==='GET')return strings.get(key)||null;
   if(cmd==='DEL'){strings.delete(key);return 1;}
   if(cmd==='EVAL'){
-   const [count,k,previous,replacement]=args;
-   if(count!==1||hash(key).get(k)!==previous)return 0;
-   hash(key).set(k,replacement);return 1;
+   const [count,hashKey,k,previous,replacement]=args;
+   if(count!==1||hash(hashKey).get(k)!==previous)return 0;
+   hash(hashKey).set(k,replacement);return 1;
   }
   throw Error('Redis mock inesperado '+cmd+' '+key);
  }

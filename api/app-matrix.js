@@ -136,7 +136,7 @@ module.exports=async(req,res)=>{
         });
         if(reservations[relay]===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
       }else{
-        if(owner)throw A.error('El relé original ya está designado a un administrador.',409);
+        if(existing)throw A.error('El relé original ya está designado a un administrador.',409);
         const ok=await A.redis('HSETNX',ORIGINAL_RESERVATIONS,String(relay),groupId);
         if(!ok&&(await A.redis('HGET',ORIGINAL_RESERVATIONS,String(relay)))!==groupId)
           throw A.error('Otro administrador reservó este relé.',409);

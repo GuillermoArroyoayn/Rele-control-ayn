@@ -93,7 +93,10 @@ module.exports=async(req,res)=>{
       }
       item.groupId=groupId;
       await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
-      if(oldGroup&&oldGroup!==groupId&&oldGroup!=='unassigned')await M.removeActuator(oldGroup,item.id,actor);
+      if(oldGroup&&oldGroup!==groupId&&oldGroup!=='unassigned'){
+        await A.updateRegistry(registry=>{for(const user of Object.values(registry.devices))if(user.role==='user'&&user.groupId===oldGroup)user.actuatorIds=(user.actuatorIds||[]).filter(value=>value!==item.id);});
+        await M.removeActuator(oldGroup,item.id,actor);
+      }
       await addHistory({kind:'matrix',groupId,userName:owner?.[1]?.adminName||existing?.branding?.communityName||groupId,actor,action:'Actuador asignado desde Constructor de App',actuatorIds:[item.id]}).catch(()=>{});
       return res.json({ok:true,actuator:safeActuator(item)});
     }
@@ -104,6 +107,7 @@ module.exports=async(req,res)=>{
       if(!item||item.groupId!==groupId)throw A.error('El actuador no pertenece a esta administración.',409);
       item.groupId='unassigned';
       await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
+      await A.updateRegistry(registry=>{for(const user of Object.values(registry.devices))if(user.role==='user'&&user.groupId===groupId)user.actuatorIds=(user.actuatorIds||[]).filter(value=>value!==item.id);});
       await M.removeActuator(groupId,item.id,actor);
       await addHistory({kind:'matrix',groupId,userName:owner?.[1]?.adminName||existing?.branding?.communityName||groupId,actor,action:'Actuador quitado desde Constructor de App',actuatorIds:[item.id]}).catch(()=>{});
       return res.json({ok:true});

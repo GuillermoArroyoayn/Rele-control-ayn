@@ -23,9 +23,8 @@ module.exports=async(req,res)=>{
         if(registry.revoked?.[id]||id===registry.masterId)throw A.error('Este equipo no puede aceptar la invitación.',403);
         const old=registry.devices[id];
         if(old?.inviteHash===A.hash(b.token))return;
-        const samePhone=old?.phone&&invitation.phone&&WhatsApp.normalizePhone(old.phone)===WhatsApp.normalizePhone(invitation.phone);
-        const masterAdminUpgrade=Boolean(old&&old.role==='user'&&invitation.role==='admin'&&creator.role==='super_master'&&samePhone);
-        const alreadySameAdmin=Boolean(old&&old.role==='admin'&&invitation.role==='admin'&&creator.role==='super_master'&&samePhone&&old.groupId===invitation.groupId);
+        const masterAdminUpgrade=Boolean(old&&old.role==='user'&&invitation.role==='admin'&&creator.role==='super_master');
+        const alreadySameAdmin=Boolean(old&&old.role==='admin'&&invitation.role==='admin'&&creator.role==='super_master'&&old.groupId===invitation.groupId);
         if(old&&old.status!=='pending'&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo ya tiene una cuenta. Usa otro equipo o solicita su cambio al Máster.',409);
         if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);

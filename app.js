@@ -163,13 +163,20 @@ systemPanel.after(reportsPanel);
 const userSettingsPanel = document.createElement("section");
 userSettingsPanel.className = "menu-panel user-settings-panel";
 userSettingsPanel.hidden = true;
-userSettingsPanel.innerHTML = "<h2>Configuración</h2>";
+userSettingsPanel.innerHTML = "<h2>Configuración</h2><p class=\"settings-help\">Preferencias personales de este equipo.</p>";
 systemPanel.after(userSettingsPanel);
 const userSettingNodes = [...document.querySelectorAll(".appearance, .accessibility, .security")].map(node => {
   const marker = document.createComment("Ubicación original de configuración");
   node.before(marker);
   return {node, marker};
 });
+const panicSettingsSection=document.createElement("section");
+panicSettingsSection.className="appearance panic-preferences";
+panicSettingsSection.innerHTML='<div><strong>Mensajes SOS / pánico</strong><small id="panicSettingsStatus">Activa o desactiva las notificaciones de emergencia en este equipo.</small></div><button id="panicSettingsPush" type="button" class="secondary">Activar mensajes SOS</button>';
+userSettingsPanel.append(panicSettingsSection);
+function mountPersonalSettings(){
+  for(const {node} of userSettingNodes)userSettingsPanel.insertBefore(node,panicSettingsSection);
+}
 const userToolbar = document.createElement("header");
 userToolbar.className = "user-toolbar";
 userToolbar.hidden = true;
@@ -216,10 +223,8 @@ function configureUserLayout(enabled) {
       userViewOrigins.get(node).after(node);
     }
   }
-  for (const {node, marker} of userSettingNodes) {
-    if (enabled) userSettingsPanel.append(node);
-    else marker.after(node);
-  }
+  if (enabled) mountPersonalSettings();
+  else for (const {node, marker} of userSettingNodes) marker.after(node);
   if (!enabled) userSettingsPanel.hidden = true;
 }
 const menuDefinitions = [
@@ -265,7 +270,7 @@ function buildMenu() {
     currentRole === "super_master"
       ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
       : currentRole === "admin"
-        ? menuDefinitions.filter(([id]) => !["admins", "database", "settings"].includes(id))
+        ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
         : menuDefinitions.filter(([id]) => ["settings"].includes(id));
   const allowed=roleMenu.filter(([id])=>id==="settings"||matrixAllowed(id,currentRole));
   for (const [id, label, icon] of allowed) {
@@ -287,6 +292,7 @@ function buildMenu() {
   mainMenu.hidden = false;
   const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',tools:'tools',panic:'panic',wall:'wall',polls:'polls'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
+  if(currentRole!=='super_master'&&masterRoute==='settings'){showView('settings');return;}
   if(["wall","polls"].includes(masterRoute)){showView(masterRoute);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",
@@ -308,15 +314,19 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent=menuDefinitions.find(([id])=>id===view)?.[1]||({access:"Accesos",voice:"Control de voz",tools:"Herramientas",menu:"Más herramientas"})[view]||"AYN";
   functionConfig.hidden=currentRole!=="super_master"||view==="menu";
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
+  userSettingsPanel.hidden=!ready||view!=="settings";
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
-  if(!user) for(const {node,marker} of userSettingNodes) {
-    if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility"))) functionSettings.append(node);
-    else marker.after(node);
+  if(!user){
+    if(view==="settings")mountPersonalSettings();
+    else for(const {node,marker} of userSettingNodes) {
+      if(!functionSettings.hidden && (view==="voice"?node.classList.contains("accessibility"):!node.classList.contains("accessibility"))) functionSettings.append(node);
+      else marker.after(node);
+    }
   }
 }
 function showView(view) {

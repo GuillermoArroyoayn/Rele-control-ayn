@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v136-admin-builder";
+const CACHE = "reles-ayn-v137-personal-settings";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -23,12 +23,12 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261006-voice116",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261007-matrix124",
-  "/panic.js?v=20261004-release111",
+  "/app.js?v=20261007-settings137",
+  "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261007-directory131",
-  "/administracion.js?v=20261007-builder136",
+  "/administracion.js?v=20261007-settings137",
   "/administracion-voice.js?v=20261006-voice118"
 ];
 self.addEventListener("install", (e) =>

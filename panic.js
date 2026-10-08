@@ -75,7 +75,8 @@
   el('panicTrigger').onclick=async()=>{const b=el('panicTrigger');if(sending)return;sending=true;b.disabled=true;b.setAttribute('aria-busy','true');window.AynSosSiren?.play?.();openScreen();try{requestId=requestId||(crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join(''));const r=await api({action:'trigger',requestId});status(r.message||'Alerta ya registrada.');screenStatus.textContent=r.message||'Alerta ya registrada.';screenEvent=r.eventId;screenApology.hidden=!screenEvent;if(r.expiresAt)screenExpires=Date.parse(r.expiresAt);updateCountdown();requestId=null;await load();}catch(e){screenStatus.textContent='No se confirmó la alerta: '+e.message+' Vuelve a la app para reintentar.';status(screenStatus.textContent);}finally{sending=false;b.disabled=accessRestricted;b.removeAttribute('aria-busy');}};
   window.AynSOS=Object.freeze({trigger:()=>{
     if(sending)return true;
-    if(!role){load().then(()=>{if(['user','admin'].includes(role)&&!trigger.disabled)trigger.click();});return true;}
+    // El backend identifica la comunidad por las credenciales aunque aún no haya terminado el GET inicial.
+    if(!role&&!accessRestricted){trigger.disabled=false;trigger.click();return true;}
     if(!['user','admin'].includes(role)||trigger.disabled)return false;
     trigger.click();return true;
   }});

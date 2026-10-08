@@ -66,3 +66,4 @@ require('./access-routing-recovery.cjs');
 require('./access-profile-save-visible.cjs');
 require('./access-button-confirmation.cjs');
 require('./access-single-shell.cjs');
+require('./master-admin-manager.cjs');

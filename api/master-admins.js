@@ -106,8 +106,8 @@ module.exports=async(req,res)=>{
     if(b.action==='deleteAdmin'){
       const old=adminIn(auth.registry,id);
       const groupId=old.groupId||'';
-      const orphan=!groupId||groupId===id;
       const peers=Object.entries(auth.registry.devices).filter(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===groupId&&d.status==='active');
+      const orphan=(!groupId||groupId===id)&&!peers.length;
       const users=Object.values(auth.registry.devices).some(d=>Boolean(groupId)&&d.role==='user'&&d.groupId===groupId&&d.status!=='deleted');
       const allManaged=await A.records(),assigned=allManaged.filter(d=>Boolean(groupId)&&d.groupId===groupId);
       if(!peers.length&&(users||(!orphan&&(assigned.length||(old.relays||[]).length))))

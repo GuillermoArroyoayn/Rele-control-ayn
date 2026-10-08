@@ -54,7 +54,7 @@
     panel.hidden=!['wall','polls'].includes(next);
     if(!panel.hidden){
       view=next;
-      $('communityTitle').textContent=view==='polls'?'Encuestas':'Muro informativo';
+      $('communityTitle').textContent='Muro informativo';
       const type=$('communityType'),poll=type.querySelector('option[value="poll"]');
       poll.hidden=view!=='polls';
       type.closest('label').hidden=view==='polls';

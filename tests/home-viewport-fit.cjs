@@ -81,3 +81,5 @@ require('./home-microphone-layout.cjs');
 require('./matrix-clear-administrator.cjs');
 
 require('./admin-blank-tools-recovery.cjs');
+
+require('./community-publication-permissions.cjs');

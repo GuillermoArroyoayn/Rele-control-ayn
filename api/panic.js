@@ -56,7 +56,7 @@ module.exports=async(req,res)=>{
     const id=A.hash(groupId+':'+auth.device.id+':'+b.requestId).slice(0,32);
     const now=new Date().toISOString();
     const person=auth.registry.devices[auth.device.id];
-    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,expiresAt:new Date(Date.parse(now)+300000).toISOString(),message:'ALERTA DE PÁNICO: se solicita ayuda en esta administración.',actuatorName:actuator?.name||'Sin sirena asignada',actuatorStatus:'pending',apology:null};
+    const alert={id,groupId,creator:auth.device.id,name:person.adminName||person.name||auth.device.name,phone:person.phone||'',apartment:person.apartment||'',createdAt:now,expiresAt:new Date(Date.parse(now)+300000).toISOString(),message:'ALERTA SOS: se solicita asistencia a la comunidad y su administrador.',actuatorName:actuator?.name||'Sin sirena asignada',actuatorStatus:'pending',apology:null};
     const inserted=await A.redis('EVAL',"if redis.call('EXISTS',KEYS[1])==1 then return 0 end redis.call('SET',KEYS[1],ARGV[1],'EX',604800); redis.call('LPUSH',KEYS[2],ARGV[2]); redis.call('LTRIM',KEYS[2],0,99); redis.call('EXPIRE',KEYS[2],604800); return 1",2,PREFIX+'event:'+id,PREFIX+'feed:'+groupId,JSON.stringify(alert),id);
     if(!inserted)return res.json({ok:true,eventId:id,expiresAt:(await event(id))?.expiresAt,duplicate:true});
     await require('../lib/information-feed').publish({
@@ -73,6 +73,6 @@ module.exports=async(req,res)=>{
     await notifying;
     // Update only delivery status: an apology posted concurrently is preserved.
     await A.redis('EVAL',"local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end local e=cjson.decode(raw); e.actuatorStatus=ARGV[1]; redis.call('SET',KEYS[1],cjson.encode(e),'KEEPTTL'); return 1",1,PREFIX+'event:'+id,actuatorStatus);
-    return res.json({ok:true,eventId:id,expiresAt:alert.expiresAt,actuatorStatus,message:actuatorStatus==='sent'?'Alerta emitida y orden enviada al actuador.':actuatorStatus==='not-configured'?'Alerta emitida a esta administración. No hay una sirena asignada.':'Alerta emitida. No se pudo enviar la orden al actuador.'});
+    return res.json({ok:true,eventId:id,expiresAt:alert.expiresAt,actuatorStatus,message:actuatorStatus==='sent'?'SOS enviado a la comunidad y su administrador; se activó el actuador.':actuatorStatus==='not-configured'?'SOS enviado a la comunidad y su administrador.':'SOS enviado a la comunidad y su administrador. No se pudo activar la sirena física.'});
   }catch(e){res.status(e.status||500).json({accessStatus:e.accessStatus,error:e.message||'No se pudo procesar la alerta.'});}
 };

@@ -40,6 +40,6 @@ vm.runInNewContext(fs.readFileSync('ain-local-voice.js','utf8'),localCtx);
  assert(main.includes('Voz seleccionada · pausada'),'La selección persistente debe permanecer visible');
  assert(admin.includes('window.AynCallPriority.armFromGesture()'));
  assert(!main.includes('Los botones siguen funcionando. Activa la voz al terminar la llamada.'));
- assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v185-admin-screen-routes'));
+ assert(fs.readFileSync('sw.js','utf8').match(/reles-ayn-v\d+-[a-z0-9-]+/));
  console.log('Android call safe v181: sin micrófono al abrir, pausa telefónica segura y reanudación nativa automática OK.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

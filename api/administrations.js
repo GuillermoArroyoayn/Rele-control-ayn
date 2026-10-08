@@ -70,6 +70,64 @@ module.exports=async(req,res)=>{
       if(![1,2,3].includes(Number(b.relay)))throw A.error('Actuador inválido.');
       await T.saveOriginal(Number(b.relay),b.timerSeconds);return res.json({ok:true});
     }
+    if(b.action==='prepareAdmin'){
+      if(auth.role!=='super_master')throw A.error('Solo el Máster puede preparar un nuevo administrador.',403);
+      const name=String(b.name||'').trim().slice(0,60);
+      const phone=WhatsApp.normalizePhone(b.phone);
+      const apartment=String(b.apartment||'').trim().slice(0,30);
+      if(!name||phone.length<11||phone.length>15)throw A.error('Completa nombre y teléfono con código de país. El departamento es opcional.');
+      const groupId='group-'+A.uuid();
+      // Prepara la comunidad sin crear cuentas, habilitar relés ni emitir invitaciones.
+      await Matrix.ensure(groupId,name,'pending');
+      const staged={name,phone,apartment,creator:auth.device.id,status:'prepared',createdAt:new Date().toISOString()};
+      await A.redis('HSET','ayn:matrix:prepared-admins',groupId,JSON.stringify(staged));
+      await addHistory({kind:'permissions',groupId,userName:name,actor:auth.device.name,
+        action:'Datos confirmados; autorizaciones pendientes; sin invitación enviada'}).catch(()=>{});
+      return res.json({ok:true,groupId,status:'prepared'});
+    }
+    if(b.action==='sendPreparedAdminInvite'){
+      if(auth.role!=='super_master')throw A.error('Solo el Máster puede enviar invitaciones de administradores.',403);
+      const groupId=String(b.groupId||'').trim();
+      const field='ayn:matrix:prepared-admins';
+      const raw=groupId?await A.redis('HGET',field,groupId):null;
+      if(!raw)throw A.error('No hay administrador preparado. Confirma sus datos primero.',404);
+      const staged=JSON.parse(raw);
+      if(staged.status==='sent'){
+        return res.json({ok:true,alreadySent:true,groupId,inviteUrl:staged.inviteUrl,
+          whatsapp:{sent:staged.whatsappSent===true,
+            fallbackUrl:WhatsApp.fallbackUrl({phone:staged.phone,name:staged.name,role:'admin',inviteUrl:staged.inviteUrl})}});
+      }
+      if(staged.status!=='prepared')throw A.error('Invitación no disponible para esta comunidad.',409);
+      const published=await Matrix.getPublished(groupId);
+      if(!published||published.status==='deleted'||!published.publishedAt)
+        throw A.error('Termina y publica las autorizaciones antes de enviar la invitación.',409);
+      if(Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status!=='deleted'))
+        throw A.error('Esta comunidad ya tiene un administrador registrado.',409);
+      const token=A.token(),inviteHash=A.hash(token);
+      const invitation={creator:auth.device.id,role:'admin',groupId,name:staged.name,phone:staged.phone,
+        apartment:staged.apartment||'',createdAt:new Date().toISOString()};
+      const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
+      const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();
+      const base=String(process.env.APP_PUBLIC_URL||'').trim().replace(/\/$/,'')||proto+'://'+host;
+      const inviteUrl=base+'/administracion.html#invite='+token;
+      const invitationKey='ayn:managed:invite:'+inviteHash;
+      await A.redis('SET',invitationKey,JSON.stringify(invitation),'EX',86400);
+      const updated={...staged,status:'sent',sentAt:new Date().toISOString(),
+        expiresAt:new Date(Date.now()+86400000).toISOString(),inviteUrl};
+      // Impide duplicar invitaciones si se toca Enviar varias veces o desde otro Máster.
+      const switched=await A.redis('EVAL',
+        "if redis.call('HGET',KEYS[1],ARGV[1])==ARGV[2] then redis.call('HSET',KEYS[1],ARGV[1],ARGV[3]); return 1 else return 0 end",
+        1,field,groupId,raw,JSON.stringify(updated));
+      if(!switched){
+        await A.redis('DEL',invitationKey).catch(()=>{});
+        throw A.error('La invitación se modificó desde otro equipo. Actualiza el tablero.',409);
+      }
+      const whatsapp=await WhatsApp.sendInvitation({phone:staged.phone,name:staged.name,role:'admin',inviteUrl});
+      await A.redis('HSET',field,groupId,JSON.stringify({...updated,whatsappSent:whatsapp.sent===true})).catch(()=>{});
+      await addHistory({kind:'invite',groupId,userName:staged.name,actor:auth.device.name,
+        action:whatsapp.sent?'Autorizaciones publicadas e invitación enviada por WhatsApp':'Autorizaciones publicadas; invitación disponible para compartir por WhatsApp'}).catch(()=>{});
+      return res.json({ok:true,groupId,inviteUrl,expiresIn:86400,whatsapp,alreadySent:false});
+    }
     if(b.action==='invite'){
       A.manager(auth);const role=['user','admin','super_master'].includes(b.role)?b.role:'user';if(['admin','super_master'].includes(role)&&auth.role!=='super_master')throw A.error('Solo el Máster crea administradores o equipos Máster.',403);
       const name=String(b.name||'').trim().slice(0,60),phone=WhatsApp.normalizePhone(b.phone);if(!name||phone.length<11||phone.length>15)throw A.error('Indica nombre y teléfono válidos. Usa número con código de país.');

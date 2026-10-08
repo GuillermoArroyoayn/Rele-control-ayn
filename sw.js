@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v131-admin-directory";
+const CACHE = "reles-ayn-v132-admin-pwa";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -6,6 +6,8 @@ const ASSETS = [
   "/",
   "/index.html",
   "/administracion.html",
+  "/administracion.webmanifest",
+  "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
   "/matrix.css?v=20261007-matrix1",
   "/matrix.js?v=20261007-matrix1",

@@ -1,4 +1,4 @@
-/* SOS exclusivo del administrador de cada comunidad; sin avisos al Máster. */
+/* SOS de un toque: alerta y sirena para la comunidad y administrador, excluyendo al Máster. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
@@ -6,7 +6,9 @@ const devices={
   master:{id:'master',role:'super_master',groupId:'master',status:'active'},
   adminA:{id:'adminA',role:'admin',groupId:'groupA',status:'active'},
   adminB:{id:'adminB',role:'admin',groupId:'groupB',status:'active'},
-  userA:{id:'userA',role:'user',groupId:'groupA',status:'active'}
+  userA:{id:'userA',role:'user',groupId:'groupA',status:'active'},
+  userA2:{id:'userA2',role:'user',groupId:'groupA',status:'active'},
+  userB:{id:'userB',role:'user',groupId:'groupB',status:'active'}
 };
 const subscriptions=Object.keys(devices).flatMap(id=>[id,JSON.stringify({
   deviceId:id,subscription:{endpoint:'https://fcm.googleapis.com/'+id,keys:{p256dh:'p',auth:'a'}}
@@ -44,10 +46,10 @@ const auth=(actor)=>({role:devices[actor].role,device:devices[actor],groupId:dev
 (async()=>{
   const alert={id:'a'.repeat(32),groupId:'groupA',creator:'userA',name:'Residente',apartment:'12',expiresAt:new Date(Date.now()+300000).toISOString()};
   await push.send(alert,auth('userA'));
-  assert.deepEqual(sent.map(x=>x.endpoint),['https://fcm.googleapis.com/adminA'],'SOS solo al administrador de la comunidad');
+  assert.deepEqual(sent.map(x=>x.endpoint).sort(),['https://fcm.googleapis.com/adminA','https://fcm.googleapis.com/userA2'].sort(),'SOS a todos los demás de la comunidad, no al Máster ni a otros grupos');
   sent.length=0;
   await push.send(alert,auth('userA'),true);
-  assert.deepEqual(sent.map(x=>x.endpoint),['https://fcm.googleapis.com/adminA'],'Cancelación SOS solo al administrador de la comunidad');
+  assert.deepEqual(sent.map(x=>x.endpoint).sort(),['https://fcm.googleapis.com/adminA','https://fcm.googleapis.com/userA2'].sort(),'Cancelación SOS a la comunidad y su administrador');
   sent.length=0;
   await push.sendInformation({id:'report-1',kind:'report',groupId:'groupA',creator:'userA',title:'Reporte'},auth('userA'));
   assert.deepEqual(sent.map(x=>x.endpoint).sort(),['https://fcm.googleapis.com/adminA','https://fcm.googleapis.com/master'].sort(),'Los reportes siguen llegando a la administración general');
@@ -58,12 +60,18 @@ const auth=(actor)=>({role:devices[actor].role,device:devices[actor],groupId:dev
   const admin=(await feed.read(auth('adminA'))).items;
   assert(admin.some(item=>item.kind==='sos'),'Administrador de la comunidad sí recibe SOS');
   assert(admin.some(item=>item.kind==='sos-cancelled'),'Administrador recibe cancelaciones SOS');
+  const resident=(await feed.read(auth('userA2'))).items;
+  assert(resident.some(item=>item.kind==='sos')&&resident.some(item=>item.kind==='sos-cancelled'),'Otro residente de esa comunidad ve activación y cancelación');
+  assert(!resident.some(item=>item.kind==='report'),'Los reportes privados no llegan a residentes');
+  assert(!(await feed.read(auth('userB'))).items.some(item=>item.kind==='sos'),'Un residente de otra comunidad no ve el SOS');
   const client=fs.readFileSync(path.join(root,'panic.js'),'utf8');
   assert(client.includes("if(role==='super_master'){stopSound();return;}"),'No reproducir sirenas SOS para Máster');
   const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
   const adminPage=fs.readFileSync(path.join(root,'administracion.html'),'utf8');
   const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-  assert(index.includes('/panic.js?v=20261008-sos192')&&adminPage.includes('/panic.js?v=20261008-sos192'),'Actualizar SOS en ambas pantallas');
-  assert(sw.includes('reles-ayn-v192-sos-community-only')&&sw.includes('/panic.js?v=20261008-sos192'),'Renovar cache');
-  console.log('OK: SOS y cancelaciones solo al administrador local; Máster sin alerta SOS; reportes privados preservados.');
+  for(const page of [index,adminPage]){
+    assert(page.includes('/panic.js?v=20261008-sos193')&&page.includes('/sos-siren.js?v=20261008-sos193'),'Activar nueva alarma SOS en todas las pantallas');
+  }
+  assert(sw.includes('reles-ayn-v193-sos-all-community-siren')&&sw.includes('/sos-siren.js?v=20261008-sos193'),'Renovar cache y sirena');
+  console.log('OK: SOS y cancelación a la comunidad local y administrador; sin Máster ni otros grupos; informes privados preservados.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

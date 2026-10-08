@@ -1,4 +1,4 @@
-/* A&N Control · Muro informativo y Reportes de emergencia. */
+/* A&N Control · Muro informativo y Reportes emergencia. */
 (() => {
   const STORAGE='ayn:information:seen:v1:';
   const SOUND='ayn:information:sound:v1';
@@ -27,7 +27,7 @@
   head.append(detailBack,symbol,heading,close);
   const subtitle=el('p','ayn-info-subtitle'),body=el('div','ayn-info-body'),actions=el('footer','ayn-info-actions');
   const sections=el('nav','ayn-info-sections');sections.setAttribute('aria-label','Tipos de avisos');
-  const wallTab=el('button','','📢 Muro informativo'),emergencyTab=el('button','','🚨 Reportes de emergencia');
+  const wallTab=el('button','','Muro informativo'),emergencyTab=el('button','','Reportes emergencia');
   for(const tab of [wallTab,emergencyTab])tab.type='button';
   sections.append(wallTab,emergencyTab);sections.hidden=true;
   const sound=el('button','ayn-info-sound');sound.type='button';
@@ -60,7 +60,7 @@
       button.classList.toggle('ayn-info-urgent',section==='emergency'&&emergency);
       if(countNode){countNode.hidden=count===0;countNode.textContent=count>99?'99+':String(count);}
       if(emergencyNode)emergencyNode.hidden=!(section==='emergency'&&emergency);
-      button.title=count ? count+' aviso(s) pendiente(s)' : (section==='emergency'?'Reportes de emergencia':'Muro informativo');
+      button.title=count ? count+' aviso(s) pendiente(s)' : (section==='emergency'?'Reportes emergencia':'Muro informativo');
     });
     if(opened && activeView==='all')renderAll();
     sound.textContent=!soundEnabled()?'🔇 Activar sonido':soundContext?.state==='running'?'🔊 Sonido activado':'🔊 Tocar para activar sonido';
@@ -117,7 +117,7 @@
     activeView='new';dialogItem=item;sections.hidden=true;body.replaceChildren(card(item));
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
-    heading.textContent=isPrivate(item)?'Reportes de emergencia':'Muro informativo';
+    heading.textContent=isPrivate(item)?'Reportes emergencia':'Muro informativo';
     symbol.textContent=urgent?'🚨':'ℹ️';
     subtitle.textContent=isPrivate(item)?'Aviso privado para la administración. Revisa el detalle.':'Nuevo aviso o encuesta en tu comunidad.';
     seeAll.hidden=false;
@@ -127,7 +127,7 @@
   function renderAll(){
     releaseDetail();detailBack.hidden=true;modal.classList.remove('ayn-info-detail-mode');
     activeView='all';mask.classList.toggle('ayn-info-emergency',activeInbox==='emergency');
-    heading.textContent=activeInbox==='emergency'?'Reportes de emergencia':'Muro informativo';
+    heading.textContent=activeInbox==='emergency'?'Reportes emergencia':'Muro informativo';
     symbol.textContent=activeInbox==='emergency'?'🚨':'ℹ️';
     sections.hidden=false;emergencyTab.hidden=role==='user';
     wallTab.setAttribute('aria-pressed',String(activeInbox==='wall'));
@@ -279,7 +279,7 @@
     modal.classList.add('ayn-info-detail-mode');
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
-    heading.textContent=isPrivate(item)?'Reporte de emergencia · detalle':'Muro informativo · detalle';
+    heading.textContent=isPrivate(item)?'Reportes emergencia':'Muro informativo';
     symbol.textContent=urgent?'🚨':'ℹ️';
     subtitle.textContent='Revisa la información completa y sus archivos adjuntos.';
     const article=el('article','ayn-info-detail-content'+(urgent?' urgent':''));

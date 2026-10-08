@@ -431,7 +431,7 @@ homeDashboard.innerHTML = `
     <button type="button" class="home-quick-card" data-home-view="reports">
       <span class="home-quick-icon" aria-hidden="true">
         <svg viewBox="0 0 64 64"><path d="M39 11a12 12 0 0 0-13 15L10 42l12 12 16-16a12 12 0 0 0 15-13l-9 9-8-2-2-8 9-9a12 12 0 0 0-4-4Z"/><path d="M15 49l5-5"/></svg>
-      </span><span>Reportes de emergencia</span>
+      </span><span>Reportes emergencia</span>
     </button>
     <button type="button" class="home-quick-card" data-home-view="community-hub" data-community-pending="all">
       <span class="home-quick-icon" aria-hidden="true">
@@ -575,7 +575,7 @@ function configureUserLayout(enabled) {
 const menuDefinitions = [
   ["control", "Inicio", "🏠"],
   ["bookings", "Agenda", "📅"],
-  ["reports", "Reportes de emergencia", "📝"],
+  ["reports", "Reportes emergencia", "📝"],
   ["community-hub", "Muro informativo", "👥"],
   ["panic", "Botón de pánico", "SOS"],
   ["settings", "Configuración", "⚙"],
@@ -591,7 +591,7 @@ const matrixViewMap={control:"access",access:"access",bookings:"bookings",report
 function matrixViewId(view,role=currentRole){if(view==="control"&&role==="user")return null;return matrixViewMap[view]||null;}
 function matrixEntry(view,role=currentRole){const id=matrixViewId(view,role);return id&&currentMatrix?.modules?.find(item=>item.id===id);}
 function matrixAllowed(view,role=currentRole){if(view==="community-hub")return matrixAllowed("wall",role)||matrixAllowed("polls",role);const item=matrixEntry(view,role);if(!item)return true;if(!item.enabled)return false;return role==="user"?Boolean(item.userVisible):Boolean(item.adminVisible);}
-function matrixLabel(view,fallback,role=currentRole){if(view==='reports')return 'Reportes de emergencia';if(view==='community-hub')return 'Muro informativo';return matrixEntry(view,role)?.label||fallback;}
+function matrixLabel(view,fallback,role=currentRole){if(view==='reports')return 'Reportes emergencia';if(view==='community-hub')return 'Muro informativo';return matrixEntry(view,role)?.label||fallback;}
 function applyMatrixPresentation(){
   if(!currentMatrix)return;
   window.AynCommunityVisibility={wall:matrixAllowed("wall",currentRole),polls:matrixAllowed("polls",currentRole)};

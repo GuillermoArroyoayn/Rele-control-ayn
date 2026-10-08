@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v183-clear-admin-folder";
+const CACHE = "reles-ayn-v184-community-pin-confirm";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -9,8 +9,8 @@ const ASSETS = [
   "/administracion.webmanifest",
   "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
-  "/matrix.css?v=20261008-delete183",
-  "/matrix.js?v=20261008-delete183",
+  "/matrix.css?v=20261008-cascade184",
+  "/matrix.js?v=20261008-cascade184",
   "/matrix-nav.js?v=20261008-nav161",
   "/ayn-navigation.js?v=20261008-nav161",
   "/ain-audio-worklet.js?v=20261004-release111",
@@ -31,8 +31,8 @@ const ASSETS = [
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-mic182",
   "/administracion.js?v=20261008-onboard180",
-  "/master-admin-manager.css?v=20261008-config180",
-  "/master-admin-manager.js?v=20261008-config180",
+  "/master-admin-manager.css?v=20261008-community184",
+  "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
   "/actuator-voice.js?v=20261008-access165",
   "/administracion-voice.js?v=20261008-voice181"

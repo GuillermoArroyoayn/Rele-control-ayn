@@ -26,7 +26,7 @@ function statusActions(status){
 function timerMode(input){const label=node('label','Modo de funcionamiento'),select=node('select');for(const [value,text] of [['timed','Con temporizador'],['manual','Sin temporizador (ON/OFF)']]){const option=node('option',text);option.value=value;select.append(option);}select.value=Number(input.value)>0?'timed':'manual';input.disabled=select.value==='manual';select.onchange=()=>{input.disabled=select.value==='manual';if(!input.disabled&&Number(input.value)===0)input.value=4;};label.append(select);return {label,value:()=>select.value==='manual'?0:Number(input.value)};}
 function groups(select,value){select.replaceChildren();if(data.role==='super_master'){const own=node('option','Máster general');own.value='master';select.append(own);}for(const g of data.groups){const option=node('option',g.name+' · '+g.status);option.value=g.id;select.append(option);}select.value=value||select.options[0]?.value||'';}
 function matrixModule(id){return data?.appMatrix?.modules?.find(item=>item.id===id)||null;}
-function adminModuleAllowed(id){const item=matrixModule(id);return !item||item.visible!==false;}
+function adminModuleAllowed(id){if(id==='community-hub')return adminModuleAllowed('wall')||adminModuleAllowed('polls');const item=matrixModule(id);return !item||item.visible!==false;}
 function adminModuleLabel(id,fallback){return matrixModule(id)?.label||fallback;}
 function adminItemModule(item){
   if(item.id==='peopleTab'||item.dataset.tab==='people')return 'users';
@@ -36,6 +36,7 @@ function adminItemModule(item){
   const href=item.getAttribute?.('href')||'';
   if(href.includes('#bookings'))return 'bookings';
   if(href.includes('#reportes'))return 'reports';
+  if(href.includes('#community-hub'))return 'community-hub';
   if(href.includes('#wall'))return 'wall';
   if(href.includes('#polls'))return 'polls';
   if(href.includes('#temporary'))return 'temporary';

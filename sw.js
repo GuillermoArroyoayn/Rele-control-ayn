@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v173-access-feedback";
+const CACHE = "reles-ayn-v174-resident-roles";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -24,7 +24,7 @@ const ASSETS = [
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-access173",
+  "/app.js?v=20261008-access174",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

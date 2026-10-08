@@ -15,10 +15,10 @@ assert(adminHtml.includes('id="homeDashboard"'),'Administrator home remains pres
 assert(adminHtml.includes('href="/#access" data-admin-module="access"'),'El acceso desde Inicio debe abrir el panel /#access, no la vista vacía /#control');
 assert(!adminHtml.includes('href="/#control" data-admin-module="access"'),'No restablecer ruta antigua que deja Accesos en blanco');
 assert(adminHtml.includes('/administracion.js?v=20261008-access167'));
-assert(html.includes('/app.js?v=20261008-access173'));
-assert(sw.includes('reles-ayn-v173-access-feedback'));
+assert(html.includes('/app.js?v=20261008-access174'));
+assert(sw.includes('reles-ayn-v174-resident-roles'));
 assert(sw.includes('/administracion.js?v=20261008-access167'));
-assert(sw.includes('/app.js?v=20261008-access173'));
+assert(sw.includes('/app.js?v=20261008-access174'));
 function shouldShowAdminHome(role,hash='',search=''){
  return (role==='super_master'&&!hash)||(role==='admin'&&!hash&&!search);
 }

@@ -367,6 +367,10 @@
       if(!Array.isArray(result.items))return;
       if(deviceId!==id){deviceId=id;seen=readState();firstLoad=true;}
       role=result.role;items=result.items;
+      // Al desactivar la recepción, retirar de inmediato la alerta SOS ajena abierta.
+      if(result.sosReceiving===false&&opened&&dialogItem&&['sos','sos-cancelled'].includes(dialogItem.kind)&&!items.some(item=>item.id===dialogItem.id)){
+        hide();window.AynSosSiren?.stop?.();
+      }
       const own=items.filter(item=>item.isOwn&&!seen.has(item.id));
       if(own.length)acknowledgeIds(own.map(item=>item.id));
       const pending=fresh();
@@ -440,6 +444,7 @@
   window.addEventListener('pageshow',()=>refresh());
   navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='AYN_OPEN_INFORMATION'){refresh().finally(()=>openInbox(event.data.section==='emergency'?'emergency':'wall'));}});
   window.addEventListener('ayn:information:refresh',()=>refresh());
+  window.addEventListener('ayn:sos-receive-change',()=>refresh());
   window.AynInformation=Object.freeze({refresh,openInbox});
   installHomeButtons();refresh();if(location.hash==='#information')openInbox('wall');if(location.hash==='#emergency')refresh().finally(()=>openInbox('emergency'));setInterval(refresh,5000);
   // La sirena SOS se repite hasta que se atienda o cierre la alerta visible.

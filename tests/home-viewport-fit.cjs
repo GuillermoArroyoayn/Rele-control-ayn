@@ -60,3 +60,4 @@ require('./admin-home-entry.cjs');
 require('./enrolled-relays.cjs');
 
 require('./actuator-profiles.cjs');
+require('./actuator-profile-control.cjs');

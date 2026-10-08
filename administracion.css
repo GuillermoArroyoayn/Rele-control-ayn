@@ -755,3 +755,13 @@ body[data-admin-view="equipment"] #relayInstallerSaved input{margin-top:5px}
  body[data-admin-view="equipment"] .relay-install-primary{grid-template-columns:repeat(2,minmax(0,1fr))}
  body[data-admin-view="equipment"] .relay-install-advanced-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* v161: Atrás e Inicio: cabeceras interiores limpias. */
+body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar{display:flex!important;align-items:center;justify-content:space-between;flex-wrap:nowrap!important;gap:12px!important;padding-block:10px!important}
+body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar > :not(#aynBack):not(#aynHome){display:none!important}
+body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar .ayn-nav-button{
+ display:inline-flex!important;justify-content:center;align-items:center;
+ flex:0 1 auto;min-width:105px;min-height:48px!important;margin:0!important;padding:9px 16px!important;
+ border:1px solid var(--theme-border,#5ee7ff99)!important;border-radius:12px!important;background:var(--theme-soft,#1670da)!important;
+ color:#fff!important;font-weight:700!important;box-shadow:none!important
+}
+@media(max-width:360px){body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar .ayn-nav-button{min-width:95px;padding-inline:10px!important}}

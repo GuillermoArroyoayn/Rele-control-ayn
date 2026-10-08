@@ -15,6 +15,6 @@ assert(app.includes("const itemsById=new Map("),'Evitar duplicados de gestionado
 assert(app.includes("profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)"),'No mostrar originales no verificados');
 assert(app.includes("itemsById.has(id)"),'No repetir actuadores en pantalla');
 assert(css.includes('.access-settings-feedback:not([hidden])'));
-assert(sw.includes('reles-ayn-v175-phone-priority'));
-assert(sw.includes('/app.js?v=20261008-phone175'));
+assert(sw.includes('reles-ayn-v176-call-safe'));
+assert(sw.includes('/app.js?v=20261008-phone176'));
 console.log('V169: guardado con confirmación persistente y catálogo autorizado de actuadores como alternativa segura.');

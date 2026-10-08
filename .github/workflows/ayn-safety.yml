@@ -47,6 +47,9 @@ jobs:
       - name: Verificar prioridad telefónica sin bloqueo de los botones
         run: node tests/call-priority.cjs
 
+      - name: Verificar que Android no capture microfono al abrir durante llamada
+        run: node tests/android-call-safe.cjs
+
       - name: Verificar compatibilidad voz con audio Bluetooth
         run: node tests/bluetooth-audio.cjs
 

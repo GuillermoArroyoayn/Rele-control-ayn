@@ -7,5 +7,5 @@ assert(app.includes('const eagerProfiles=await api("/api/actuator-profiles")'));
 assert(app.includes('if(authorized.length){'));
 assert(app.includes('managedAccessGrid.append(built.card);'));
 assert(app.includes('read().then(built.paintState).catch(()=>{});'));
-assert(sw.includes('reles-ayn-v175-phone-priority'));
+assert(sw.includes('reles-ayn-v176-call-safe'));
 console.log('AYN v172: estado guardado permanente y botones de acceso visibles OK.');

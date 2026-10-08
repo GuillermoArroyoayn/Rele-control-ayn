@@ -324,12 +324,13 @@
     }catch{}
   }
   function chime(item){
-    if(!soundEnabled()||document.hidden||isCall()||document.body.classList.contains('panic-screen-open'))return;
-    if(!soundContext||soundContext.state!=='running')return;
+    if(document.hidden||isCall()||document.body.classList.contains('panic-screen-open'))return;
+    // SOS siempre usa la sirena distintiva, aun si se desactivó la campanilla informativa.
     if(item.kind==='sos'){
       window.AynSosSiren?.play?.();
       return;
     }
+    if(!soundEnabled()||!soundContext||soundContext.state!=='running')return;
     const urgent=isEmergency(item);
     const pattern=urgent?[880,660,880,660]:[740,880];
     try{

@@ -1668,3 +1668,25 @@ body.user-layout[data-user-view="control"] .home-dashboard .home-voice-button:fo
     padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
   }
 }
+
+/* v185 — herramientas del administrador abiertas desde el menú, nunca vacías. */
+body.app-screen-mode[data-user-view="voice"] .function-screen .accessibility{
+  display:grid!important;width:100%;max-width:720px;box-sizing:border-box;
+  margin:0 auto;gap:12px;
+}
+body.app-screen-mode[data-user-view="voice"] .function-screen .voice-command{
+  display:flex!important;justify-content:center;align-items:center;
+  min-height:54px;max-width:100%;white-space:normal;
+}
+body.app-screen-mode[data-user-view="voice"] .function-screen .function-voice-title{
+  margin:0 0 18px;text-align:center;color:#f0fbff;
+  font-size:clamp(19px,5vw,26px);
+}
+body.app-screen-mode[data-user-view="temporary"] .device-list > .temporary-help{
+  padding:10px 12px;margin:4px 0 14px;border-radius:10px;
+  background:var(--theme-panel,#10345f);border:1px solid var(--theme-border,#56cfff);
+  color:#f0faff;line-height:1.5;
+}
+body.app-screen-mode[data-user-view="temporary"] .device-list > .history-empty{
+  padding:18px;line-height:1.55;min-height:64px;
+}

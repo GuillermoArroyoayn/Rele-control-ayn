@@ -24,8 +24,9 @@ for(const [source, selector, label] of [
 ]){
   const at = source.indexOf(selector);
   assert(at >= 0, 'Falta tarjeta '+selector);
-  const end = source.indexOf('</button>', at);
-  const card = source.slice(at, end >= 0 ? end+9 : source.indexOf('</a>',at)+4);
+  const ends = [source.indexOf('</button>',at), source.indexOf('</a>',at)].filter(end=>end>=0);
+  assert(ends.length, 'Tarjeta sin cierre: '+selector);
+  const card = source.slice(at, Math.min(...ends)+9);
   assert(card.includes('<span>'+label+'</span>'), 'Etiqueta incorrecta: '+selector);
   assert(!card.includes('🚨 Emergencia'), 'La tarjeta no debe duplicar Emergencia: '+selector);
 }

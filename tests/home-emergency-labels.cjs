@@ -41,7 +41,7 @@ for(const page of [index, adminHome]){
 }
 const cacheVersion=serviceWorker.match(/reles-ayn-v(\d+)-[a-z0-9-]+/);
 assert(cacheVersion && Number(cacheVersion[1])>=191, 'Mantener caché PWA actualizado');
-assert(serviceWorker.includes('/information.js?v=20261008-sos193'));
+assert(serviceWorker.includes('/information.js?v=20261008-sos194'));
 assert(serviceWorker.includes('/information.css?v=20261008-cards191'));
 
 console.log('OK: tarjetas con solo Reportes emergencia y Muro informativo; avisos y sonido de emergencias preservados.');

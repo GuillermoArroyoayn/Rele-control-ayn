@@ -26,7 +26,7 @@
     stop();
     const now=context.currentTime+.03;
     // Sirena de alarma distinta de la campanilla informativa: tres oscilaciones ascendentes/descendentes.
-    // Duración 4,2 segundos, intensidad moderada sin alterar el volumen del teléfono.
+    // Duración 4,2 segundos, sirena audible y distintiva sin forzar el volumen del teléfono.
     for(let i=0;i<3;i++){
       const start=now+i*1.4;
       const oscillator=context.createOscillator(),gain=context.createGain();
@@ -35,8 +35,8 @@
       oscillator.frequency.linearRampToValueAtTime(1020,start+.64);
       oscillator.frequency.linearRampToValueAtTime(610,start+1.28);
       gain.gain.setValueAtTime(0,start);
-      gain.gain.linearRampToValueAtTime(.07,start+.08);
-      gain.gain.setValueAtTime(.07,start+1.22);
+      gain.gain.linearRampToValueAtTime(.12,start+.08);
+      gain.gain.setValueAtTime(.12,start+1.22);
       gain.gain.linearRampToValueAtTime(0,start+1.35);
       oscillator.connect(gain);
       gain.connect(context.destination);

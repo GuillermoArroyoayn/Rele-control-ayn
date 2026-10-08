@@ -23,7 +23,8 @@ const published=[
 ];
 const A={
   redis:async(command,key,...args)=>{
-    if(command==='HGETALL')return subscriptions;
+    if(command==='HGETALL')return key==='ayn:sos:receive:v1'?[]:subscriptions;
+    if(command==='HGET')return null;
     if(command==='GET')return JSON.stringify({publicKey:'test',privateKey:'test'});
     if(command==='LRANGE')return published.map(e=>JSON.stringify(e));
     throw Error('Redis inesperado: '+command+' '+key);
@@ -38,9 +39,10 @@ function moduleFrom(file){
   const mod={exports:{}};
   const run=vm.runInNewContext('(function(require,module,exports){'+fs.readFileSync(path.join(root,file),'utf8')+'\n})',
     {URL,Date,Promise,console},{filename:file});
-  run(name=>name==='web-push'?webpush:name.endsWith('administrations')?A:(()=>{throw Error('Dependencia inesperada: '+name)})(),mod,mod.exports);
+  run(name=>name==='web-push'?webpush:name.endsWith('administrations')?A:name.endsWith('sos-preferences')?SOS_PREF:(()=>{throw Error('Dependencia inesperada: '+name)})(),mod,mod.exports);
   return mod.exports;
 }
+const SOS_PREF=moduleFrom('lib/sos-preferences.js');
 const push=moduleFrom('lib/panic-push.js'),feed=moduleFrom('lib/information-feed.js');
 const auth=(actor)=>({role:devices[actor].role,device:devices[actor],groupId:devices[actor].groupId,registry:{devices,masterId:'master'}});
 (async()=>{
@@ -70,8 +72,8 @@ const auth=(actor)=>({role:devices[actor].role,device:devices[actor],groupId:dev
   const adminPage=fs.readFileSync(path.join(root,'administracion.html'),'utf8');
   const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
   for(const page of [index,adminPage]){
-    assert(page.includes('/panic.js?v=20261008-sos193')&&page.includes('/sos-siren.js?v=20261008-sos193'),'Activar nueva alarma SOS en todas las pantallas');
+    assert(page.includes('/panic.js?v=20261008-sos194')&&page.includes('/sos-siren.js?v=20261008-sos194'),'Activar nueva alarma SOS en todas las pantallas');
   }
-  assert(sw.includes('reles-ayn-v193-sos-all-community-siren')&&sw.includes('/sos-siren.js?v=20261008-sos193'),'Renovar cache y sirena');
+  assert(sw.includes('reles-ayn-v194-sos-user-choice')&&sw.includes('/sos-siren.js?v=20261008-sos194'),'Renovar cache y sirena');
   console.log('OK: SOS y cancelación a la comunidad local y administrador; sin Máster ni otros grupos; informes privados preservados.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

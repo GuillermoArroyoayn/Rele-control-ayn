@@ -89,3 +89,5 @@ require('./home-emergency-labels.cjs');
 require('./sos-no-general-admin-alerts.cjs');
 
 require('./sos-one-touch-community.cjs');
+
+require('./sos-reception-preferences.cjs');

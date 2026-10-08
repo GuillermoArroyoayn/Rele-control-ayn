@@ -33,6 +33,63 @@
   const togglePush=async()=>{for(const button of pushButtons)button.disabled=true;try{if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window))throw new Error('Este navegador no admite notificaciones con AYN cerrada.');const registration=await navigator.serviceWorker.ready;if(localStorage.getItem('aynPanicPush')==='enabled'){await pushApi({action:'disable'});await (await registration.pushManager.getSubscription())?.unsubscribe();localStorage.setItem('aynPanicPush','disabled');setPushStatus('Avisos de Información y Emergencias desactivados en este equipo.');}else{const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Permite las notificaciones en los ajustes del navegador para activarlas.');const {publicKey}=await pushApi();const bytes=Uint8Array.from(atob(publicKey.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-publicKey.length%4)%4)),c=>c.charCodeAt(0));const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await pushApi({action:'subscribe',subscription:subscription.toJSON()});localStorage.setItem('aynPanicPush','enabled');setPushStatus('Avisos de Información y Emergencias activados. También llegarán con AYN cerrada cuando el sistema lo permita.');}pushLabel();}catch(e){setPushStatus(e.message);}finally{for(const button of pushButtons)button.disabled=false;}};
   for(const button of pushButtons)button.onclick=togglePush;
   window.AynPushNotifications=Object.freeze({toggle:togglePush,enabled:()=>localStorage.getItem('aynPanicPush')==='enabled'});
+
+  // Preferencia de recepción SOS del residente, independiente del botón de envío SOS.
+  // Se guarda en servidor y se aplica tanto a la bandeja como a las notificaciones push.
+  const sosReceiveToggle=document.getElementById('sosReceiveToggle');
+  const sosReceiveStatus=document.getElementById('sosReceiveStatus');
+  let sosReceiveEnabled=true,sosReceiveLoaded=false,sosReceiveBusy=false;
+  const paintSosReceive=()=>{
+    if(!sosReceiveToggle)return;
+    sosReceiveToggle.textContent=sosReceiveEnabled?'Recibir alertas SOS: activado':'Recibir alertas SOS: desactivado';
+    sosReceiveToggle.setAttribute('aria-pressed',String(sosReceiveEnabled));
+    sosReceiveToggle.disabled=sosReceiveBusy;
+  };
+  async function sosPreferences(enabled){
+    const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'';
+    const id=localStorage.getItem('relayDeviceId')||'';
+    if(!pin||!id)throw new Error('Necesitas iniciar sesión.');
+    const request=enabled===undefined?null:{enabled};
+    const response=await fetch('/api/sos-preferences',{
+      method:request?'POST':'GET',
+      headers:{'content-type':'application/json','x-app-pin':pin,'x-device-id':id},
+      ...(request?{body:JSON.stringify(request)}:{})
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'No se pudo guardar tu preferencia SOS.');
+    return data;
+  }
+  async function loadSOSReceive(){
+    if(!sosReceiveToggle||role!=='user')return;
+    try{
+      const result=await sosPreferences();
+      sosReceiveEnabled=result.enabled!==false;
+      sosReceiveStatus.textContent=sosReceiveEnabled?
+        'Recibirás alertas SOS de tu comunidad con sirena cuando AYN esté abierta.':
+        'No recibirás los SOS de otros residentes. Tu botón SOS sigue disponible.';
+    }catch(error){
+      sosReceiveLoaded=false;
+      sosReceiveStatus.textContent='No se pudo comprobar la preferencia: '+error.message;
+    }finally{paintSosReceive();}
+  }
+  if(sosReceiveToggle){
+    paintSosReceive();
+    sosReceiveToggle.onclick=async()=>{
+      if(sosReceiveBusy||role!=='user')return;
+      sosReceiveBusy=true;paintSosReceive();
+      try{
+        const result=await sosPreferences(!sosReceiveEnabled);
+        sosReceiveEnabled=result.enabled===true;
+        sosReceiveStatus.textContent=sosReceiveEnabled?
+          'Alertas SOS activadas para este usuario.':
+          'Alertas SOS desactivadas para este usuario. Puedes seguir enviando SOS.';
+        if(!sosReceiveEnabled)window.AynSosSiren?.stop?.();
+        window.dispatchEvent(new Event('ayn:sos-receive-change'));
+      }catch(error){sosReceiveStatus.textContent='No se guardó el cambio: '+error.message;}
+      finally{sosReceiveBusy=false;paintSosReceive();}
+    };
+  }
+
   // Las alertas SOS se suscriben por defecto si el teléfono ya autorizó notificaciones.
   // El navegador exige aprobación del usuario para recibir avisos con AYN cerrada.
   let defaultPushBusy=false,defaultPushReady=false,defaultPushAsked=false,lastPushAttempt=0;
@@ -66,7 +123,7 @@
   const status=text=>{el('panicStatus').textContent=text;document.dispatchEvent(new Event('ayn-panic-feedback'));};
   const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
   async function api(body){const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'',id=localStorage.getItem('relayDeviceId');if(!pin||!id)throw new Error('Ingresa tu PIN para acceder.');const response=await fetch('/api/panic'+(body?'':'?groupId='+encodeURIComponent(groupId)),{method:body?'POST':'GET',headers:{'content-type':'application/json','x-app-pin':pin,'x-device-id':id,'x-device-name':localStorage.getItem('relayDeviceName')||'Celular Android'},...(body?{body:JSON.stringify({...body,groupId})}:{})});const data=await response.json();if(!response.ok){if(data.accessStatus){accessRestricted=true;document.dispatchEvent(new CustomEvent('ayn-access-restricted',{detail:data.error}));}throw Object.assign(new Error(data.error||'No se pudo completar.'),{status:response.status});}if(accessRestricted){accessRestricted=false;document.dispatchEvent(new Event('ayn-access-restored'));}return data;}
-  async function load(){if(loading||document.hidden)return;loading=true;try{const data=await api();role=data.role;groupId=data.groupId;applyMenuView();showSOS(true);void defaultSOSPush(false);el('panicGroupLabel').hidden=role!=='super_master';for(const name of ['panicSound','panicSoundStatus','panicPush','panicPushStatus'])el(name).hidden=role==='user';const select=el('panicGroup');select.replaceChildren();for(const g of data.groups){const o=node('option',g.name);o.value=g.id;select.append(o);}select.value=groupId;configured=Boolean(data.configured);trigger.disabled=sending;trigger.title='SOS: avisar a toda tu comunidad y su administrador';el('panicHelp').textContent=role==='user'?'SOS avisa de inmediato a toda tu comunidad y a su administrador.':role==='admin'?'SOS avisa a tu comunidad y a sus residentes.': 'Configura las sirenas SOS de cada comunidad.';el('panicConfig').hidden=role!=='super_master';const actuator=el('panicActuator'),selected=actuator.value;actuator.replaceChildren();for(const a of data.actuators){const o=node('option',a.name);o.value=a.id;actuator.append(o);}if([...actuator.options].some(o=>o.value===selected))actuator.value=selected;el('panicSave').disabled=!actuator.options.length;
+  async function load(){if(loading||document.hidden)return;loading=true;try{const data=await api();role=data.role;groupId=data.groupId;applyMenuView();showSOS(true);if(role==='user'&&!sosReceiveLoaded){sosReceiveLoaded=true;void loadSOSReceive();}void defaultSOSPush(false);el('panicGroupLabel').hidden=role!=='super_master';for(const name of ['panicSound','panicSoundStatus','panicPush','panicPushStatus'])el(name).hidden=role==='user';const select=el('panicGroup');select.replaceChildren();for(const g of data.groups){const o=node('option',g.name);o.value=g.id;select.append(o);}select.value=groupId;configured=Boolean(data.configured);trigger.disabled=sending;trigger.title='SOS: avisar a toda tu comunidad y su administrador';el('panicHelp').textContent=role==='user'?'SOS avisa de inmediato a toda tu comunidad y a su administrador.':role==='admin'?'SOS avisa a tu comunidad y a sus residentes.': 'Configura las sirenas SOS de cada comunidad.';el('panicConfig').hidden=role!=='super_master';const actuator=el('panicActuator'),selected=actuator.value;actuator.replaceChildren();for(const a of data.actuators){const o=node('option',a.name);o.value=a.id;actuator.append(o);}if([...actuator.options].some(o=>o.value===selected))actuator.value=selected;el('panicSave').disabled=!actuator.options.length;
     activeAlerts=data.events;playSound();const ownScreen=data.events.find(e=>e.id===screenEvent);if(ownScreen?.apology&&!sosScreen.hidden){finishScreen();screenApology.hidden=true;screenStatus.textContent='Alerta cancelada. Disculpa enviada a esta administración.';}
     const events=el('panicEvents');events.replaceChildren();for(const event of data.events){const card=node('article','');card.className='panic-event'+(event.apology?' panic-apology':'');card.append(node('strong',event.apology?'Activación accidental':event.active===false?'Alerta finalizada':'ALERTA DE PÁNICO'),node('p',event.message),node('small',event.name+' · '+new Date(event.createdAt).toLocaleString('es-CL')));card.append(node('p','Teléfono: '+(event.phone||'sin registrar')+' · Departamento: '+(event.apartment||'sin registrar')));card.append(node('p',event.actuatorStatus==='sent'?'Orden enviada a '+event.actuatorName+'.':event.actuatorStatus==='failed'?'La alerta fue emitida, pero no se pudo activar el actuador.':event.actuatorStatus==='not-configured'?'Aviso enviado; sin sirena asignada.':'Activación del actuador pendiente.'));if(event.apology)card.append(node('p',event.apology.message),node('small',event.apology.name+' · '+new Date(event.apology.at).toLocaleString('es-CL')));else if(event.canApologize){const button=node('button','Activación accidental: enviar disculpa');button.type='button';button.onclick=async()=>{button.disabled=true;try{await api({action:'apologize',eventId:event.id});if(screenEvent===event.id)finishScreen();status('Disculpa enviada a esta administración.');await load();}catch(e){status(e.message);button.disabled=false;}};card.append(button);}if(['admin','super_master'].includes(role)&&(event.apology||event.active===false)){const remove=node('button','Eliminar');remove.type='button';remove.setAttribute('aria-label','Eliminar aviso de '+event.name);remove.onclick=async()=>{remove.disabled=true;try{await api({action:'dismiss',eventId:event.id});card.remove();status('Aviso eliminado de tu bandeja.');await load();}catch(e){status(e.message);remove.disabled=false;}};card.append(remove);}events.append(card);seen.set(event.id,Boolean(event.apology));}
   }catch(e){if([401,403].includes(e.status)){activeAlerts=[];stopSound();panel.hidden=true;showSOS(false);configured=false;trigger.disabled=true;}else if(!panel.hidden)status('No se pudieron actualizar las alertas. Revisa tu conexión.');}finally{loading=false;}}

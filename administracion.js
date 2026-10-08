@@ -177,7 +177,7 @@ $('aynHome').onclick=()=>{if(window.AynNavigation)window.AynNavigation.home('adm
 window.addEventListener('ayn:navigate',event=>{if(event.detail?.page!=='admin')return;masterUsersGroup='';sessionStorage.removeItem('aynMasterUsersGroup');currentTab=event.detail.view;render();window.scrollTo(0,0);});
 $('openMenu').onclick=()=>{masterUsersGroup='';sessionStorage.removeItem('aynMasterUsersGroup');currentTab=currentTab==='menu'?'home':'menu';sessionStorage.setItem('aynAdminView',currentTab);render();window.scrollTo(0,0);};
 $('homeOverflow').onclick=()=>{currentTab='menu';sessionStorage.setItem('aynAdminView',currentTab);render();window.scrollTo(0,0);};
-for(const b of document.querySelectorAll('[data-home-tab]'))b.onclick=()=>{if(b.dataset.homeTab==='people'&&!['admin','super_master'].includes(data?.role)){notify('Este equipo está registrado como usuario. Solo un Administrador puede incorporar usuarios.',true);return;}currentTab=b.dataset.homeTab;sessionStorage.setItem('aynAdminView',currentTab);render();window.scrollTo(0,0);};
+for(const b of document.querySelectorAll('[data-home-tab]'))b.onclick=()=>{if(b.dataset.homeTab==='panic'&&data?.role==='admin'&&window.AynSOS?.trigger?.())return;if(b.dataset.homeTab==='people'&&!['admin','super_master'].includes(data?.role)){notify('Este equipo está registrado como usuario. Solo un Administrador puede incorporar usuarios.',true);return;}currentTab=b.dataset.homeTab;sessionStorage.setItem('aynAdminView',currentTab);render();window.scrollTo(0,0);};
 function updateInvitationAction(){
   const master=data?.role==='super_master',admin=$('role').value==='admin'&&master;
   const submit=$('inviteSubmit');

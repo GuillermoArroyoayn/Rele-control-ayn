@@ -1201,3 +1201,6 @@ body[data-user-view="settings"] .managed-access-panel,
 body[data-user-view="settings"] .relay-grid,
 body[data-user-view="settings"] .share-section,
 body[data-user-view="settings"] #refresh{display:none!important}
+
+
+/* v143 · El arranque de Administrador/Máster se mantiene oculto hasta validar el rol. */

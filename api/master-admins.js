@@ -135,6 +135,8 @@ module.exports=async(req,res)=>{
           for(let i=0;i<(raw||[]).length;i+=2)
             if(String(raw[i+1])===groupId)
               await A.redis('HDEL','ayn:matrix:original:reservations',String(raw[i]));
+          await A.redis('HSET','ayn:matrix:deleted-groups',groupId,
+            JSON.stringify({deletedAt:new Date().toISOString(),by:auth.device.id,complete:false}));
           await Matrix.clearFolder(groupId);
         }
       }

@@ -76,5 +76,11 @@ async function check(name,condition){
   registry.devices[peer]={role:'admin',groupId:'community-A',status:'active',name:'Administrador existente',relays:[3]};
   const reuse=await request(manage,{action:'replaceExisting',adminId:user,userId:peer});
   await check('Reemplazo por administrador existente de la propia comunidad',reuse.code===200&&registry.devices[user].status==='deleted'&&registry.devices[peer].role==='admin'&&registry.devices[peer].relays.join(',')==='1,2,3');
+  const orphan='orphan-12345678901234';
+  registry.devices[orphan]={role:'admin',groupId:'',status:'active',name:'Administrador sin comunidad',relays:[]};
+  const orphanListing=await request(manage,{},'GET');
+  await check('Máster ve administrador sin comunidad',orphanListing.data.admins.some(a=>a.id===orphan&&a.hasCommunity===false));
+  const orphanResult=await request(manage,{action:'deleteAdmin',adminId:orphan});
+  await check('Baja de administrador sin comunidad sin reemplazo',orphanResult.code===200&&orphanResult.data.withoutCommunity===true&&registry.devices[orphan].status==='deleted');
   console.log('TOTAL '+checks+' verificaciones correctas.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

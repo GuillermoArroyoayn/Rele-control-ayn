@@ -1,11 +1,13 @@
-/* Centro de Información A&N: avisos, reportes, encuestas y emergencias. */
+/* A&N Control · Muro informativo y Reportes de emergencia. */
 (() => {
   const STORAGE='ayn:information:seen:v1:';
   const SOUND='ayn:information:sound:v1';
-  const CRITICAL=new Set(['sos','emergency']);
+  const CRITICAL=new Set(['sos','emergency','report']);
+  const PRIVATE=new Set(['report','emergency','sos','sos-cancelled']);
+  const isPrivate=item=>PRIVATE.has(item?.kind);
   const TYPES={report:'Reporte',notice:'Aviso',poll:'Encuesta',emergency:'Emergencia',sos:'Emergencia', 'sos-cancelled':'Emergencia cancelada'};
   let items=[],role='',deviceId='',seen=new Set(),dialogItem=null,opened=false,soundContext=null,loading=false;
-  let previousFocused=null,initialized=false,firstLoad=true,activeView='new';
+  let previousFocused=null,initialized=false,firstLoad=true,activeView='new',activeInbox='wall';
   let detailOrigin='new',detailItem=null,detailGeneration=0,photoUrl=null;
   const soundEnabled=()=>localStorage.getItem(SOUND)!=='off';
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
@@ -24,11 +26,15 @@
   const detailBack=el('button','ayn-info-back','←');detailBack.type='button';detailBack.hidden=true;detailBack.setAttribute('aria-label','Volver al aviso anterior');
   head.append(detailBack,symbol,heading,close);
   const subtitle=el('p','ayn-info-subtitle'),body=el('div','ayn-info-body'),actions=el('footer','ayn-info-actions');
+  const sections=el('nav','ayn-info-sections');sections.setAttribute('aria-label','Tipos de avisos');
+  const wallTab=el('button','','📢 Muro informativo'),emergencyTab=el('button','','🚨 Reportes de emergencia');
+  for(const tab of [wallTab,emergencyTab])tab.type='button';
+  sections.append(wallTab,emergencyTab);sections.hidden=true;
   const sound=el('button','ayn-info-sound');sound.type='button';
   const push=el('button','ayn-info-push');push.type='button';
   const seeAll=el('button','ayn-info-all','Ver todas');seeAll.type='button';
   const acknowledge=el('button','ayn-info-ack','Entendido');acknowledge.type='button';
-  actions.append(sound,push,seeAll,acknowledge);modal.append(head,subtitle,body,actions);mask.append(modal);
+  actions.append(sound,push,seeAll,acknowledge);modal.append(head,subtitle,sections,body,actions);mask.append(modal);
   document.body.append(mask);
   const readState=()=>{
     const key=STORAGE+deviceId;
@@ -44,14 +50,16 @@
     saveRead();paint();
   }
   function paint(){
-    const count=fresh().length,emergency=critical();
+    const unread=fresh(),emergency=critical();
     document.querySelectorAll('.ayn-info-quick').forEach(button=>{
+      const section=button.dataset.aynInbox||'wall';
+      const count=unread.filter(item=>section==='emergency'?isPrivate(item):!isPrivate(item)).length;
       const countNode=button.querySelector('.ayn-info-count'),emergencyNode=button.querySelector('.ayn-info-emergency-label');
       button.classList.toggle('ayn-info-unread',count>0);
-      button.classList.toggle('ayn-info-urgent',emergency);
-      countNode.hidden=count===0;countNode.textContent=count>99?'99+':String(count);
-      emergencyNode.hidden=!emergency;
-      button.title=count ? count+' notificación(es) pendiente(s)' : 'Información';
+      button.classList.toggle('ayn-info-urgent',section==='emergency'&&emergency);
+      if(countNode){countNode.hidden=count===0;countNode.textContent=count>99?'99+':String(count);}
+      if(emergencyNode)emergencyNode.hidden=!(section==='emergency'&&emergency);
+      button.title=count ? count+' aviso(s) pendiente(s)' : (section==='emergency'?'Reportes de emergencia':'Muro informativo');
     });
     if(opened && activeView==='all')renderAll();
     sound.textContent=!soundEnabled()?'🔇 Activar sonido':soundContext?.state==='running'?'🔊 Sonido activado':'🔊 Tocar para activar sonido';
@@ -64,7 +72,7 @@
   };
   const hide=()=>{
     releaseDetail();detailBack.hidden=true;
-    opened=false;mask.hidden=true;mask.classList.remove('ayn-info-emergency');
+    opened=false;mask.hidden=true;mask.classList.remove('ayn-info-emergency');sections.hidden=true;
     document.body.classList.remove('ayn-info-dialog-open');
     previousFocused?.focus?.();
   };
@@ -105,27 +113,38 @@
   }
   function renderNew(item){
     releaseDetail();detailBack.hidden=true;modal.classList.remove('ayn-info-detail-mode');
-    activeView='new';dialogItem=item;body.replaceChildren(card(item));
+    activeView='new';dialogItem=item;sections.hidden=true;body.replaceChildren(card(item));
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
-    heading.textContent=urgent?'Emergencia':'Información';
+    heading.textContent=isPrivate(item)?'Reportes de emergencia':'Muro informativo';
     symbol.textContent=urgent?'🚨':'ℹ️';
-    subtitle.textContent=urgent?'Se solicita asistencia. Revisa el aviso.':'Nuevo mensaje recibido en A&N Control';
+    subtitle.textContent=isPrivate(item)?'Aviso privado para la administración. Revisa el detalle.':'Nuevo aviso o encuesta en tu comunidad.';
     seeAll.hidden=false;
     acknowledge.textContent='Entendido';
     show();
   }
   function renderAll(){
     releaseDetail();detailBack.hidden=true;modal.classList.remove('ayn-info-detail-mode');
-    activeView='all';mask.classList.remove('ayn-info-emergency');
-    heading.textContent='Información';symbol.textContent='ℹ️';
-    subtitle.textContent=fresh().length ? fresh().length+' mensaje(s) pendiente(s)' : 'No tienes mensajes pendientes';
+    activeView='all';mask.classList.toggle('ayn-info-emergency',activeInbox==='emergency');
+    heading.textContent=activeInbox==='emergency'?'Reportes de emergencia':'Muro informativo';
+    symbol.textContent=activeInbox==='emergency'?'🚨':'ℹ️';
+    sections.hidden=false;emergencyTab.hidden=role==='user';
+    wallTab.setAttribute('aria-pressed',String(activeInbox==='wall'));
+    emergencyTab.setAttribute('aria-pressed',String(activeInbox==='emergency'));
+    const inboxItems=items.filter(item=>activeInbox==='emergency'?isPrivate(item):!isPrivate(item));
+    const pending=inboxItems.filter(item=>!seen.has(item.id)&&!item.isOwn).length;
+    subtitle.textContent=pending?pending+' mensaje(s) pendiente(s)':'No tienes mensajes pendientes';
     body.replaceChildren();
-    for(const item of sorted(items).slice(0,80))body.append(card(item,true));
-    if(!items.length)body.append(el('p','','Todavía no hay información registrada.'));
+    for(const item of sorted(inboxItems).slice(0,80))body.append(card(item,true));
+    if(!inboxItems.length)body.append(el('p','','No hay publicaciones en esta sección.'));
     seeAll.hidden=true;acknowledge.textContent='Marcar todo leído';
   }
-  function openInbox(){renderAll();show();}
+  function openInbox(section='wall'){
+    activeInbox=section==='emergency'&&role!=='user'?'emergency':'wall';
+    renderAll();show();
+  }
+  wallTab.onclick=()=>openInbox('wall');
+  emergencyTab.onclick=()=>openInbox('emergency');
 
   const credentials=()=>{
     const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'';
@@ -246,13 +265,13 @@
   function openDetail(item){
     if(!item)return;
     detailOrigin=activeView==='detail'?detailOrigin:activeView;
-    releaseDetail();activeView='detail';detailItem=item;
+    releaseDetail();activeView='detail';detailItem=item;sections.hidden=true;
     const token=detailGeneration;
     detailBack.hidden=false;seeAll.hidden=true;acknowledge.textContent='Cerrar';
     modal.classList.add('ayn-info-detail-mode');
     const urgent=isEmergency(item);
     mask.classList.toggle('ayn-info-emergency',urgent);
-    heading.textContent=urgent?'Detalle de emergencia':'Información completa';
+    heading.textContent=isPrivate(item)?'Reporte de emergencia · detalle':'Muro informativo · detalle';
     symbol.textContent=urgent?'🚨':'ℹ️';
     subtitle.textContent='Revisa la información completa y sus archivos adjuntos.';
     const article=el('article','ayn-info-detail-content'+(urgent?' urgent':''));
@@ -277,7 +296,7 @@
 
   function openSection(item){
     acknowledgeIds([item.id]);hide();
-    const section=item.kind==='report'?'reports':item.kind==='poll'?'polls':item.kind==='notice'||item.kind==='emergency'?'wall':'panic';
+    const section=item.kind==='report'||item.kind==='emergency'?'reports':item.kind==='poll'?'polls':item.kind==='notice'?'wall':'panic';
     if(location.pathname.endsWith('/administracion.html')){location.assign('/#'+(section==='reports'?'reportes':section));return;}
     if(section==='polls'||section==='wall')window.dispatchEvent(new CustomEvent('ayn-community-open',{detail:{view:section}}));
     else window.dispatchEvent(new CustomEvent('ayn:navigate',{detail:{page:'app',view:section}}));
@@ -338,15 +357,18 @@
     }catch{}finally{loading=false;}
   }
   function installHomeButtons(){
+    // Se reutilizan los dos iconos existentes, sin agregar un tercero duplicado.
     document.querySelectorAll('.home-quick-grid').forEach(grid=>{
-      if(grid.querySelector('.ayn-info-quick'))return;
-      const button=el('button','home-quick-card ayn-info-quick');button.type='button';
-      const icon=el('span','home-quick-icon');icon.setAttribute('aria-hidden','true');
-      icon.innerHTML='<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="23"/><path d="M32 28v17M32 19v3"/></svg>';
-      const label=el('span','','Información'),count=el('span','ayn-info-count');count.hidden=true;
-      const emergency=el('span','ayn-info-emergency-label','🚨 Emergencia');emergency.hidden=true;
-      button.append(icon,label,count,emergency);button.onclick=openInbox;
-      grid.append(button);
+      for(const section of ['wall','emergency']){
+        const selector=section==='wall'?'[data-home-view="community-hub"],[data-admin-module="community-hub"]':'[data-home-view="reports"],[data-admin-module="reports"]';
+        const button=grid.querySelector(selector);
+        if(!button||button.dataset.aynInbox)return;
+        button.dataset.aynInbox=section;
+        button.classList.add('ayn-info-quick');
+        const count=el('span','ayn-info-count');count.hidden=true;
+        const emergency=el('span','ayn-info-emergency-label','🚨 Emergencia');emergency.hidden=true;
+        button.append(count,emergency);
+      }
     });
     paint();
   }
@@ -361,7 +383,7 @@
     else acknowledgeIds(items.map(item=>item.id));
     hide();if(fresh().length)maybeDisplay(fresh());
   };
-  seeAll.onclick=()=>{renderAll();};
+  seeAll.onclick=()=>{activeInbox=isPrivate(dialogItem)?'emergency':'wall';renderAll();};
   push.onclick=async()=>{
     const api=window.AynPushNotifications;
     if(!api){subtitle.textContent='Las notificaciones del sistema no están disponibles aquí.';return;}
@@ -390,8 +412,8 @@
   document.addEventListener('ayn-access-restricted',()=>{items=[];paint();hide();});
   document.addEventListener('ayn-menu-view',()=>{installHomeButtons();});
   window.addEventListener('pageshow',()=>refresh());
-  navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='AYN_OPEN_INFORMATION'){refresh();openInbox();}});
+  navigator.serviceWorker?.addEventListener?.('message',event=>{if(event.data?.type==='AYN_OPEN_INFORMATION'){refresh().finally(()=>openInbox(event.data.section==='emergency'?'emergency':'wall'));}});
   window.addEventListener('ayn:information:refresh',()=>refresh());
   window.AynInformation=Object.freeze({refresh,openInbox});
-  installHomeButtons();refresh();if(location.hash==='#information')openInbox();setInterval(refresh,8000);
+  installHomeButtons();refresh();if(location.hash==='#information')openInbox('wall');if(location.hash==='#emergency')refresh().finally(()=>openInbox('emergency'));setInterval(refresh,8000);
 })();

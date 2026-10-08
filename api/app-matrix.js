@@ -19,6 +19,17 @@ async function groupExists(registry,groupId){
   return {owner,published};
 }
 function actorName(auth){return auth.registry.devices[auth.device.id]?.adminName||auth.device.name||'Máster';}
+const ORIGINAL_RESERVATIONS='ayn:matrix:original:reservations';
+async function originalReservations(){
+  const raw=await A.redis('HGETALL',ORIGINAL_RESERVATIONS);
+  const reserved={};
+  for(let i=0;i<(raw||[]).length;i+=2)if([1,2,3].includes(Number(raw[i])))reserved[Number(raw[i])]=String(raw[i+1]||'');
+  return reserved;
+}
+function originalOwner(registry,relay){
+  return Object.entries(registry.devices).find(([,d])=>d.role==='admin'&&d.status!=='deleted'&&(d.relays||[]).map(Number).includes(relay));
+}
+function originalAvailable(relay){return [1,2,3].includes(relay)&&Boolean(String(process.env['TUYA_DEVICE_'+relay]||'').trim());}
 
 module.exports=async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
@@ -73,8 +84,14 @@ module.exports=async(req,res)=>{
         ...safeActuator(item),
         groupName:groupNames.get(item.groupId)||'Sin administración'
       }));
-
-      return res.json({role:auth.role,catalog:M.CATALOG,groups,actuatorPool});
+      const reservations=await originalReservations();
+      const originalPool=[1,2,3].filter(originalAvailable).map(relay=>{
+        const owner=originalOwner(auth.registry,relay);
+        const groupId=owner?.[1]?.groupId||reservations[relay]||'master';
+        return {id:'original:'+relay,relay,name:'Relé Máster '+relay,kind:'original',groupId,
+          groupName:groupNames.get(groupId)||'Máster',reserved:!owner&&Boolean(reservations[relay])};
+      });
+      return res.json({role:auth.role,catalog:M.CATALOG,groups,actuatorPool,originalPool});
     }
 
     if(auth.role!=='super_master')throw A.error('Solo el Máster general puede construir y publicar aplicaciones.',403);
@@ -82,6 +99,52 @@ module.exports=async(req,res)=>{
     const {owner,published:existing}=await groupExists(auth.registry,groupId);
     const actor=actorName(auth);
     const status=owner?.[1]?.status||existing?.status||'pending';
+
+    if(b.action==='assignOriginal'){
+      const relay=Number(b.relay);
+      if(!originalAvailable(relay))throw A.error('Relé original no configurado o no disponible.',400);
+      if(status==='deleted')throw A.error('Esta administración está eliminada.',409);
+      const reservations=await originalReservations();
+      const existing=originalOwner(auth.registry,relay);
+      const destination=String(b.destination||'admin');
+      if(!['admin','master'].includes(destination))throw A.error('Destino de relé inválido.');
+      if(destination==='master'){
+        if(existing&&existing[1].groupId!==groupId||reservations[relay]&&reservations[relay]!==groupId)
+          throw A.error('Este relé pertenece a otra administración.',409);
+        if(existing){
+          await A.updateRegistry(registry=>{
+            const matching=originalOwner(registry,relay);
+            if(matching&&matching[1].groupId!==groupId)throw A.error('El relé cambió de administrador.',409);
+            for(const d of Object.values(registry.devices))if(d.role==='admin'&&d.groupId===groupId)
+              d.relays=(d.relays||[]).filter(n=>Number(n)!==relay);
+          });
+        }
+        if(reservations[relay]===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
+        await addHistory({kind:'permissions',groupId,userName:'Relé Máster '+relay,actor,action:'Relé original liberado desde Constructor de App'}).catch(()=>{});
+        return res.json({ok:true,relay,groupId:'master'});
+      }
+      if(existing&&existing[1].groupId!==groupId||reservations[relay]&&reservations[relay]!==groupId)
+        throw A.error('Este relé ya está asignado a otro administrador. Debes liberarlo primero.',409);
+      const active=Object.entries(auth.registry.devices).some(([,d])=>d.role==='admin'&&d.groupId===groupId&&d.status==='active');
+      if(active){
+        await A.updateRegistry(registry=>{
+          const ownerNow=originalOwner(registry,relay);
+          if(ownerNow&&ownerNow[1].groupId!==groupId)throw A.error('Este relé ya fue asignado.',409);
+          const target=Object.values(registry.devices).find(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active');
+          if(!target)throw A.error('El administrador todavía no está activo.',409);
+          target.relays=[...new Set([...(target.relays||[]).map(Number),relay])].sort((a,b)=>a-b);
+        });
+        if(reservations[relay]===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
+      }else{
+        if(owner)throw A.error('El relé original ya está designado a un administrador.',409);
+        const ok=await A.redis('HSETNX',ORIGINAL_RESERVATIONS,String(relay),groupId);
+        if(!ok&&(await A.redis('HGET',ORIGINAL_RESERVATIONS,String(relay)))!==groupId)
+          throw A.error('Otro administrador reservó este relé.',409);
+      }
+      await addHistory({kind:'permissions',groupId,userName:'Relé Máster '+relay,actor,
+        action:active?'Relé original asignado desde Constructor de App':'Relé original reservado hasta aceptar invitación'}).catch(()=>{});
+      return res.json({ok:true,relay,groupId,pending:!active});
+    }
 
     if(b.action==='assignActuator'){
       const id=String(b.actuatorId||'').trim();

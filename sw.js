@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v135-user-app-redirect";
+const CACHE = "reles-ayn-v136-admin-builder";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -9,8 +9,8 @@ const ASSETS = [
   "/administracion.webmanifest",
   "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
-  "/matrix.css?v=20261007-matrix1",
-  "/matrix.js?v=20261007-matrix2",
+  "/matrix.css?v=20261007-matrix2",
+  "/matrix.js?v=20261007-matrix3",
   "/ain-audio-worklet.js?v=20261004-release111",
   "/app-icon-192.png",
   "/app-icon-512.png",
@@ -28,7 +28,7 @@ const ASSETS = [
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261007-directory131",
-  "/administracion.js?v=20261007-userredirect135",
+  "/administracion.js?v=20261007-builder136",
   "/administracion-voice.js?v=20261006-voice118"
 ];
 self.addEventListener("install", (e) =>

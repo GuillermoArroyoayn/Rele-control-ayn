@@ -23,6 +23,11 @@ module.exports=async(req,res)=>{
         if(creator.role==='admin'&&creator.groupId!==invitation.groupId)throw A.error('Invitación inválida.',403);
         if(registry.revoked?.[id]||id===registry.masterId)throw A.error('Este equipo no puede aceptar la invitación.',403);
         const old=registry.devices[id];
+        const replacedAdmin=invitation.replaceAdminId?registry.devices[invitation.replaceAdminId]:null;
+        if(invitation.replaceAdminId){
+          if(!replacedAdmin||replacedAdmin.role!=='admin'||replacedAdmin.groupId!==invitation.groupId||replacedAdmin.status==='deleted')throw A.error('El administrador original ya no está disponible.',409);
+          if(id===invitation.replaceAdminId||old?.groupId&&old.groupId!==invitation.groupId||old&&old.role!=='user'&&old.status!=='pending')throw A.error('El equipo reemplazante debe ser nuevo o un usuario de la misma comunidad.',403);
+        }
         if(old?.inviteHash===A.hash(b.token))return;
         const masterAdminUpgrade=Boolean(old&&old.role==='user'&&invitation.role==='admin'&&creator.role==='super_master');
         const alreadySameAdmin=Boolean(old&&old.role==='admin'&&invitation.role==='admin'&&creator.role==='super_master'&&old.groupId===invitation.groupId);
@@ -30,11 +35,15 @@ module.exports=async(req,res)=>{
         if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
         upgradedExistingUser=masterAdminUpgrade||alreadySameAdmin;
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:replacedAdmin?[...(replacedAdmin.relays||[])]:[],actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
+        if(replacedAdmin){
+          replacedAdmin.status='deleted';replacedAdmin.replacedBy=id;
+          replacedAdmin.statusChangedAt=new Date().toISOString();replacedAdmin.statusChangedBy=invitation.creator;
+        }
         if(invitation.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
       });
       if(invitation.role==='admin')await Matrix.markStatus(invitation.groupId,'active',invitation.name);
-      if(upgradedExistingUser)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
+      if(upgradedExistingUser||invitation.replaceAdminId)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:invitation.replaceAdminId?'Reemplazo de administrador confirmado; acceso anterior eliminado':'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
       await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
     const auth=await A.access(req);

@@ -7,17 +7,24 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#06172f" />
-    <meta name="ayn-build" content="142"><title>Sistema de Control AYN</title>
+    <meta name="ayn-build" content="143"><title>Sistema de Control AYN</title>
     <script>
       try {
         const savedPin = localStorage.getItem("relayPin");
         const savedRole = localStorage.getItem("aynLastRole");
-        if(savedPin && savedRole === "super_master" && !location.hash) location.replace("/administracion.html");
-        if (savedPin && (!savedRole || savedRole === "user")) document.documentElement.dataset.bootLayout = "user";
+        if (savedPin) {
+          document.documentElement.dataset.bootLayout = savedRole === "user" ? "user" : "validating";
+          if (savedRole === "super_master" && !location.hash) location.replace("/administracion.html");
+        }
       } catch {}
     </script>
     <style>
-      #bootHeader{display:none}
+      #bootHeader,#bootScreen{display:none}
+      html[data-boot-layout="validating"] body>*{visibility:hidden!important}
+      html[data-boot-layout="validating"] #bootScreen{display:flex!important;visibility:visible!important;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#06172f;color:#eef9ff;font-family:system-ui,sans-serif}
+      html[data-boot-layout="validating"] #bootScreen img{width:92px;height:92px;border-radius:22px}
+      html[data-boot-layout="validating"] #bootScreen strong{font-size:20px}
+      html[data-boot-layout="validating"] #bootScreen span{color:#b9d9ee}
       html[data-boot-layout="user"] #bootHeader{display:flex;position:fixed;inset:0 0 auto;z-index:960;min-height:64px;padding:10px 14px;background:var(--theme-panel-strong,#051c3f);align-items:center}
       #bootHeader button{padding:10px 12px;border-radius:12px;min-height:44px;background:var(--theme-accent,#5ee7ff);color:#052538;font-weight:800}
       html[data-boot-layout="user"] :is(.brand,.appearance,.accessibility,.security,#message,#refresh,.share-section,footer,.panic-panel){display:none!important}
@@ -27,7 +34,7 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/app-icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/app-icon-192.png" />
-    <link rel="stylesheet" href="/styles.css?v=20261007-layout142" />
+    <link rel="stylesheet" href="/styles.css?v=20261008-boot143" />
     <link rel="stylesheet" href="/share.css?v=20261006-orbit123" />
     <link rel="stylesheet" href="/booking.css?v=20261006-orbit123" />
     <style>
@@ -91,6 +98,7 @@
     </style>
   <link rel="stylesheet" href="/panic.css?v=20261006-orbit123"><link rel="stylesheet" href="/reports.css?v=20261006-orbit123"><link rel="stylesheet" href="/ui-feedback.css?v=20261006-orbit123"><link rel="stylesheet" href="/community.css?v=20261006-orbit123"></head>
   <body>
+    <div id="bootScreen" aria-live="polite" aria-busy="true"><img src="/app-icon-192.png" alt=""><strong>AYN Control</strong><span>Verificando acceso…</span></div>
     <header id="bootHeader" aria-busy="true"><button type="button" disabled>⋮</button></header>
     <main class="app">
       <header class="brand">
@@ -345,6 +353,6 @@
     <script src="/ain-streaming-provider.js?v=20261004-release111" defer></script>
     <script src="/ain-local-voice.js?v=20261004-release111" defer></script>
     <script src="/ain-voice-phrases.js?v=20261004-release111" defer></script>
-    <script src="/app.js?v=20261007-layout142" defer></script>
+    <script src="/app.js?v=20261008-boot143" defer></script>
   <script src="/panic.js?v=20261007-settings137" defer></script><script src="/reports.js?v=20261004-release111" defer></script><script src="/ui-feedback.js?v=20261004-release111" defer></script><script src="/community.js?v=20261004-release111" defer></script></body>
 </html>

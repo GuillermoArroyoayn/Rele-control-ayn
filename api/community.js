@@ -18,7 +18,9 @@ module.exports = async (req, res) => {
       return record;
     }
     if (req.method==='GET' && req.query?.photo) {
-      const x=await item(req.query.photo), photo=await A.redis('GET',P+'photo:'+x.id);
+      const x=await item(req.query.photo);
+      if(x.type==='emergency'&&auth.role==='user')throw A.error('Esta emergencia es privada de la administración.',403);
+      const photo=await A.redis('GET',P+'photo:'+x.id);
       if(!photo)throw A.error('Foto no disponible.',404);
       res.setHeader('Content-Type','image/jpeg');res.setHeader('X-Content-Type-Options','nosniff');
       return res.send(Buffer.from(photo,'base64'));
@@ -26,7 +28,7 @@ module.exports = async (req, res) => {
     if (req.method==='GET') {
       const ids=await A.redis('LRANGE',key,0,99) || [];
       const raw=ids.length?await A.redis('MGET',...ids.map(id=>P+'item:'+id)):[];
-      const items=await Promise.all((raw||[]).map(parse).filter(x=>x&&x.groupId===groupId).map(async x=>{
+      const items=await Promise.all((raw||[]).map(parse).filter(x=>x&&x.groupId===groupId&&(x.type!=='emergency'||auth.role!=='user')).map(async x=>{
         if(x.type!=='poll')return x;
         const votes=await A.redis('HGETALL',P+'votes:'+x.id)||[];
         const counts=x.options.map(()=>0);let myVote=null;

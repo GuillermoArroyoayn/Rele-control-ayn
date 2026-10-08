@@ -212,20 +212,38 @@ module.exports=async(req,res)=>{
       return res.json({ok:true,config});
     }
 
-    if(b.action==='deleteAndClearAdministrator'){
-      // El Máster puede liberar la carpeta solo si ya no depende de ella
-      // ningún residente. Los historiales y equipos archivados se conservan.
+    if(b.action==='previewDeleteCommunity'||b.action==='deleteAndClearAdministrator'||b.action==='deleteCommunityCompletely'){
+      const cascade=b.action==='deleteCommunityCompletely';
+      const preview=b.action==='previewDeleteCommunity';
+      // La eliminación completa es intencional y distinta de la baja de administrador.
+      // Se listan los residentes afectados ANTES de permitir una eliminación en cascada.
       if(!groupId||groupId==='master'||groupId==='unassigned')
         throw A.error('Esta carpeta no se puede eliminar.',403);
       const allAccounts=Object.entries(auth.registry.devices).filter(([,d])=>d.groupId===groupId);
       const people=allAccounts.filter(([,d])=>d.role==='user'&&d.status!=='deleted');
-      if(people.length)
-        throw A.error('La carpeta tiene residentes. Reemplaza primero al administrador o traslada los usuarios para conservar sus accesos.',409);
       const administrators=allAccounts.filter(([,d])=>d.role==='admin'&&d.status!=='deleted');
-      if(administrators.length>1)
-        throw A.error('Esta carpeta tiene más de un administrador. Gestiona primero los administradores adicionales.',409);
       const relays=await A.records();
       const assigned=relays.filter(item=>item.groupId===groupId);
+      const reservationsBefore=await originalReservations();
+      const originalRelays=new Set([
+        ...allAccounts.filter(([,d])=>d.role==='admin').flatMap(([,d])=>(d.relays||[]).map(Number)),
+        ...Object.entries(reservationsBefore).filter(([,g])=>g===groupId).map(([relay])=>Number(relay))
+      ].filter(n=>[1,2,3].includes(n)));
+      const impact={administrators:administrators.length,residents:people.length,actuators:assigned.length,originalRelays:originalRelays.size};
+      const communityName=existing?.branding?.communityName||owner?.[1]?.adminName||owner?.[1]?.name||groupId;
+      if(preview)return res.json({ok:true,groupId,communityName,impact,
+        description:'Esta eliminación desactiva a todos los administradores y residentes de la comunidad y libera sus relés. No elimina los historiales de seguridad.'});
+      if(!cascade&&people.length)
+        throw A.error('La carpeta tiene residentes. Reemplaza primero al administrador o usa “Eliminar comunidad completa” con confirmación especial.',409);
+      if(!cascade&&administrators.length>1)
+        throw A.error('Esta carpeta tiene más de un administrador. Gestiona primero los administradores adicionales.',409);
+      if(cascade){
+        if(b.confirmation!=='ELIMINAR '+groupId)
+          throw A.error('Confirma la eliminación completa escribiendo la frase solicitada.',400);
+        const expectation=b.expectedImpact||{};
+        if(Object.keys(impact).some(k=>Number(expectation[k])!==impact[k]))
+          throw A.error('Cambió la cantidad de usuarios o relés. Revisa nuevamente el resumen de eliminación.',409);
+      }
       const preparedKey='ayn:matrix:prepared-admins';
       const preparedRaw=await A.redis('HGET',preparedKey,groupId);
       let prepared=null;
@@ -244,15 +262,21 @@ module.exports=async(req,res)=>{
       // identidades de equipos: los antiguos permisos no vuelven a activarse.
       await A.updateRegistry(registry=>{
         const accounts=Object.values(registry.devices).filter(d=>d.groupId===groupId);
-        if(accounts.some(d=>d.role==='user'&&d.status!=='deleted'))
+        const currentResidents=accounts.filter(d=>d.role==='user'&&d.status!=='deleted');
+        const currentAdmins=accounts.filter(d=>d.role==='admin'&&d.status!=='deleted');
+        if(!cascade&&currentResidents.length)
           throw A.error('Esta comunidad ya tiene residentes. No es seguro vaciarla.',409);
-        if(accounts.filter(d=>d.role==='admin'&&d.status!=='deleted').length>1)
+        if(!cascade&&currentAdmins.length>1)
           throw A.error('Otra cuenta de administrador se incorporó. Actualiza la pantalla.',409);
-        for(const admin of accounts.filter(d=>d.role==='admin')){
-          admin.relays=[];
-          admin.status='deleted';
-          admin.statusChangedBy=auth.device.id;
-          admin.statusChangedAt=new Date().toISOString();
+        if(cascade&&(currentResidents.length!==impact.residents||currentAdmins.length!==impact.administrators))
+          throw A.error('Cambió la comunidad. Vuelve a revisar el resumen de eliminación.',409);
+        for(const item of accounts.filter(d=>d.role==='admin'||cascade&&d.role==='user')){
+          item.relays=[];
+          item.actuatorIds=[];
+          item.status='deleted';
+          item.statusChangedBy=auth.device.id;
+          item.statusChangedAt=new Date().toISOString();
+          if(cascade)item.communityDeletedAt=item.statusChangedAt;
         }
       });
       // Los relés físicos no se accionan: solo se liberan los permisos.
@@ -260,16 +284,18 @@ module.exports=async(req,res)=>{
         item.groupId='unassigned';
         await A.redis('HSET','ayn:managed:actuators',item.id,JSON.stringify(item));
       }
-      const reservations=await originalReservations();
-      for(const [relay,reservedGroup] of Object.entries(reservations))
+      for(const [relay,reservedGroup] of Object.entries(reservationsBefore))
         if(reservedGroup===groupId)await A.redis('HDEL',ORIGINAL_RESERVATIONS,String(relay));
       await M.clearFolder(groupId);
       if(preparedRaw)await A.redis('HDEL',preparedKey,groupId);
       await addHistory({kind:'permissions',groupId,
         userName:prepared?.name||owner?.[1]?.adminName||existing?.branding?.communityName||'Administrador',
-        actor,action:'Administrador eliminado y carpeta vaciada; relés liberados para nueva asignación'}).catch(()=>{});
-      return res.json({ok:true,cleared:true,groupId,releasedActuators:assigned.length,
-        releasedOriginalRelays:Object.entries(reservations).filter(([,id])=>id===groupId).length});
+        actor,action:cascade?
+          'Comunidad completa eliminada junto con administradores y residentes; relés liberados':
+          'Administrador eliminado y carpeta vaciada; relés liberados para nueva asignación'}).catch(()=>{});
+      return res.json({ok:true,cleared:true,communityDeleted:cascade,groupId,
+        removedAdministrators:impact.administrators,removedResidents:cascade?impact.residents:0,
+        releasedActuators:assigned.length,releasedOriginalRelays:originalRelays.size});
     }
 
     if(b.action==='deleteAdministration'){

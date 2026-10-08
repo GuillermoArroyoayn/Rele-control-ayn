@@ -174,7 +174,10 @@ const homeVoiceText = homeDashboard.querySelector(".home-voice-text");
 for (const button of homeDashboard.querySelectorAll("[data-home-view]")) {
   button.addEventListener("click", () => showView(button.dataset.homeView));
 }
-homeOverflowButton.addEventListener("click", () => showView("menu"));
+homeOverflowButton.addEventListener("click", () => {
+  if(["super_master","admin"].includes(currentRole))openAdministrationMenu();
+  else showView("menu");
+});
 homeVoiceButton.addEventListener("click", () => {
   if (!voiceCommand.disabled) voiceCommand.click();
 });
@@ -347,7 +350,8 @@ function buildMenu() {
 const masterConfigLink=document.createElement('a');masterConfigLink.className='refresh section-config-bottom';masterConfigLink.textContent='Configuración de esta sección';masterConfigLink.hidden=true;refresh.after(masterConfigLink);
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
-functionBack.onclick=()=>showView("menu");
+function openAdministrationMenu(){sessionStorage.setItem("aynAdminView","menu");location.assign("/administracion.html#menu");}
+functionBack.onclick=openAdministrationMenu;
 const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{sessionStorage.setItem("aynAdminView","home");location.assign("/administracion.html#home");};
 const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>showView("settings");
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
@@ -375,7 +379,9 @@ function prepareFunctionScreen(view) {
   }
 }
 function showView(view) {
+  if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   if(statusReady&&currentRole!=="super_master"&&matrixViewId(view,currentRole)&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
+  if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   currentView = view;
   prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));

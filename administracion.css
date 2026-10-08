@@ -770,3 +770,36 @@ body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar .ayn-nav-butto
 #enrolledRelaySelect{width:100%;min-height:48px;font-size:16px}
 #enrolledRelayStatus{margin:8px 0 10px;font-size:14px;line-height:1.4}
 #relayAddSubmit:disabled{opacity:.55;cursor:not-allowed}
+
+/* v182 · Portada Máster/administrador: micrófono centrado, sin sobreposición ni leyenda visible. */
+body[data-admin-view="home"] .home-dashboard > .home-voice-text{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;
+  border:0!important;white-space:nowrap!important;
+}
+body[data-admin-view="home"] .home-dashboard > .home-voice-button{
+  display:flex!important;position:relative!important;inset:auto!important;
+  align-self:center!important;align-items:center!important;justify-content:center!important;
+  width:min(100%,360px)!important;max-width:100%;
+  height:clamp(90px,11dvh,122px)!important;min-height:0!important;
+  flex:0 0 auto!important;box-sizing:border-box!important;
+  margin:clamp(20px,2.8dvh,32px) auto 18px!important;padding:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  transform:none!important;touch-action:manipulation;
+}
+body[data-admin-view="home"] .home-dashboard > .home-voice-button:focus:not(:focus-visible){
+  outline:none!important;
+}
+body[data-admin-view="home"] .home-dashboard > .home-voice-button:focus-visible{
+  outline:2px solid var(--theme-accent,#67dcff);outline-offset:3px;
+  border-radius:80px;
+}
+@media(max-width:719px){
+  body[data-admin-view="home"] .home-dashboard:not([hidden]){
+    justify-content:flex-start;
+  }
+  body[data-admin-view="home"] main{
+    padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+  }
+}

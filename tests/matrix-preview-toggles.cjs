@@ -60,5 +60,5 @@ const html=fs.readFileSync('matrix.html','utf8'),css=fs.readFileSync('matrix.css
 for(const fragment of ['id="previewCount"','id="previewHelp"','Vista previa y designación'])assert(html.includes(fragment),fragment);
 for(const fragment of ['card.type=\'button\'','aria-pressed','card.addEventListener(\'click\'','✓ Seleccionado','○ No seleccionado'])assert(source.includes(fragment),fragment);
 assert(css.includes('user-select:none')&&css.includes('.preview-item[aria-pressed="true"]'));
-assert(sw.includes('reles-ayn-v181-voice-call-feedback'));
+assert(sw.includes('reles-ayn-v182-home-mic-layout'));
 console.log('Vista previa v179: tocar designa funciones admin/usuario, confirma selección, permite configurar altas de usuarios sin elevar permisos de residentes y respeta invitaciones pendientes OK.');

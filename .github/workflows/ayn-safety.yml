@@ -35,6 +35,9 @@ jobs:
       - name: Verificar contratos críticos AYN
         run: node scripts/safety-check.cjs
 
+      - name: Verificar guardado permanente y botones de acceso
+        run: node tests/access-persistent-visible.cjs
+
       - name: Verificar compatibilidad voz con audio Bluetooth
         run: node tests/bluetooth-audio.cjs
 

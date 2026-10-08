@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8'),lib=fs.readFileSync('lib/actuator-profiles.js','utf8'),sw=fs.readFileSync('sw.js','utf8');
+assert(lib.includes('configured:Object.prototype.hasOwnProperty.call(custom,id)'));
+assert(app.includes('if(profile.configured)accessProfilesJustSaved.add(profile.id)'));
+assert(app.includes('if(savedAccessGroupId!==currentGroupId){accessProfilesJustSaved.clear()'));
+assert(app.includes('const eagerProfiles=await api("/api/actuator-profiles")'));
+assert(app.includes('if(authorized.length){'));
+assert(app.includes('managedAccessGrid.append(built.card);'));
+assert(app.includes('read().then(built.paintState).catch(()=>{});'));
+assert(sw.includes('reles-ayn-v172-profile-first'));
+console.log('AYN v172: estado guardado permanente y botones de acceso visibles OK.');

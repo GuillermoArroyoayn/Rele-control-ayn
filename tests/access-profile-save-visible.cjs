@@ -15,6 +15,6 @@ assert(app.includes("const itemsById=new Map("),'Evitar duplicados de gestionado
 assert(app.includes("profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)"),'No mostrar originales no verificados');
 assert(app.includes("itemsById.has(id)"),'No repetir actuadores en pantalla');
 assert(css.includes('.access-settings-feedback:not([hidden])'));
-assert(sw.includes('reles-ayn-v171-single-access-shell'));
-assert(sw.includes('/app.js?v=20261008-access171'));
+assert(sw.includes('reles-ayn-v172-profile-first'));
+assert(sw.includes('/app.js?v=20261008-access172'));
 console.log('V169: guardado con confirmación persistente y catálogo autorizado de actuadores como alternativa segura.');

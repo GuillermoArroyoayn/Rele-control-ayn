@@ -100,6 +100,7 @@ managedAccessPanel.querySelector("#accessSettingsOpen").onclick=()=>{
 };
 
 const accessProfilesJustSaved=new Set();
+let savedAccessGroupId=null;
 function profileEditor(card,profile){
   if(currentRole!=='admin')return;
   const details=document.createElement('details');details.className='actuator-settings';details.open=true;
@@ -141,6 +142,8 @@ function profileEditor(card,profile){
   };
   form.addEventListener('input',markModified);
   form.addEventListener('change',markModified);
+  // El servidor confirma el perfil incluso tras cerrar la aplicación.
+  if(profile.configured)accessProfilesJustSaved.add(profile.id);
   if(accessProfilesJustSaved.has(profile.id))displaySaved();
   form.onsubmit=async event=>{
     event.preventDefault();
@@ -158,7 +161,7 @@ function profileEditor(card,profile){
         saved.mode!==payload.mode||Number(saved.seconds)!==payload.seconds)
         throw new Error('No se pudo confirmar que los cambios quedaron guardados. Reintenta sin cambiar el relé.');
       profile.name=saved.name;profile.voiceName=saved.voiceName;
-      profile.mode=saved.mode;profile.seconds=saved.seconds;
+      profile.mode=saved.mode;profile.seconds=saved.seconds;profile.configured=Boolean(saved.configured);
       summary.textContent='⚙ '+saved.name;
       accessProfilesJustSaved.add(profile.id);
       displaySaved();
@@ -230,6 +233,55 @@ async function loadManagedAccess(){
   accessSettingsGrid.replaceChildren();
   const loading=document.createElement('p');loading.textContent='Cargando accesos…';managedAccessGrid.append(loading);
   try{
+
+    // El catálogo del servidor contiene solo actuadores autorizados; se dibuja
+    // antes de consultar sus estados físicos para que la portada no quede vacía.
+    const eagerProfiles=await api("/api/actuator-profiles").catch(()=>null);
+    if(Array.isArray(eagerProfiles?.profiles)&&eagerProfiles.profiles.length){
+      const authorized=eagerProfiles.profiles.filter(profile=>
+        (profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)&&
+          Number(profile.relay)===Number(profile.id.slice(9)))||
+        (profile.kind==='managed'&&/^managed-[a-f0-9-]{36}$/i.test(profile.id))
+      );
+      if(authorized.length){
+        managedAccessGrid.replaceChildren();
+        accessSettingsGrid.replaceChildren();
+        window.AynActuatorVoice?.setProfiles(authorized);
+        for(const profile of authorized){
+          let read,command,initialState=null;
+          if(profile.kind==='original'){
+            const relay=Number(profile.relay);
+            const previous=(lastKnownAccessStatus?.relays||[]).find(item=>item.relay===relay);
+            if(typeof previous?.state==='boolean')initialState=previous.state;
+            read=async()=>{
+              const status=await api("/api/status");
+              return (status.relays||[]).find(item=>item.relay===relay)?.state;
+            };
+            command=state=>api("/api/control",{
+              method:"POST",headers:{"content-type":"application/json"},
+              body:JSON.stringify({relay,state})
+            });
+          }else{
+            const id=profile.id.slice(8);
+            read=async()=>{
+              const status=await managedAccessApi({action:'status',id});
+              return status.state;
+            };
+            command=state=>managedAccessApi({action:'control',id,state});
+          }
+          const built=accessButton(profile,profile.name,initialState,command,read);
+          managedAccessGrid.append(built.card);
+          read().then(built.paintState).catch(()=>{});
+          if(currentRole==='admin'){
+            const card=document.createElement('article');
+            card.className='access-settings-card';
+            profileEditor(card,profile);
+            accessSettingsGrid.append(card);
+          }
+        }
+        return;
+      }
+    }
     // Las tres fuentes son independientes: un error del catálogo no debe ocultar
     // los relés originales que el servicio de autorización ya confirmó.
     const [managedResponse,originalResponse,profilesResponse]=await Promise.allSettled([
@@ -898,6 +950,7 @@ async function loadStatus() {
     currentRole = data.role || "user";
     localStorage.setItem("aynLastRole",currentRole);
     currentGroupId = data.groupId || "";
+    if(savedAccessGroupId!==currentGroupId){accessProfilesJustSaved.clear();savedAccessGroupId=currentGroupId;}
     currentMatrix = data.appMatrix || null;
     statusReady = true;
     applyMatrixPresentation();

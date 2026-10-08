@@ -1567,3 +1567,17 @@ html body.app-screen-mode[data-user-view="access"] .access-settings-panel .acces
 html body.app-screen-mode[data-user-view="access"] .access-settings-panel .access-button-card{
   min-height:135px!important;display:flex!important;
 }
+
+/* v172: visibilidad de botones dentro de la misma ventana que la configuración. */
+html body.app-screen-mode[data-user-view="access"] section.access-settings-panel.function-screen:not([hidden]),
+html body.user-layout[data-user-view="access"] section.access-settings-panel.function-screen:not([hidden]){
+  display:block!important;visibility:visible!important;
+}
+html body.app-screen-mode[data-user-view="access"] section.access-settings-panel.function-screen > section.access-controls-page:not([hidden]),
+html body.user-layout[data-user-view="access"] section.access-settings-panel.function-screen > section.access-controls-page:not([hidden]){
+  position:relative!important;inset:auto!important;display:block!important;visibility:visible!important;
+  opacity:1!important;overflow:visible!important;min-height:200px!important;
+}
+html body[data-user-view="access"] section.access-settings-panel .access-activation-grid:not([hidden]){
+  display:grid!important;visibility:visible!important;opacity:1!important;
+}

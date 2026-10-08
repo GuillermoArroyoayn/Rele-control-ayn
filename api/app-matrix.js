@@ -273,19 +273,9 @@ module.exports=async(req,res)=>{
     }
 
     if(b.action==='deleteAdministration'){
-      await A.updateRegistry(registry=>{
-        for(const item of Object.values(registry.devices)){
-          if(item.groupId!==groupId)continue;
-          if(item.role==='admin'||item.role==='user'){
-            item.status='deleted';
-            item.statusChangedAt=new Date().toISOString();
-            item.statusChangedBy=auth.device.id;
-          }
-        }
-      });
-      await M.markStatus(groupId,'deleted',actor);
-      await addHistory({kind:'matrix',groupId,userName:owner?.[1]?.adminName||existing?.branding?.communityName||groupId,actor,action:'Administración eliminada (datos conservados)'}).catch(()=>{});
-      return res.json({ok:true,status:'deleted'});
+      // No permitir que una versión antigua de la interfaz elimine a todos
+      // los residentes de la comunidad sin verificar su continuidad.
+      throw A.error('Actualiza el Constructor de App y usa “Eliminar administrador y vaciar carpeta”. Los residentes no pueden eliminarse por accidente.',409);
     }
 
     if(b.action==='restoreAdministration'){

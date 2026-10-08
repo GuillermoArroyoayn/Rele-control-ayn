@@ -564,3 +564,42 @@ body[data-admin-view="equipment"] #groupLabel{display:none!important}
 .audit-type-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 14px}
 .audit-type-tabs button{margin:0;min-height:46px;background:var(--theme-panel,#083b78);border-color:var(--theme-border,#5ee7ff99)}
 .audit-type-tabs button.active{background:var(--theme-accent,#5ee7ff);color:#052538;font-weight:900}
+
+/* v155 · Portada móvil: dos columnas de tarjetas cuadradas en todos los roles. */
+@media (max-width:719px){
+  .home-dashboard .home-quick-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-flow:row;
+    gap:clamp(8px,2.6vw,14px);
+    width:100%;
+    max-width:100%;
+    align-items:start;
+  }
+  .home-dashboard .home-quick-grid > .home-quick-card{
+    width:100%;
+    min-width:0;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:1 / 1;
+    box-sizing:border-box;
+    align-self:start;
+    justify-self:stretch;
+    gap:clamp(4px,1.6vw,10px)!important;
+    padding:clamp(6px,2.2vw,14px)!important;
+  }
+  .home-dashboard .home-quick-card > span:last-child{
+    max-width:100%;
+    overflow-wrap:break-word;
+    text-wrap:balance;
+  }
+}
+@media (max-width:359px){
+  .home-dashboard .home-quick-card:not(.home-quick-sos) .home-quick-icon{
+    width:44px;
+    height:44px;
+    flex-shrink:0;
+  }
+  .home-dashboard .home-quick-card .home-quick-icon svg{width:90%;height:90%}
+  .home-dashboard .home-quick-sos .home-quick-icon{width:60px!important;height:60px!important;flex-shrink:0}
+}

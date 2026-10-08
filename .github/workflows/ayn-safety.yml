@@ -37,3 +37,6 @@ jobs:
 
       - name: Verificar compatibilidad voz con audio Bluetooth
         run: node tests/bluetooth-audio.cjs
+
+      - name: Verificar portada cuadrada en todos los roles
+        run: node tests/home-square-grid.cjs

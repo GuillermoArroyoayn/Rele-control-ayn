@@ -1214,3 +1214,42 @@ body[data-user-view="settings"] #refresh{display:none!important}
 /* Micrófono activo, reproducción Bluetooth sin interrupciones. */
 .accessibility .bluetooth-quiet-setting{grid-column:1/-1;display:flex;align-items:center;gap:10px;line-height:1.35;cursor:pointer}
 .bluetooth-quiet-setting input{width:20px;height:20px;flex:0 0 20px;accent-color:var(--theme-accent,#22d3ee)}
+
+/* v155 · Portada móvil: dos columnas de tarjetas cuadradas en todos los roles. */
+@media (max-width:719px){
+  .home-dashboard .home-quick-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-flow:row;
+    gap:clamp(8px,2.6vw,14px);
+    width:100%;
+    max-width:100%;
+    align-items:start;
+  }
+  .home-dashboard .home-quick-grid > .home-quick-card{
+    width:100%;
+    min-width:0;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:1 / 1;
+    box-sizing:border-box;
+    align-self:start;
+    justify-self:stretch;
+    gap:clamp(4px,1.6vw,10px)!important;
+    padding:clamp(6px,2.2vw,14px)!important;
+  }
+  .home-dashboard .home-quick-card > span:last-child{
+    max-width:100%;
+    overflow-wrap:break-word;
+    text-wrap:balance;
+  }
+}
+@media (max-width:359px){
+  .home-dashboard .home-quick-card:not(.home-quick-sos) .home-quick-icon{
+    width:44px;
+    height:44px;
+    flex-shrink:0;
+  }
+  .home-dashboard .home-quick-card .home-quick-icon svg{width:90%;height:90%}
+  .home-dashboard .home-quick-sos .home-quick-icon{width:60px!important;height:60px!important;flex-shrink:0}
+}

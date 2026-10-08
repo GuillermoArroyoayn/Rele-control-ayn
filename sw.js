@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v154-bluetooth-quiet";
+const CACHE = "reles-ayn-v155-home-square";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -15,7 +15,7 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-btaudio154",
+  "/styles.css?v=20261008-square155",
   "/share.css?v=20261006-orbit123",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
@@ -27,7 +27,7 @@ const ASSETS = [
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-menu153",
+  "/administracion.css?v=20261008-square155",
   "/administracion.js?v=20261008-menu153",
   "/administracion-voice.js?v=20261008-btaudio154"
 ];

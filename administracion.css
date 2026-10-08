@@ -696,3 +696,24 @@ body[data-admin-view="equipment"] #groupLabel{display:none!important}
   .home-dashboard > .home-voice-button,
   .home-dashboard > .home-voice-text{flex-shrink:0}
 }
+/* v158 · Preparación de relés, visible solo en Herramientas del Máster. */
+.relay-installer[hidden],.relay-installer [hidden]{display:none!important}
+.relay-installer{width:min(680px,100%);margin:20px auto!important;padding:14px;border:1px solid var(--theme-border,#5ee7ff99);border-radius:18px;background:var(--theme-panel-strong,#051c3f)}
+.relay-installer-toggle{width:100%;margin:0!important;min-height:52px;padding:12px 16px;text-align:center;background:var(--theme-soft,#0057b8);color:#fff;border:1px solid var(--theme-border,#5ee7ff99)}
+#relayInstallerBody{padding:12px 0 0}
+#relayInstallerBody>p{font-size:14px;line-height:1.45;color:#d7eaf8}
+#relayInstallerForm{margin:12px 0 16px!important;display:grid;gap:10px}
+#relayInstallerForm label{margin:0;font-weight:600}
+#relayInstallerForm label input,#relayInstallerForm label select{display:block;margin-top:5px}
+#relayInstallerSearch{display:block;margin-top:6px;width:100%}
+.relay-install-list{display:grid;gap:10px;margin-top:12px}
+.relay-install-item{padding:12px!important;margin:0!important;border-radius:14px!important;background:var(--theme-panel,#083b78)!important;border:1px solid var(--theme-border,#5ee7ff99)!important}
+.relay-install-item>strong,.relay-install-item>small{display:block}
+.relay-install-item>small{margin:8px 0;color:#d7eaf8;line-height:1.5}
+.relay-install-state{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;margin-top:7px;color:#e2e8f0;background:#334155}
+.relay-install-state[data-online="true"]{color:#dcfce7;background:#14532d}
+.relay-install-state[data-online="false"]{color:#fecaca;background:#7f1d1d}
+.relay-install-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.relay-install-buttons button{flex:1 1 122px;min-height:44px;margin:0;padding:8px}
+.relay-install-buttons button:disabled{opacity:.48;cursor:not-allowed}
+#relayInstallerStatus[data-error="true"]{color:#fecaca}

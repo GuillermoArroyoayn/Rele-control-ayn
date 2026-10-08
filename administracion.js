@@ -57,6 +57,38 @@ function relayAssignmentOptions(select,value){
   }
   select.value=[...select.options].some(o=>o.value===previous)?previous:'unassigned';
 }
+
+function renderEnrolledRelays(){
+  const select=$('enrolledRelaySelect'),previous=select.value,choices=[];
+  const original=(data?.originalActuators||[]).filter(item=>[1,2,3].includes(Number(item.relay)));
+  for(const item of original)choices.push({
+    value:'original:'+item.relay,
+    label:(item.name||'Actuador '+item.relay)+' · '+relayGroupName(item.assignedGroup||'master')
+  });
+  for(const item of data?.actuators||[])choices.push({
+    value:'managed:'+item.id,label:item.name+' · '+relayGroupName(item.groupId)
+  });
+  select.replaceChildren();
+  const placeholder=node('option','Seleccionar relé ya registrado');placeholder.value='';select.append(placeholder);
+  for(const item of choices){const option=node('option',item.label);option.value=item.value;select.append(option);}
+  const manual=node('option','Registrar relé nuevo mediante ID Tuya');manual.value='new';select.append(manual);
+  select.value=[...select.options].some(option=>option.value===previous)?previous:'';
+  updateEnrolledRelayMode();
+}
+function updateEnrolledRelayMode(){
+  const value=$('enrolledRelaySelect').value,manual=value==='new',connected=value.startsWith('original:')||value.startsWith('managed:');
+  $('relayAddManualFields').hidden=!manual;
+  for(const id of ['actuatorName','deviceId','channel','timer'])$(id).disabled=!manual;
+  $('enrolledRelayStatus').textContent=connected?'Este relé ya está registrado. Solo cambiaremos su administrador; no se creará otro.':
+    manual?'Registrar un equipo nuevo requiere su ID Tuya.':
+    'Elige uno de los relés existentes o selecciona registrar uno nuevo.';
+  $('relayAddSubmit').textContent=connected?'Asignar seleccionado':manual?'Guardar relé nuevo':'Selecciona un relé';
+  $('relayAddSubmit').disabled=!value;
+  if(connected){
+    const record=value.startsWith('original:')?(data.originalActuators||[]).find(x=>String(x.relay)===value.slice(9)):(data.actuators||[]).find(x=>x.id===value.slice(8));
+    if(record)relayAssignmentOptions($('relayAddGroup'),record.assignedGroup||record.groupId||'master');
+  }
+}
 function updateRelaySelectedCount(){
   const count=document.querySelectorAll('.relay-center-check:checked').length;
   $('relaySelectedCount').textContent=count+' seleccionado'+(count===1?'':'s');
@@ -79,6 +111,7 @@ function renderRelayCenter(){
   if(!data||data.role!=='super_master'||currentTab!=='equipment')return;
   relayAssignmentOptions($('relayBulkGroup'),$('relayBulkGroup').value||'unassigned');
   relayAssignmentOptions($('relayAddGroup'),$('relayAddGroup').value||'unassigned');
+  renderEnrolledRelays();
   const query=$('relaySearch').value.trim().toLocaleLowerCase('es');
   const all=data.actuators||[];
   const anyInstalled=all.length>0;
@@ -139,7 +172,30 @@ for(const b of document.querySelectorAll('[data-home-tab]'))b.onclick=()=>{if(b.
 $('invite').onsubmit=async e=>{e.preventDefault();const b=e.submitter,inviteRole=$('role').value;b.disabled=true;let whatsappWindow=null;try{if(!['admin','super_master'].includes(data?.role))throw Object.assign(new Error('Este equipo está registrado como usuario. Debe ingresar con una cuenta Administrador para crear invitaciones.'),{status:403});sessionStorage.setItem('aynAdminView','people');whatsappWindow=window.open('about:blank','ayn-whatsapp-invite');if(whatsappWindow)whatsappWindow.document.write('<title>A&N Control</title><p style="font-family:system-ui;padding:24px">Preparando invitación de WhatsApp…</p>');notify('Creando invitación…');const result=await api({action:'invite',role:inviteRole,name:$('name').value,phone:$('phone').value,apartment:$('apartment').value,groupId:selectedGroup()});$('inviteLink').value=result.inviteUrl||location.origin+'/administracion.html#invite='+result.token;$('invitation').hidden=false;const wa=$('whatsappFallback'),status=$('whatsappStatus');wa.hidden=true;if(result.whatsapp?.sent){if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();status.textContent='✓ Invitación enviada automáticamente por WhatsApp al número ingresado.';notify('Invitación creada y enviada por WhatsApp.');}else if(result.whatsapp?.fallbackUrl){wa.href=result.whatsapp.fallbackUrl;wa.hidden=false;if(whatsappWindow&&!whatsappWindow.closed){whatsappWindow.location.replace(result.whatsapp.fallbackUrl);status.textContent='✓ WhatsApp se abrió automáticamente con la invitación lista para enviar.';notify('Invitación creada. WhatsApp abierto con el mensaje preparado.');}else{status.textContent='Invitación creada. Toca “Enviar por WhatsApp” para abrir el mensaje preparado.';notify('Invitación creada. Abre WhatsApp con el botón disponible.');}}else{if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();status.textContent='Invitación creada. No fue posible preparar WhatsApp automáticamente.';notify('Invitación creada.',true);}if(inviteRole==='admin'&&result.groupId){sessionStorage.setItem('aynNewAdminGroup',result.groupId);notify('Administrador creado. Abriendo configuración de relés y pantallas…');setTimeout(()=>location.assign('/matrix.html?group='+encodeURIComponent(result.groupId)+'&setup=1'),700);}}catch(error){if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();notify(error.message,true);}finally{b.disabled=false;}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteLink').value);notify('Enlace copiado.');}catch{$('inviteLink').select();notify('Selecciona y copia el enlace.');}};
 const addMode=timerMode($('timer'));$('timer').parentElement.before(addMode.label);
-$('add').onsubmit=async e=>{e.preventDefault();const b=e.submitter,target=$('relayAddGroup').value||'unassigned';b.disabled=true;try{await api({action:'add',name:$('actuatorName').value,deviceId:$('deviceId').value,code:$('channel').value,timerSeconds:addMode.value(),groupId:target});notify(target==='unassigned'?'Relé agregado a Sin asignar.':'Relé agregado y asignado a '+relayGroupName(target)+'.');$('actuatorName').value='';$('deviceId').value='';relayAddOpen=currentTab==='equipment';await load();if(currentTab==='equipment')$('actuatorName').focus();}catch(error){notify(error.message,true);}finally{b.disabled=false;}};
+$('enrolledRelaySelect').onchange=updateEnrolledRelayMode;
+$('add').onsubmit=async e=>{
+  e.preventDefault();
+  const b=e.submitter||$('relayAddSubmit'),target=$('relayAddGroup').value||'unassigned';
+  const selection=$('enrolledRelaySelect').value;
+  if(!selection){notify('Selecciona un relé registrado.',true);return;}
+  b.disabled=true;
+  try{
+    if(selection.startsWith('original:')){
+      await api({action:'assignOriginal',relay:Number(selection.slice(9)),groupId:target});
+      notify('Acceso al actuador original asignado a '+relayGroupName(target)+'. El Máster conserva su control.');
+    }else if(selection.startsWith('managed:')){
+      await api({action:'assign',id:selection.slice(8),groupId:target});
+      notify('Actuador existente asignado a '+relayGroupName(target)+'.');
+    }else if(selection==='new'){
+      await api({action:'add',name:$('actuatorName').value,deviceId:$('deviceId').value,code:$('channel').value,timerSeconds:addMode.value(),groupId:target});
+      notify('Relé nuevo registrado y asignado a '+relayGroupName(target)+'.');
+      $('actuatorName').value='';$('deviceId').value='';
+    }else throw new Error('Selección inválida.');
+    relayAddOpen=currentTab==='equipment';await load();
+    if(currentTab==='equipment')$('enrolledRelaySelect').focus();
+  }catch(error){notify(error.message,true);}
+  finally{b.disabled=false;updateEnrolledRelayMode();}
+};
 $('refresh').onclick=async()=>{const b=$('refresh');b.disabled=true;try{for(const button of $('actuators').querySelectorAll('button'))if(button.textContent==='Actualizar estado')await button.onclick();}finally{b.disabled=false;}};
 $('toggleRelayAdd').onclick=()=>{relayAddOpen=!relayAddOpen;render();$('toggleRelayAdd').textContent=relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado';if(relayAddOpen)setTimeout(()=>$('actuatorName').focus(),0);};
 $('relaySearch').oninput=()=>renderRelayCenter();

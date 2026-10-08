@@ -33,8 +33,9 @@
   const sound=el('button','ayn-info-sound');sound.type='button';
   const push=el('button','ayn-info-push');push.type='button';
   const seeAll=el('button','ayn-info-all','Ver todas');seeAll.type='button';
+  const manage=el('button','ayn-info-manage','Abrir gestión');manage.type='button';
   const acknowledge=el('button','ayn-info-ack','Entendido');acknowledge.type='button';
-  actions.append(sound,push,seeAll,acknowledge);modal.append(head,subtitle,sections,body,actions);mask.append(modal);
+  actions.append(sound,push,manage,seeAll,acknowledge);modal.append(head,subtitle,sections,body,actions);mask.append(modal);
   document.body.append(mask);
   const readState=()=>{
     const key=STORAGE+deviceId;
@@ -145,6 +146,13 @@
   }
   wallTab.onclick=()=>openInbox('wall');
   emergencyTab.onclick=()=>openInbox('emergency');
+  function openManagement(){
+    const section=(activeView==='all'?activeInbox:(isPrivate(detailItem||dialogItem)?'emergency':'wall'))==='emergency'?'reports':'community-hub';
+    hide();
+    if(location.pathname.endsWith('/administracion.html'))location.assign('/#'+(section==='reports'?'reportes':section));
+    else window.dispatchEvent(new CustomEvent('ayn:navigate',{detail:{page:'app',view:section}}));
+  }
+  manage.onclick=openManagement;
 
   const credentials=()=>{
     const pin=document.getElementById('pin')?.value.trim()||localStorage.getItem('relayPin')||'';
@@ -368,6 +376,11 @@
         const count=el('span','ayn-info-count');count.hidden=true;
         const emergency=el('span','ayn-info-emergency-label','🚨 Emergencia');emergency.hidden=true;
         button.append(count,emergency);
+        button.addEventListener('click',event=>{
+          // El residente sigue entrando al formulario para enviar su propio reporte.
+          if(section==='emergency'&&(role==='user'||localStorage.getItem('aynLastRole')==='user'))return;
+          event.preventDefault();event.stopImmediatePropagation();openInbox(section);
+        },true);
       }
     });
     paint();

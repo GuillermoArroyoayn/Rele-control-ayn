@@ -1167,8 +1167,8 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
 
 
 /* AYN v138 · Configuración aislada y actuadores asignados */
-.managed-access-panel{width:100%;margin:0 0 18px}
-.managed-access-panel>h2{margin:0 0 6px}
+.access-controls-page{width:100%;margin:0 0 18px}
+.access-controls-page>h2{margin:0 0 6px}
 .managed-access-help{margin:0 0 14px;color:#bfd3e2}
 .managed-access-grid{margin:0}
 .managed-relay-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
@@ -1176,7 +1176,7 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
 .managed-relay-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .managed-relay-actions .small-button{margin:0;min-width:72px}
 body[data-user-view="settings"] .relay-grid,
-body[data-user-view="settings"] .managed-access-panel,
+body[data-user-view="settings"] .access-controls-page,
 body[data-user-view="settings"] #refresh,
 body[data-user-view="settings"] .share-section{display:none!important}
 .user-settings-panel>.appearance,
@@ -1197,7 +1197,7 @@ body[data-user-view="settings"] .share-section{display:none!important}
 
 /* v142 · Configuración aislada y diagnóstico fuera de Inicio */
 body[data-user-view="settings"] .user-settings-panel{display:block!important}
-body[data-user-view="settings"] .managed-access-panel,
+body[data-user-view="settings"] .access-controls-page,
 body[data-user-view="settings"] .relay-grid,
 body[data-user-view="settings"] .share-section,
 body[data-user-view="settings"] #refresh{display:none!important}
@@ -1368,72 +1368,72 @@ body.app-screen-mode .function-toolbar{justify-content:space-between}
 .managed-relay-card .actuator-settings-status{font-size:14px;line-height:1.4;margin:4px 0}
 .managed-relay-card .actuator-settings-form label[hidden]{display:none!important}
 /* v166 · Accesos: portada operativa y menú de ajustes separados. */
-body.app-screen-mode[data-user-view="access"] .managed-access-panel,
-body.user-layout[data-user-view="access"] .managed-access-panel{
+body.app-screen-mode[data-user-view="access"] .access-controls-page,
+body.user-layout[data-user-view="access"] .access-controls-page{
   position:fixed!important;inset:calc(74px + env(safe-area-inset-top,0px)) 0 0;
   z-index:900;box-sizing:border-box;width:100%;max-width:none;height:auto;overflow:auto;
   margin:0!important;padding:10px 18px calc(115px + env(safe-area-inset-bottom,0px))!important;
   background:var(--theme-bg,#06152f)!important;
   overscroll-behavior:contain;border:0;border-radius:0;
 }
-.managed-access-panel .access-control-top{
+.access-controls-page .access-control-top{
   position:relative;display:flex;justify-content:center;align-items:center;
   min-height:126px;margin:0 auto 12px;width:100%;max-width:520px;
 }
-.managed-access-panel .access-brand-slot{display:flex;justify-content:center;align-items:center;width:100%}
-.managed-access-panel .access-brand-slot .home-watermark{
+.access-controls-page .access-brand-slot{display:flex;justify-content:center;align-items:center;width:100%}
+.access-controls-page .access-brand-slot .home-watermark{
   display:flex!important;align-items:center;justify-content:center;margin:0!important;min-height:0!important;
 }
-.managed-access-panel .access-brand-slot .home-logo{
+.access-controls-page .access-brand-slot .home-logo{
   display:block!important;width:clamp(190px,58vw,290px)!important;max-width:100%;
   height:auto;opacity:1!important;filter:drop-shadow(0 0 10px rgba(0,100,253,.65))!important;
 }
-.managed-access-panel #accessActionsToggle{
+.access-controls-page #accessActionsToggle{
   position:absolute;right:0;top:27px;display:inline-flex;align-items:center;justify-content:center;
   width:44px;min-width:44px;min-height:44px;padding:0!important;
   background:transparent!important;border:0!important;box-shadow:none!important;
   color:var(--theme-text,#fff)!important;font-size:32px;font-weight:700;
 }
-.managed-access-panel .access-actions-panel{
+.access-controls-page .access-actions-panel{
   width:min(490px,100%);margin:0 auto 12px;padding:7px;
   border:1px solid var(--theme-border,#5ee7ff99);border-radius:14px;
   background:var(--theme-panel-strong,#06172c);
 }
-.managed-access-panel .access-actions-panel[hidden]{display:none!important}
-.managed-access-panel .access-actions-panel button{
+.access-controls-page .access-actions-panel[hidden]{display:none!important}
+.access-controls-page .access-actions-panel button{
   width:100%;min-height:48px;margin:0;background:var(--theme-soft,#1468bf);
 }
 body[data-user-view="access"] .managed-access-grid{
   display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
   width:min(520px,100%);margin:0 auto!important;gap:14px;align-content:start;
 }
-.managed-access-panel .access-button-card{
+.access-controls-page .access-button-card{
   min-width:0;min-height:145px;display:flex;align-items:stretch;
   border:1.5px solid var(--theme-border,#5ee7ff99);border-radius:22px;
   background:linear-gradient(180deg,var(--theme-panel,#082d5d),var(--theme-panel-strong,#04162e));
   box-shadow:0 0 10px var(--theme-glow,#00a8ff55);overflow:hidden;
 }
-.managed-access-panel .access-activation-button{
+.access-controls-page .access-activation-button{
   width:100%;height:100%;min-height:145px;padding:13px 8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   color:var(--theme-text,#fff)!important;background:transparent!important;
   border:0!important;border-radius:21px;box-shadow:none!important;
   text-align:center;white-space:normal;overflow-wrap:anywhere;
 }
-.managed-access-panel .access-power-symbol{
+.access-controls-page .access-power-symbol{
   display:flex;align-items:center;justify-content:center;
   width:62px;height:62px;border:2px solid var(--theme-border,#5ee7ff99);border-radius:50%;
   font-size:35px;line-height:1;opacity:.92;
   background:radial-gradient(circle,var(--theme-glow,#0b54a966),transparent 76%);
   box-shadow:0 0 14px var(--theme-glow,#00a8ff44);
 }
-.managed-access-panel .access-actuator-name{font-size:clamp(15px,4.2vw,19px);line-height:1.2;font-weight:750}
-.managed-access-panel .access-actuator-status{font-size:12px;letter-spacing:.08em;font-weight:750;opacity:.82}
-.managed-access-panel .access-button-card.on{
+.access-controls-page .access-actuator-name{font-size:clamp(15px,4.2vw,19px);line-height:1.2;font-weight:750}
+.access-controls-page .access-actuator-status{font-size:12px;letter-spacing:.08em;font-weight:750;opacity:.82}
+.access-controls-page .access-button-card.on{
   border-color:#57dcff!important;box-shadow:0 0 16px var(--theme-glow,#00a8ff77),inset 0 0 14px #47baff33;
 }
-.managed-access-panel .access-button-card.on .access-power-symbol{color:#5ee7ff;opacity:1}
-.managed-access-panel .access-activation-button:disabled{opacity:.65}
+.access-controls-page .access-button-card.on .access-power-symbol{color:#5ee7ff;opacity:1}
+.access-controls-page .access-activation-button:disabled{opacity:.65}
 .access-settings-panel .access-settings-grid{
   display:grid;gap:12px;max-width:650px;margin:0 auto;
 }
@@ -1450,16 +1450,16 @@ body[data-user-view="access"] .managed-access-grid{
 .access-settings-card .actuator-settings-form label[hidden]{display:none!important}
 .access-settings-success{margin:0;padding:10px 14px;border:1px solid var(--theme-border,#5ee7ff99);border-radius:12px}
 /* La cuadrícula interior nunca debe usar la posición fija del relé original. */
-body.user-layout[data-user-view="access"] .managed-access-panel .managed-access-grid{
+body.user-layout[data-user-view="access"] .access-controls-page .managed-access-grid{
   position:static!important;inset:auto!important;z-index:auto!important;
   height:auto!important;min-height:0!important;overflow:visible!important;
   box-sizing:border-box;padding:0!important;background:transparent!important;
   overscroll-behavior:auto;
 }
-body.app-screen-mode[data-user-view="access"] .managed-access-panel .managed-access-grid{
+body.app-screen-mode[data-user-view="access"] .access-controls-page .managed-access-grid{
   padding:0!important;position:static!important;inset:auto!important;
 }
-.managed-access-panel .access-button-card:focus-within{
+.access-controls-page .access-button-card:focus-within{
   outline:2px solid var(--theme-accent,#5ee7ff);outline-offset:2px;
 }
 /* Un actuador se centra; con tres, el tercero queda simétrico. */
@@ -1471,13 +1471,13 @@ body[data-user-view="access"] .managed-access-grid > .access-button-card:last-ch
 
 @media(max-width:370px){
   body[data-user-view="access"] .managed-access-grid{gap:10px}
-  .managed-access-panel .access-button-card,.managed-access-panel .access-activation-button{min-height:126px}
-  .managed-access-panel .access-actuator-name{font-size:15px}
+  .access-controls-page .access-button-card,.access-controls-page .access-activation-button{min-height:126px}
+  .access-controls-page .access-actuator-name{font-size:15px}
 }
 /* v167: Accesos y sus ajustes se renderizan como ventanas independientes
    montadas en body, igual que Reportes y Agenda. */
-body.app-screen-mode[data-user-view="access"] .managed-access-panel.function-screen,
-body.user-layout[data-user-view="access"] .managed-access-panel.function-screen{
+body.app-screen-mode[data-user-view="access"] .access-controls-page.function-screen,
+body.user-layout[data-user-view="access"] .access-controls-page.function-screen{
   display:block!important;visibility:visible!important;
   height:calc(100dvh - 74px - env(safe-area-inset-top,0px))!important;
 }
@@ -1496,6 +1496,44 @@ body.app-screen-mode[data-user-view="access-settings"] .access-settings-panel.fu
   background:var(--theme-panel,#082d5d);font-weight:700;line-height:1.4
 }
 .access-settings-feedback.is-error{border-color:#ff9696;color:#ffdbdb}
-body.app-screen-mode[data-user-view="access"] .managed-access-panel.function-screen:not([hidden]){
+body.app-screen-mode[data-user-view="access"] .access-controls-page.function-screen:not([hidden]){
   display:block!important;visibility:visible!important;opacity:1!important;
+}
+
+/* v170 · Vista Accesos aislada, sin los estilos de la cuadrícula de relés original. */
+html body.app-screen-mode[data-user-view="access"] section.access-controls-page.function-screen:not([hidden]),
+html body.user-layout[data-user-view="access"] section.access-controls-page.function-screen:not([hidden]){
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:fixed!important;
+  inset:calc(74px + env(safe-area-inset-top,0px)) 0 0!important;
+  width:100vw!important;max-width:none!important;
+  height:calc(100dvh - 74px - env(safe-area-inset-top,0px))!important;
+  z-index:940!important;box-sizing:border-box!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  background:var(--theme-bg,#091e41)!important;
+  padding:14px 18px calc(100px + env(safe-area-inset-bottom,0px))!important;
+}
+html body .access-controls-page .access-activation-grid{
+  display:grid!important;position:static!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  margin:10px auto 0!important;padding:0!important;
+  width:min(520px,100%)!important;min-height:0!important;
+  gap:14px!important;overflow:visible!important;
+  background:transparent!important;z-index:auto!important;
+}
+html body .access-controls-page .access-control-top{display:flex!important;min-height:120px!important}
+html body .access-controls-page .access-button-card{
+  display:flex!important;min-height:145px!important;
+}
+html body .access-controls-page .access-activation-button{
+  display:flex!important;min-height:145px!important;
+}
+html body .access-controls-page #accessActionsToggle:not([hidden]){
+  display:inline-flex!important;
+}
+html body .access-controls-page[hidden]{display:none!important}
+.access-settings-panel button.access-save-ready,
+.access-settings-panel button.access-save-ready:disabled{
+  color:#e8fbff!important;background:#116d78!important;
+  opacity:1!important;box-shadow:0 0 0 1px #7ef7ed inset!important;cursor:default;
 }

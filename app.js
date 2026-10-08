@@ -59,7 +59,7 @@ const localDateTime = (value) => {
 };
 const relayGrid = document.querySelector(".relay-grid");
 const managedAccessPanel=document.createElement("section");
-managedAccessPanel.className="managed-access-panel";
+managedAccessPanel.className="access-controls-page";
 managedAccessPanel.hidden=true;
 managedAccessPanel.innerHTML=`<div class="access-control-top">
   <div class="access-brand-slot" aria-label="A&N Control"></div>
@@ -68,7 +68,7 @@ managedAccessPanel.innerHTML=`<div class="access-control-top">
 <nav id="accessActionsPanel" class="access-actions-panel" aria-label="Menú de accesos" hidden>
   <button id="accessSettingsOpen" type="button">⚙ Configurar accesos</button>
 </nav>
-<div class="relay-grid managed-access-grid" aria-label="Botones de activación"></div>`;
+<div class="managed-access-grid access-activation-grid" aria-label="Botones de activación"></div>`;
 relayGrid.after(managedAccessPanel);
 const managedAccessGrid=managedAccessPanel.querySelector(".managed-access-grid");
 const accessBrandSlot=managedAccessPanel.querySelector(".access-brand-slot");
@@ -95,6 +95,7 @@ managedAccessPanel.querySelector("#accessSettingsOpen").onclick=()=>{
   showView("access-settings");
 };
 
+const accessProfilesJustSaved=new Set();
 function profileEditor(card,profile){
   if(currentRole!=='admin')return;
   const details=document.createElement('details');details.className='actuator-settings';details.open=true;
@@ -120,6 +121,23 @@ function profileEditor(card,profile){
   const save=document.createElement('button');save.type='submit';save.textContent='Guardar configuración';
   const status=document.createElement('p');status.className='actuator-settings-status';status.setAttribute('role','status');
   form.append(save,status);details.append(form);
+  const displaySaved=()=>{
+    save.textContent='✓ Configuración lista';
+    save.disabled=true;
+    save.classList.add('access-save-ready');
+    status.textContent='Configuración guardada correctamente.';
+  };
+  const markModified=()=>{
+    if(!accessProfilesJustSaved.has(profile.id))return;
+    accessProfilesJustSaved.delete(profile.id);
+    save.disabled=false;
+    save.classList.remove('access-save-ready');
+    save.textContent='Guardar configuración';
+    status.textContent='';
+  };
+  form.addEventListener('input',markModified);
+  form.addEventListener('change',markModified);
+  if(accessProfilesJustSaved.has(profile.id))displaySaved();
   form.onsubmit=async event=>{
     event.preventDefault();
     save.disabled=true;
@@ -138,14 +156,21 @@ function profileEditor(card,profile){
       profile.name=saved.name;profile.voiceName=saved.voiceName;
       profile.mode=saved.mode;profile.seconds=saved.seconds;
       summary.textContent='⚙ '+saved.name;
-      status.textContent='Configuración guardada correctamente.';
-      showAccessSettingsFeedback('Configuración guardada: '+saved.name+'. Voz: '+(saved.voiceName||'sin nombre')+'.');
-      // La confirmación vive fuera de la cuadrícula y no desaparece al refrescar.
+      accessProfilesJustSaved.add(profile.id);
+      displaySaved();
+      // El éxito queda dentro del botón, sin duplicar avisos en pantalla.
+      accessSettingsFeedback.hidden=true;
+      accessSettingsFeedback.textContent='';
       await loadManagedAccess();
     }catch(error){
       status.textContent=error.message||'No se pudo guardar.';
       showAccessSettingsFeedback('No se pudo confirmar la configuración: '+(error.message||'error desconocido'),true);
-    }finally{save.disabled=false;save.textContent='Guardar configuración';}
+    }finally{
+      if(!accessProfilesJustSaved.has(profile.id)){
+        save.disabled=false;
+        save.textContent='Guardar configuración';
+      }
+    }
   };
   card.append(details);
 }
@@ -161,7 +186,9 @@ function accessButton(profile,fallbackName,initialState,command,read) {
   card.dataset.actuator=id;
   const button=document.createElement('button');button.type='button';button.className='access-activation-button';
   const symbol=document.createElement('span');symbol.className='access-power-symbol';symbol.textContent='⏻';symbol.setAttribute('aria-hidden','true');
-  const title=document.createElement('strong');title.className='access-actuator-name';title.textContent=profile?.name||fallbackName;
+  const title=document.createElement('strong');title.className='access-actuator-name';
+  // La orden definida por el residente («Puerta») es también el texto del botón.
+  title.textContent=profile?.voiceName?.trim()||profile?.name||fallbackName;
   const status=document.createElement('span');status.className='access-actuator-status';status.setAttribute('aria-live','polite');
   button.append(symbol,title,status);card.append(button);
   let state=typeof initialState==='boolean'?initialState:null,busy=false;

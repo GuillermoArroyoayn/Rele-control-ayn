@@ -7,7 +7,7 @@ assert(app.includes('accessSettingsPanel.querySelector("#accessSettingsFeedback"
 assert(app.includes('function showAccessSettingsFeedback(text,error=false)'));
 assert(app.includes("const verification=await api('/api/actuator-profiles')"),'Hay que consultar valores persistidos');
 assert(app.includes("if(!saved||saved.name!==payload.name"),'No confirmar sin verificar servidor');
-assert(app.includes("showAccessSettingsFeedback('Configuración guardada: '"),'Mensaje visible persistente');
+assert(app.includes("save.textContent='✓ Configuración lista'"),'El botón cambia a configuración lista');
 assert(app.includes("showAccessSettingsFeedback('No se pudo confirmar"),'Errores persistentes');
 assert(app.includes("const originalsByNumber=new Map()"),'Mezclar perfiles originales con estado');
 assert(app.includes("originalsByNumber.set(relay,{relay,state:null})"),'Mostrar autorizado sin inventar estado');
@@ -15,6 +15,6 @@ assert(app.includes("const itemsById=new Map("),'Evitar duplicados de gestionado
 assert(app.includes("profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)"),'No mostrar originales no verificados');
 assert(app.includes("itemsById.has(id)"),'No repetir actuadores en pantalla');
 assert(css.includes('.access-settings-feedback:not([hidden])'));
-assert(sw.includes('reles-ayn-v169-access-feedback'));
-assert(sw.includes('/app.js?v=20261008-access169'));
+assert(sw.includes('reles-ayn-v170-door-controls'));
+assert(sw.includes('/app.js?v=20261008-access170'));
 console.log('V169: guardado con confirmación persistente y catálogo autorizado de actuadores como alternativa segura.');

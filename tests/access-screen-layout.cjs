@@ -2,6 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const app=fs.readFileSync('app.js','utf8'),styles=fs.readFileSync('styles.css','utf8');
 const sw=fs.readFileSync('sw.js','utf8'),html=fs.readFileSync('index.html','utf8');
 assert(app.includes('aria-label="Botones de activación"'));
+assert(app.includes('className="access-controls-page"'),'Control aislado de estilos anteriores');
 assert(app.includes('class="access-brand-slot"'));
 assert(app.includes('id="accessActionsToggle"'));
 assert(app.includes('id="accessSettingsOpen"'));
@@ -22,6 +23,6 @@ assert(app.includes("accessSettingsGrid.append(card)"),'Formulario fuera de los 
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'Configuración no debe quedar en tarjeta operativa');
 assert(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Distribución equilibrada');
 assert(styles.includes('.access-brand-slot .home-logo'),'Logo A&N en accesos');
-assert(sw.includes('reles-ayn-v169-access-feedback'));
-assert(html.includes('/styles.css?v=20261008-access169')&&html.includes('/app.js?v=20261008-access169'));
+assert(sw.includes('reles-ayn-v170-door-controls'));
+assert(html.includes('/styles.css?v=20261008-access170')&&html.includes('/app.js?v=20261008-access170'));
 console.log('Accesos v166: logo original, botón único, menú independiente, permisos, modo manual/temporizador y diseño adaptable.');

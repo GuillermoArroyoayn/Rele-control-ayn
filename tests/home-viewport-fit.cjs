@@ -17,10 +17,10 @@ for(const path of files){
   assert(!section.includes('aspect-ratio:1 / 1'),'No convertir las tarjetas en cuadrados grandes');
 }
 const index=fs.readFileSync('index.html','utf8'),admin=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
-assert(index.includes('/styles.css?v=20261008-access165'));
+assert(index.includes('/styles.css?v=20261008-access166'));
 assert(admin.includes('/administracion.css?v=20261008-nav161'));
-assert(sw.includes('reles-ayn-v165-access-profiles'));
-assert(sw.includes('/styles.css?v=20261008-access165'));
+assert(sw.includes('reles-ayn-v166-access-clean'));
+assert(sw.includes('/styles.css?v=20261008-access166'));
 assert(sw.includes('/administracion.css?v=20261008-nav161'));
 assert(fs.readFileSync('app.js','utf8').includes('home-quick-card home-quick-sos'));
 assert(admin.includes('id="homeVoiceToggle"'));
@@ -49,7 +49,7 @@ assert(aj.includes("history.scrollRestoration='manual'")&&aj.includes('resetHome
 assert(aj.includes("window.addEventListener('pageshow'"));
 assert(uj.includes('history.scrollRestoration="manual"'));
 assert(uj.includes('window.addEventListener("pageshow",()=>'));
-assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v165-access-profiles'));
+assert(fs.readFileSync('sw.js','utf8').includes('reles-ayn-v166-access-clean'));
 console.log('Versión 157: Inicio alineado y desplazamiento restablecido para todas las funciones.');
 
 // Comprobación adicional: alta segura y sin conmutación de los relés.
@@ -61,3 +61,4 @@ require('./enrolled-relays.cjs');
 
 require('./actuator-profiles.cjs');
 require('./actuator-profile-control.cjs');
+require('./access-screen-layout.cjs');

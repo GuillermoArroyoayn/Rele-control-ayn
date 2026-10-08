@@ -408,3 +408,38 @@ html body :is(.main-menu,#tabs) :is([data-tab="panic"],[data-view="panic"]) .men
   0%,100%{opacity:.78;stroke-width:3}
   50%{opacity:1;stroke-width:5.2}
 }
+
+
+/* Incorporar usuarios: vista móvil independiente y siempre visible · v128 */
+body[data-admin-view="people"] #people{
+  display:block!important;
+  width:min(560px,100%);
+  margin:0 auto;
+  padding:4px 0 36px;
+  color:var(--theme-text,#eef9ff);
+}
+body[data-admin-view="people"] #people>h2,
+body[data-admin-view="people"] #people>p,
+body[data-admin-view="people"] #people label{color:var(--theme-text,#eef9ff)!important}
+body[data-admin-view="people"] #invite{
+  display:block!important;
+  width:100%;
+  margin:14px 0 18px!important;
+  padding:16px!important;
+  background:var(--theme-panel,#083b78)!important;
+  border:1px solid var(--theme-border,#5ee7ff99)!important;
+  border-radius:18px!important;
+}
+body[data-admin-view="people"] #invite input,
+body[data-admin-view="people"] #invite select{
+  display:block!important;
+  width:100%!important;
+  color:#fff!important;
+  background:#071c37!important;
+}
+body[data-admin-view="people"] #invite button{
+  display:block!important;
+  width:100%;
+  margin:16px 0 0!important;
+}
+body[data-admin-view="people"] #invitation:not([hidden]){display:block!important;margin:14px 0}

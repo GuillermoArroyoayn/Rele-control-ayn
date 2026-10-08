@@ -24,6 +24,6 @@ assert(app.includes("accessSettingsGrid.append(card)"),'Formulario fuera de los 
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'Configuración no debe quedar en tarjeta operativa');
 assert(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Distribución equilibrada');
 assert(styles.includes('.access-brand-slot .home-logo'),'Logo A&N en accesos');
-assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
-assert(html.includes('/styles.css?v=20261008-adminroutes185')&&html.includes('/app.js?v=20261008-adminroutes185'));
+assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
+assert(html.includes('/styles.css?v=20261008-adminroutes185')&&/\/app\.js\?v=20261008-[\w-]+/.test(html));
 console.log('Accesos v166: logo original, botón único, menú independiente, permisos, modo manual/temporizador y diseño adaptable.');

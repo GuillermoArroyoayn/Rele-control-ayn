@@ -62,6 +62,7 @@ async function run(action,payload={},method='POST'){
  const at=html.indexOf('id="relayInstaller"'),search=html.indexOf('class="relay-search"'),folders=html.indexOf('id="relayCenterLists"');
  assert(at>html.indexOf('id="relayCenterHead"')&&at<search&&search<folders,'La carpeta debe aparecer antes de buscar y asignar');
  assert(html.includes('Agregar relé ya conectado'),'Alta existente debe tener nombre distinto');
+ assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes('＋ Preparar relé · '),'Botón de preparación visible');
  assert(html.includes('/relay-installer.js?v=20261008-preinstall159'));
  assert(sw.includes('reles-ayn-v159-relay-top')&&sw.includes('/relay-installer.js?v=20261008-preinstall159'));

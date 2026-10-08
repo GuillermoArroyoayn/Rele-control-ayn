@@ -28,7 +28,7 @@ const ASSETS = [
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-preinstall159",
-  "/administracion.js?v=20261008-frame157",
+  "/administracion.js?v=20261008-preinstall159",
   "/relay-installer.js?v=20261008-preinstall159",
   "/administracion-voice.js?v=20261008-btaudio154"
 ];

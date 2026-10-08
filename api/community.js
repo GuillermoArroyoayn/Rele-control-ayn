@@ -77,6 +77,11 @@ module.exports = async (req, res) => {
     const script="if redis.call('EXISTS',KEYS[1])==1 then return 0 end local n=tonumber(redis.call('GET',KEYS[3]) or '0'); if n>=20 then return -1 end redis.call('INCR',KEYS[3]); if n==0 then redis.call('EXPIRE',KEYS[3],3600) end redis.call('SET',KEYS[1],ARGV[1],'EX',ARGV[3]); if ARGV[5]~='' then redis.call('SET',KEYS[4],ARGV[5],'EX',ARGV[3]) end redis.call('LPUSH',KEYS[2],ARGV[2]); local old=redis.call('LRANGE',KEYS[2],100,-1); for _,id in ipairs(old) do redis.call('DEL',ARGV[4]..'item:'..id,ARGV[4]..'votes:'..id,ARGV[4]..'photo:'..id) end redis.call('LTRIM',KEYS[2],0,99); redis.call('EXPIRE',KEYS[2],ARGV[3]); return 1";
     const result=await A.redis('EVAL',script,4,P+'item:'+id,key,P+'rate:'+auth.device.id,P+'photo:'+id,JSON.stringify(record),id,TTL,P,photo?photo.split(',')[1]:'');
     if(result===-1)throw A.error('Puedes publicar hasta 20 avisos por hora.',429);
+    await require('../lib/information-feed').publish({
+      id:'community-'+id,groupId,kind:b.type==='poll'?'poll':b.type==='emergency'?'emergency':'notice',
+      title, message:text, author:record.author, creator:auth.device.id,
+      createdAt:record.createdAt,closesAt:record.closesAt
+    },auth);
     res.json({ok:true,id,duplicate:result===0});
   }catch(e){res.status(e.status||500).json({error:e.message||'No se pudo completar la operación.',accessStatus:e.accessStatus});}
 };

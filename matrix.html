@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06172f">
 <title>Constructor de App · A&N Control</title>
-<link rel="stylesheet" href="/matrix.css?v=20261008-preview179">
+<link rel="stylesheet" href="/matrix.css?v=20261008-onboard180">
 </head>
 <body>
 <main class="matrix-shell">
@@ -19,6 +19,11 @@
   <a class="secondary" href="/administracion.html#people">Crear administrador</a>
 </section>
 <section id="editor" hidden>
+  <section id="preparedAdminBanner" class="matrix-card prepared-admin-banner" hidden>
+    <h2>2. Configurar autorizaciones</h2>
+    <p id="preparedAdminInfo"></p>
+    <p>Selecciona las funciones y los relés que tendrá el administrador. Todavía no se ha enviado la invitación.</p>
+  </section>
   <div class="matrix-grid">
     <section class="matrix-card">
       <h2>Identidad</h2>
@@ -53,14 +58,24 @@
     <p class="matrix-selection-help">Toca cada opción para cambiar entre ✓ Seleccionado y No seleccionado. Después pulsa Publicar cambios para guardarlo definitivamente.</p>
     <div id="modules"></div>
   </section>
+  <section id="preparedInviteResult" class="matrix-card prepared-invite-result" hidden>
+    <h2>Invitación preparada</h2>
+    <p id="preparedInviteStatus" role="status" aria-live="polite"></p>
+    <label>Enlace personal del administrador, válido por 24 horas
+      <input id="preparedInviteLink" readonly>
+    </label>
+    <button id="preparedInviteCopy" type="button">Copiar enlace de invitación</button>
+    <a id="preparedInviteWhatsApp" class="secondary" href="#" target="_blank" rel="noopener noreferrer">Compartir invitación por WhatsApp</a>
+  </section>
   <section class="matrix-actions matrix-card">
     <button id="saveDraft" type="button">Guardar borrador</button>
     <button id="publish" type="button" class="primary">Publicar cambios</button>
+    <button id="sendPreparedInvite" type="button" class="primary send-prepared-invite" hidden>✓ Finalizar autorizaciones y enviar invitación al administrador</button>
     <button id="deleteAdmin" type="button" class="danger">Eliminar administrador</button>
     <button id="restoreAdmin" type="button" class="secondary" hidden>Restaurar administrador</button>
   </section>
 </section>
 </main>
-<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-preview179" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
+<script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/matrix.js?v=20261008-onboard180" defer></script><script src="/matrix-nav.js?v=20261008-nav161" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v179-interactive-preview";
+const CACHE = "reles-ayn-v180-staged-admin-invite";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -9,8 +9,8 @@ const ASSETS = [
   "/administracion.webmanifest",
   "/pwa-register.js?v=20261007-pwa132",
   "/matrix.html",
-  "/matrix.css?v=20261008-preview179",
-  "/matrix.js?v=20261008-preview179",
+  "/matrix.css?v=20261008-onboard180",
+  "/matrix.js?v=20261008-onboard180",
   "/matrix-nav.js?v=20261008-nav161",
   "/ayn-navigation.js?v=20261008-nav161",
   "/ain-audio-worklet.js?v=20261004-release111",
@@ -31,7 +31,7 @@ const ASSETS = [
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-nav161",
-  "/administracion.js?v=20261008-access167",
+  "/administracion.js?v=20261008-onboard180",
   "/master-admin-manager.css?v=20261008-config180",
   "/master-admin-manager.js?v=20261008-config180",
   "/relay-installer.js?v=20261008-compact160",

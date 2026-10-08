@@ -12,10 +12,11 @@ for(const word of ['toggleShare','shareNumber','shareContacts','shareSection','s
  assert(!app.includes(word),'Escucha o referencia obsoleta: '+word);
 assert(admin.includes('id="invite"')&&admin.includes('id="whatsappFallback"'));
 assert(admin.includes('id="phone"')&&admin.includes('id="apartment"'));
+assert(api.includes("if(b.action==='prepareAdmin')")&&api.includes("if(b.action==='sendPreparedAdminInvite')"));
 assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
 assert(api.includes("A.manager(auth)"));
 assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
-assert(sw.includes('reles-ayn-v179-interactive-preview'));
+assert(sw.includes('reles-ayn-v180-staged-admin-invite'));
 assert(sw.includes('/app.js?v=20261008-phone176'));
 assert(!sw.includes('/share.css?'));
 assert(index.includes('/app.js?v=20261008-phone176'));

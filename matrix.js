@@ -7,6 +7,13 @@ const setupMode=params.get('setup')==='1';
 function deviceId(){let id=localStorage.getItem('relayDeviceId');if(!id){id=crypto.randomUUID();localStorage.setItem('relayDeviceId',id);}return id;}
 function headers(){return {'content-type':'application/json','x-app-pin':localStorage.getItem('relayPin')||'','x-device-id':deviceId(),'x-device-name':localStorage.getItem('relayDeviceName')||'PC Máster'};}
 async function api(body){const response=await fetch('/api/app-matrix',{method:body?'POST':'GET',headers:headers(),...(body?{body:JSON.stringify(body)}:{})});const data=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo completar.'),{status:response.status});return data;}
+async function administrationAction(body){
+  const response=await fetch('/api/administrations',{method:'POST',headers:headers(),body:JSON.stringify(body)});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'No se pudo enviar la invitación.');
+  return result;
+}
+
 function message(text,error=false){$('message').textContent=text;$('message').dataset.error=String(error);}
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
 function markDirty(){if(!selected())return;message('✓ Selección modificada. Presiona Publicar cambios para aplicar los permisos.');$('publish').dataset.unsaved='true';}
@@ -93,6 +100,35 @@ function renderOriginalAssigned(){
   }
 }
 
+function showPreparedInvitation(group,confirmation){
+  const details=group?.prepared&&group.status==='pending'&&!group.accountId?group.prepared:null;
+  const expired=details?.status==='sent'&&Date.parse(details.expiresAt||'')<=Date.now();
+  const pending=details?.status==='prepared'||expired;
+  const sent=details?.status==='sent'&&!expired;
+  $('preparedAdminBanner').hidden=!pending;
+  if(pending)$('preparedAdminInfo').textContent=
+    'Administrador: '+details.name+' · Teléfono: '+details.phone+
+    (details.apartment?' · Departamento: '+details.apartment:' · Sin departamento asignado');
+  $('sendPreparedInvite').hidden=!pending;
+  $('sendPreparedInvite').textContent=expired?'Renovar invitación vencida para el administrador':
+    '✓ Finalizar autorizaciones y enviar invitación al administrador';
+  $('publish').hidden=pending;
+  $('preparedInviteResult').hidden=!sent;
+  if(sent){
+    const auto=confirmation?.whatsapp?.sent??details.whatsappSent;
+    $('preparedInviteStatus').textContent=auto?
+      '✓ Autorizaciones guardadas. Invitación enviada por WhatsApp.':
+      '✓ Autorizaciones guardadas. Invitación creada; abre WhatsApp para completar el envío.';
+    const url=confirmation?.inviteUrl||details.inviteUrl||'';
+    $('preparedInviteLink').value=url;
+    const phone=details.phone||'';
+    const whatsapp=confirmation?.whatsapp?.fallbackUrl||
+      ('https://wa.me/'+phone+'?text='+encodeURIComponent('Hola '+details.name+
+        ', te invito a A&N Control como Administrador. Abre este enlace para activar tu acceso: '+url+
+        ' (válido por 24 horas).'));
+    $('preparedInviteWhatsApp').href=whatsapp;
+  }
+}
 function loadGroup(){
   const group=selected();if(!group)return;
   delete $('publish').dataset.unsaved;
@@ -104,7 +140,10 @@ function loadGroup(){
   $('actuators').replaceChildren(...(group.actuators||[]).map(device=>actuatorRow(device,current)));
   if(!(group.actuators||[]).length)$('actuators').append(el('p','Todavía no hay relés/actuadores asignados. Usa el selector superior para asignarlos.'));
   const deleted=group.status==='deleted';
-  $('saveDraft').disabled=deleted;$('publish').disabled=deleted;$('deleteAdmin').hidden=deleted;$('restoreAdmin').hidden=!deleted;
+  $('saveDraft').disabled=deleted;$('publish').disabled=deleted;
+  $('deleteAdmin').hidden=deleted||Boolean(group.prepared&&group.status==='pending');
+  $('restoreAdmin').hidden=!deleted;
+  showPreparedInvitation(group);
   renderPool();renderOriginalAssigned();renderPreview();
 }
 
@@ -201,6 +240,47 @@ $('group').addEventListener('change',()=>{history.replaceState(null,'','/matrix.
 $('appName').addEventListener('input',()=>{renderPreview();markDirty();});$('communityName').addEventListener('input',()=>{renderPreview();markDirty();});
 for(const button of document.querySelectorAll('[data-preview]'))button.addEventListener('click',()=>{previewRole=button.dataset.preview;for(const item of document.querySelectorAll('[data-preview]'))item.classList.toggle('active',item===button);renderPreview();});
 $('saveDraft').onclick=()=>save('saveDraft');$('publish').onclick=()=>save('publish');
+
+$('preparedInviteCopy').onclick=async()=>{
+  const input=$('preparedInviteLink');
+  try{await navigator.clipboard.writeText(input.value);message('✓ Enlace copiado. Entrégale el PIN por separado.');}
+  catch{input.focus();input.select();message('Selecciona y copia el enlace personal.');}
+};
+$('sendPreparedInvite').onclick=async()=>{
+  const group=selected();
+  if(!group?.prepared||
+    !(group.prepared.status==='prepared'||
+      group.prepared.status==='sent'&&Date.parse(group.prepared.expiresAt||'')<=Date.now()))return;
+  const button=$('sendPreparedInvite');
+  button.disabled=true;
+  // Abrir una pestaña vacía desde el gesto real permite usar WhatsApp si falla la API automática.
+  let whatsappWindow=null;
+  try{
+    whatsappWindow=window.open('about:blank','ayn-final-admin-invite');
+    if(whatsappWindow)whatsappWindow.document.write('<title>A&N Control</title><p style="font-family:system-ui;padding:20px">Guardando autorizaciones y preparando WhatsApp…</p>');
+    message('Guardando las autorizaciones antes de generar la invitación…');
+    if(!(await save('publish')))throw new Error('No se guardaron las autorizaciones. No se ha enviado ningún mensaje.');
+    const result=await administrationAction({action:'sendPreparedAdminInvite',groupId:group.id});
+    await reload(group.id);
+    showPreparedInvitation(selected(),result);
+    $('preparedInviteResult').hidden=false;
+    if(result.whatsapp?.sent){
+      if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();
+      message('✓ Administrador configurado e invitación enviada automáticamente.');
+    }else if(result.whatsapp?.fallbackUrl){
+      if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.location.replace(result.whatsapp.fallbackUrl);
+      message('✓ Autorizaciones guardadas. WhatsApp abierto con la invitación lista para enviar.');
+    }else{
+      if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();
+      message('✓ Autorizaciones guardadas. Copia el enlace para compartirlo.');
+    }
+    $('preparedInviteResult').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(error){
+    if(whatsappWindow&&!whatsappWindow.closed)whatsappWindow.close();
+    message(error.message||'No se pudo completar la invitación.',true);
+  }finally{button.disabled=false;}
+};
+
 
 $('assignActuator').onclick=async()=>{
   const group=selected(),item=selectedPoolItem();if(!group||!item)return;

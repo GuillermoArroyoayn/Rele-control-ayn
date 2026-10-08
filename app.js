@@ -308,7 +308,7 @@ function applyMatrixPresentation(){
 
 function buildMenu() {
   const masterRoute=location.hash.slice(1);
-  if(currentRole==='super_master'&&statusReady&&!masterRoute){location.replace('/administracion.html');return;}
+  if(currentRole==='super_master'&&statusReady&&!masterRoute){sessionStorage.setItem("aynAdminView","home");location.replace('/administracion.html#home');return;}
   mainMenu.innerHTML = "";
   if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.dataset.view='master';back.innerHTML='<span class="menu-icon" aria-hidden="true">👑</span><span class="menu-label">Menú Máster</span>';mainMenu.append(back);}
   const roleMenu =
@@ -348,7 +348,7 @@ const masterConfigLink=document.createElement('a');masterConfigLink.className='r
 const functionToolbar=document.createElement("nav"); functionToolbar.className="user-toolbar function-toolbar"; functionToolbar.hidden=true;
 const functionBack=document.createElement("button"); functionBack.type="button"; functionBack.textContent="Volver al menú";
 functionBack.onclick=()=>showView("menu");
-const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{location.assign("/administracion.html");};
+const functionTitle=document.createElement("button"); functionTitle.type="button"; functionTitle.className="function-home-button"; functionTitle.textContent="Inicio"; functionTitle.setAttribute("aria-label","Ir a Inicio"); functionTitle.onclick=()=>{sessionStorage.setItem("aynAdminView","home");location.assign("/administracion.html#home");};
 const functionConfig=document.createElement("button"); functionConfig.type="button"; functionConfig.textContent="Configuración"; functionConfig.onclick=()=>showView("settings");
 functionToolbar.append(functionBack,functionTitle,functionConfig);document.body.append(functionToolbar);
 const functionSettings=document.createElement("section"); functionSettings.className="function-screen"; functionSettings.hidden=true;document.body.append(functionSettings);

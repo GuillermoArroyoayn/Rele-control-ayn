@@ -55,11 +55,10 @@
     document.querySelectorAll('.ayn-info-quick').forEach(button=>{
       const section=button.dataset.aynInbox||'wall';
       const count=unread.filter(item=>section==='emergency'?isPrivate(item):!isPrivate(item)).length;
-      const countNode=button.querySelector('.ayn-info-count'),emergencyNode=button.querySelector('.ayn-info-emergency-label');
+      const countNode=button.querySelector('.ayn-info-count');
       button.classList.toggle('ayn-info-unread',count>0);
       button.classList.toggle('ayn-info-urgent',section==='emergency'&&emergency);
       if(countNode){countNode.hidden=count===0;countNode.textContent=count>99?'99+':String(count);}
-      if(emergencyNode)emergencyNode.hidden=!(section==='emergency'&&emergency);
       button.title=count ? count+' aviso(s) pendiente(s)' : (section==='emergency'?'Reportes emergencia':'Muro informativo');
     });
     if(opened && activeView==='all')renderAll();
@@ -370,12 +369,14 @@
       for(const section of ['wall','emergency']){
         const selector=section==='wall'?'[data-home-view="community-hub"],[data-admin-module="community-hub"]':'[data-home-view="reports"],[data-admin-module="reports"]';
         const button=grid.querySelector(selector);
-        if(!button||button.dataset.aynInbox)return;
+        if(!button)return;
+        // Solo mostrar el título propio de la tarjeta: nunca añadir «Emergencia» debajo.
+        button.querySelectorAll('.ayn-info-emergency-label').forEach(label=>label.remove());
+        if(button.dataset.aynInbox)return;
         button.dataset.aynInbox=section;
         button.classList.add('ayn-info-quick');
         const count=el('span','ayn-info-count');count.hidden=true;
-        const emergency=el('span','ayn-info-emergency-label','🚨 Emergencia');emergency.hidden=true;
-        button.append(count,emergency);
+        button.append(count);
         button.addEventListener('click',event=>{
           // El residente sigue entrando al formulario para enviar su propio reporte.
           if(section==='emergency'&&(role==='user'||localStorage.getItem('aynLastRole')==='user'))return;

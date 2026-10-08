@@ -208,24 +208,49 @@ function accessButton(profile,fallbackName,initialState,command,read) {
     button.setAttribute('aria-label',title.textContent+' · '+(state===true?'encendido':state===false?'apagado':'estado por consultar'));
     button.setAttribute('aria-pressed',String(state===true));
   };
+  // El estado que llegó tarde no puede anular una pulsación pendiente.
+  const syncState=next=>{if(!busy)paintState(next);};
   paintState(state);
   button.onclick=async()=>{
     if(busy)return;
-    busy=true;button.disabled=true;status.textContent='Procesando…';
+    busy=true;button.disabled=true;
+    let previous=state;
     try{
-      // No apagar a ciegas si el estado remoto todavía no está confirmado.
-      if(isManual()&&state===null){const fresh=await read();paintState(fresh);if(state===null)throw new Error('No se pudo consultar el estado.');}
-      const target=isManual()?!state:true;
-      const result=await command(target);
-      paintState(result.autoOffConfirmed?false:result.state);
-      if(result.autoOffPending){status.textContent='OFF sin confirmar';}
-      if(result.timerSeconds&&!result.autoOffConfirmed){
-        window.setTimeout(()=>read().then(paintState).catch(()=>{}),(result.timerSeconds+1)*1000);
+      if(isManual()&&state===null){
+        const fresh=await read();paintState(fresh);
+        if(state===null)throw new Error('No se pudo consultar el estado.');
       }
-    }catch(error){paintState(state);status.textContent=error.message||'Sin conexión';show(error.message||'Sin conexión',true);}
-    finally{busy=false;button.disabled=false;}
+      previous=state;
+      const target=isManual()?!state:true;
+      // La API espera el ciclo temporizado antes de responder.
+      card.classList.add('activation-pending');
+      paintState(target);
+      status.textContent=target?'Activación solicitada, esperando confirmación':'Apagado solicitado, esperando confirmación';
+      button.setAttribute('aria-label',title.textContent+' · '+status.textContent);
+      const result=await command(target);
+      if(result.autoOffConfirmed){
+        paintState(false);
+      }else if(result.autoOffPending){
+        paintState(null);
+        status.textContent='Apagado automático pendiente de confirmar';
+      }else{
+        paintState(result.state);
+      }
+      const seconds=Number(result.timerSeconds)||0;
+      if(seconds&&!result.autoOffConfirmed){
+        const delay=result.autoOffPending?1500:(seconds+1)*1000;
+        window.setTimeout(()=>read().then(syncState).catch(()=>{}),delay);
+      }
+    }catch(error){
+      paintState(previous);
+      status.textContent=error.message||'Sin conexión';
+      show(error.message||'Sin conexión',true);
+    }finally{
+      card.classList.remove('activation-pending');
+      busy=false;button.disabled=false;
+    }
   };
-  return {card,paintState};
+  return {card,paintState:syncState};
 }
 async function loadManagedAccess(){
   if(managedAccessLoading||currentRole==="super_master"||!statusReady)return;

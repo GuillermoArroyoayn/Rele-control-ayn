@@ -38,6 +38,9 @@ jobs:
       - name: Verificar guardado permanente y botones de acceso
         run: node tests/access-persistent-visible.cjs
 
+      - name: Verificar transiciones ON/OFF y temporización de Accesos
+        run: node tests/access-state-feedback.cjs
+
       - name: Verificar compatibilidad voz con audio Bluetooth
         run: node tests/bluetooth-audio.cjs
 

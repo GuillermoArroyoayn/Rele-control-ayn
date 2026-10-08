@@ -223,7 +223,6 @@ function renderGroups(preferred=requestedGroup){
     if(setupMode&&target===requestedGroup)message('Configura ahora los relés, sus nombres y las pantallas disponibles. Cuando termines, pulsa Publicar cambios.');
   }else{
     message('La carpeta quedó libre. Puedes crear un nuevo administrador desde Administración general.');
-    $('createAdminAfterDelete').hidden=false;
   }
 }
 
@@ -325,7 +324,6 @@ $('deleteAdmin').onclick=async()=>{
   try{
     const result=await api({action:'deleteAndClearAdministrator',groupId:group.id});
     await reload();
-    $('createAdminAfterDelete').hidden=false;
     message('✓ '+adminName+' eliminado. Carpeta vacía; relés disponibles para asignar a otro administrador.'+
       (result.releasedActuators?' Se liberaron '+result.releasedActuators+' actuadores.':''));
   }catch(error){message(error.message,true);}

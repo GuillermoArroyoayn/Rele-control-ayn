@@ -594,6 +594,7 @@ function matrixAllowed(view,role=currentRole){if(view==="community-hub")return m
 function matrixLabel(view,fallback,role=currentRole){return matrixEntry(view,role)?.label||fallback;}
 function applyMatrixPresentation(){
   if(!currentMatrix)return;
+  window.AynCommunityVisibility={wall:matrixAllowed("wall",currentRole),polls:matrixAllowed("polls",currentRole)};
   if(currentMatrix.branding?.appName)document.title=currentMatrix.branding.appName;
   for(const button of homeDashboard.querySelectorAll("[data-home-view]")){
     const view=button.dataset.homeView;

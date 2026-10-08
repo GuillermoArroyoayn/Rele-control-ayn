@@ -69,5 +69,9 @@ async function check(name,condition){
   await check('Usuario no alterado',registry.devices[user].role==='user'&&registry.devices[user].groupId==='community-A');
   const replacement=await request(manage,{action:'replaceExisting',adminId:fresh,userId:user});
   await check('Reemplazo con usuario actual',replacement.code===200&&registry.devices[fresh].status==='deleted'&&registry.devices[user].role==='admin');
+  const peer='peer-12345678901234';
+  registry.devices[peer]={role:'admin',groupId:'community-A',status:'active',name:'Administrador existente',relays:[3]};
+  const reuse=await request(manage,{action:'replaceExisting',adminId:user,userId:peer});
+  await check('Reemplazo por administrador existente de la propia comunidad',reuse.code===200&&registry.devices[user].status==='deleted'&&registry.devices[peer].role==='admin'&&registry.devices[peer].relays.join(',')==='1,2,3');
   console.log('TOTAL '+checks+' verificaciones correctas.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

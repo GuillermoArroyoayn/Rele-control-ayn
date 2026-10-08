@@ -7,7 +7,7 @@ assert(app.includes('id="accessActionsToggle"'));
 assert(app.includes('id="accessSettingsOpen"'));
 assert(app.includes('className="access-settings-panel"'));
 assert(app.includes('"access-settings":accessSettingsPanel'),'Configuración en vista aparte');
-assert(app.includes('currentRole!==\\'admin\\''),'El administrador debe ser quien configure');
+assert(app.includes("currentRole!=='admin'"),'El administrador debe ser quien configure');
 assert(app.includes('syncAccessBrand(view)'),'Usar el logo original en pantalla de acceso');
 assert(app.includes('if(managedAccessVisible||view==="access-settings")loadManagedAccess()'),'Ajustes guardados disponibles al navegar');
 assert(app.includes('function accessButton('),'Uno por actuador');
@@ -16,7 +16,7 @@ assert(app.includes("if(isManual()&&state===null)"),'Nunca apagar sin saber esta
 assert(app.includes("accessSettingsGrid.append(card)"),'Formulario fuera de los botones');
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'Configuración no debe quedar en tarjeta operativa');
 assert(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Distribución equilibrada');
-assert(styles.includes('.access-control-top .home-logo'),'Logo A&N en accesos');
+assert(styles.includes('.access-brand-slot .home-logo'),'Logo A&N en accesos');
 assert(sw.includes('reles-ayn-v166-access-clean'));
 assert(html.includes('/styles.css?v=20261008-access166')&&html.includes('/app.js?v=20261008-access166'));
 console.log('Accesos v166: logo original, botón único, menú independiente, permisos, modo manual/temporizador y diseño adaptable.');

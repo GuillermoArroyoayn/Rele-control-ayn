@@ -1,10 +1,10 @@
-const CACHE = "reles-ayn-v187-information-emergencies";
+const CACHE = "reles-ayn-v189-audience-private-emergency";
 const ASSETS = [
-  "/community.js?v=20261008-hub186",
-  "/community.css?v=20261008-hub186",
+  "/community.js?v=20261008-audience189",
+  "/community.css?v=20261008-audience189",
   "/community-indicators.js?v=20261008-hub186",
-  "/information.js?v=20261008-info187",
-  "/information.css?v=20261008-info187",
+  "/information.js?v=20261008-audience189",
+  "/information.css?v=20261008-audience189",
   "/ain-streaming-provider.js?v=20261006-voice116",
   "/",
   "/index.html",
@@ -28,12 +28,12 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-hub186",
-  "/panic.js?v=20261008-info187",
-  "/reports.js?v=20261004-release111",
+  "/app.js?v=20261008-audience189",
+  "/panic.js?v=20261008-audience189",
+  "/reports.js?v=20261008-audience189",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261008-mic182",
-  "/administracion.js?v=20261008-hub186",
+  "/administracion.js?v=20261008-audience189",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
@@ -80,7 +80,7 @@ self.addEventListener('push',event=>{
         icon:'/app-icon-192.png',badge:'/app-icon-192.png',
         tag:'ayn-information-'+data.id,renotify:true,silent:false,
         vibrate:urgent?[300,150,300,150,500]:[160,80,160],
-        requireInteraction:urgent,data:{url:'/#information'}
+        requireInteraction:urgent,data:{url:data.url|| (urgent?'/#emergency':'/#information')}
       });
       return;
     }
@@ -90,7 +90,7 @@ self.addEventListener('push',event=>{
     await self.registration.showNotification(data.title,{
       body:data.body,icon:'/app-icon-192.png',badge:'/app-icon-192.png',
       tag,renotify:true,silent:false,vibrate:data.cancelled?[]:[250,100,250,100,500],
-      requireInteraction:!data.cancelled,data:{url:'/#information',expiresAt:data.expiresAt}
+      requireInteraction:!data.cancelled,data:{url:'/#emergency',expiresAt:data.expiresAt}
     });
   })());
 });
@@ -100,7 +100,7 @@ self.addEventListener('notificationclick',event=>{
   event.waitUntil((async()=>{
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     const client=windows.find(c=>new URL(c.url).origin===self.location.origin);
-    if(client){await client.focus();client.postMessage({type:'AYN_OPEN_INFORMATION'});}
+    if(client){await client.focus();client.postMessage({type:'AYN_OPEN_INFORMATION',section:url.includes('#emergency')?'emergency':'wall'});}
     else await self.clients.openWindow(url);
   })());
 });

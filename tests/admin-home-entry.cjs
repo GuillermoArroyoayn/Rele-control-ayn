@@ -16,7 +16,7 @@ assert(adminHtml.includes('href="/#access" data-admin-module="access"'),'El acce
 assert(!adminHtml.includes('href="/#control" data-admin-module="access"'),'No restablecer ruta antigua que deja Accesos en blanco');
 assert(adminHtml.includes('/administracion.js?v=20261008-access167'));
 assert(html.includes('/app.js?v=20261008-phone176'));
-assert(sw.includes('reles-ayn-v178-matrix-designations'));
+assert(sw.includes('reles-ayn-v179-interactive-preview'));
 assert(sw.includes('/administracion.js?v=20261008-access167'));
 assert(sw.includes('/app.js?v=20261008-phone176'));
 function shouldShowAdminHome(role,hash='',search=''){

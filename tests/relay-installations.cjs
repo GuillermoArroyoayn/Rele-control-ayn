@@ -59,8 +59,13 @@ async function run(action,payload={},method='POST'){
  assert(calls.every(x=>x.method==='GET'));
  const html=fs.readFileSync('administracion.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
  for(const name of ['relayInstaller','relayInstallerForm','relayInstallerList','install-wifiSsid','install-deviceId','install-groupId'])assert(html.includes(name));
- assert(html.includes('/relay-installer.js?v=20261008-preinstall158'));
- assert(sw.includes('reles-ayn-v158-relay-preinstall')&&sw.includes('/relay-installer.js?v=20261008-preinstall158'));
+ const at=html.indexOf('id="relayInstaller"'),search=html.indexOf('class="relay-search"'),folders=html.indexOf('id="relayCenterLists"');
+ assert(at>html.indexOf('id="relayCenterHead"')&&at<search&&search<folders,'La carpeta debe aparecer antes de buscar y asignar');
+ assert(html.includes('Agregar relé ya conectado'),'Alta existente debe tener nombre distinto');
+ assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
+ assert(fs.readFileSync('relay-installer.js','utf8').includes('＋ Preparar relé · '),'Botón de preparación visible');
+ assert(html.includes('/relay-installer.js?v=20261008-preinstall159'));
+ assert(sw.includes('reles-ayn-v159-relay-top')&&sw.includes('/relay-installer.js?v=20261008-preinstall159'));
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
  assert(fs.readFileSync('administracion.css','utf8').includes('.relay-installer[hidden]'));
  console.log('Installer v158 OK: roles, staging, cloud GET-only, offline, confirmation, duplicates and PWA.');

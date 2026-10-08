@@ -717,3 +717,14 @@ body[data-admin-view="equipment"] #groupLabel{display:none!important}
 .relay-install-buttons button{flex:1 1 122px;min-height:44px;margin:0;padding:8px}
 .relay-install-buttons button:disabled{opacity:.48;cursor:not-allowed}
 #relayInstallerStatus[data-error="true"]{color:#fecaca}
+/* v159 · Preparación de relés antes de buscar y asignar. */
+body[data-admin-view="equipment"] #relayCenterHead .relay-installer{width:100%;margin:10px 0 16px!important}
+body[data-admin-view="equipment"] .relay-installer-toggle{
+  min-height:58px;
+  padding:14px 12px;
+  font-weight:800;
+  font-size:clamp(16px,4.1vw,19px);
+  border-color:var(--theme-accent,#5ee7ff)!important;
+  box-shadow:0 0 0 1px var(--theme-glow,#00a8ff55),0 0 16px var(--theme-glow,#00a8ff44);
+}
+body[data-admin-view="equipment"] .relay-center-title>button{min-height:44px;font-size:15px}

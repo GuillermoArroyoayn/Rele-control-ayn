@@ -25,10 +25,10 @@ assert(app.includes('homeVoiceButton.addEventListener("click"'),'Sigue disponibl
 assert(app.includes('voiceCommand.click()'),'El botón inicia y detiene la voz');
 assert(app.includes('homeVoiceText.textContent'),'Los avisos siguen actualizándose en lectores de pantalla');
 assert(admHtml.includes('id="homeVoiceText" role="status" aria-live="polite"'),'Confirmación accesible conservada');
-assert(index.includes('/styles.css?v=20261008-mic182'));
+assert(index.includes('/styles.css?v=20261008-adminroutes185'));
 assert(admHtml.includes('/administracion.css?v=20261008-mic182'));
-assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
-assert(sw.includes('/styles.css?v=20261008-mic182'));
+assert(sw.includes('reles-ayn-v185-admin-screen-routes'));
+assert(sw.includes('/styles.css?v=20261008-adminroutes185'));
 assert(sw.includes('/administracion.css?v=20261008-mic182'));
 // Aun en pantallas cortas la altura flexible permite desplazamiento en vez de superposición.
 for(const height of [560,640,720,800,900]){

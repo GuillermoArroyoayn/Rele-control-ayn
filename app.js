@@ -61,14 +61,38 @@ const relayGrid = document.querySelector(".relay-grid");
 const managedAccessPanel=document.createElement("section");
 managedAccessPanel.className="managed-access-panel";
 managedAccessPanel.hidden=true;
-managedAccessPanel.innerHTML='<h2>Actuadores</h2><p class="managed-access-help">Solo aparecen los actuadores asignados a esta cuenta.</p><div class="relay-grid managed-access-grid"></div>';
+managedAccessPanel.innerHTML=`<div class="access-control-top">
+  <div class="access-brand-slot" aria-label="A&N Control"></div>
+  <button id="accessActionsToggle" type="button" aria-label="Menú de accesos" aria-controls="accessActionsPanel" aria-expanded="false">⋮</button>
+</div>
+<nav id="accessActionsPanel" class="access-actions-panel" aria-label="Menú de accesos" hidden>
+  <button id="accessSettingsOpen" type="button">⚙ Configurar accesos</button>
+</nav>
+<div class="relay-grid managed-access-grid" aria-label="Botones de activación"></div>`;
 relayGrid.after(managedAccessPanel);
 const managedAccessGrid=managedAccessPanel.querySelector(".managed-access-grid");
+const accessBrandSlot=managedAccessPanel.querySelector(".access-brand-slot");
+const accessActionsToggle=managedAccessPanel.querySelector("#accessActionsToggle");
+const accessActionsPanel=managedAccessPanel.querySelector("#accessActionsPanel");
+const accessSettingsPanel=document.createElement("section");
+accessSettingsPanel.className="access-settings-panel";
+accessSettingsPanel.hidden=true;
+accessSettingsPanel.innerHTML='<h2>Configurar accesos</h2><div class="access-settings-grid"></div>';
+managedAccessPanel.after(accessSettingsPanel);
+const accessSettingsGrid=accessSettingsPanel.querySelector(".access-settings-grid");
+accessActionsToggle.onclick=()=>{
+  accessActionsPanel.hidden=!accessActionsPanel.hidden;
+  accessActionsToggle.setAttribute("aria-expanded",String(!accessActionsPanel.hidden));
+};
+managedAccessPanel.querySelector("#accessSettingsOpen").onclick=()=>{
+  accessActionsPanel.hidden=true;accessActionsToggle.setAttribute("aria-expanded","false");
+  showView("access-settings");
+};
 
 function profileEditor(card,profile){
   if(currentRole!=='admin')return;
-  const details=document.createElement('details');details.className='actuator-settings';
-  const summary=document.createElement('summary');summary.textContent='⚙ Configurar';details.append(summary);
+  const details=document.createElement('details');details.className='actuator-settings';details.open=true;
+  const summary=document.createElement('summary');summary.textContent='⚙ '+profile.name;details.append(summary);
   const form=document.createElement('form');form.className='actuator-settings-form';
   const field=(labelText,input)=>{
     const wrap=document.createElement('label');wrap.textContent=labelText;wrap.append(input);form.append(wrap);return input;
@@ -95,8 +119,10 @@ function profileEditor(card,profile){
     try{
       const payload={id:profile.id,name:name.value,voiceName:voice.value,mode:mode.value,seconds:mode.value==='manual'?0:Number(seconds.value)};
       const result=await api('/api/actuator-profiles',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-      status.textContent='Configuración guardada. Voz: «AYN abre '+(result.profile.voiceName||result.profile.name)+'».';
+      status.textContent='Configuración guardada.';
       await loadManagedAccess();
+      const notice=document.createElement('p');notice.className='access-settings-success';notice.setAttribute('role','status');
+      notice.textContent='Guardado: '+result.profile.name+'.';accessSettingsGrid.prepend(notice);
     }catch(error){status.textContent=error.message;}finally{save.disabled=false;}
   };
   card.append(details);
@@ -106,76 +132,108 @@ let managedAccessLoading=false;
 async function managedAccessApi(body){
   return api("/api/administrations",body?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}:{});
 }
+function accessButton(profile,fallbackName,initialState,command,read) {
+  const id=profile?.id||fallbackName;
+  const card=document.createElement('article');card.className='access-button-card';
+  card.dataset.actuator=id;
+  const button=document.createElement('button');button.type='button';button.className='access-activation-button';
+  const symbol=document.createElement('span');symbol.className='access-power-symbol';symbol.textContent='⏻';symbol.setAttribute('aria-hidden','true');
+  const title=document.createElement('strong');title.className='access-actuator-name';title.textContent=profile?.name||fallbackName;
+  const status=document.createElement('span');status.className='access-actuator-status';status.setAttribute('aria-live','polite');
+  button.append(symbol,title,status);card.append(button);
+  let state=typeof initialState==='boolean'?initialState:null,busy=false;
+  const isManual=()=>profile?.mode==='manual'||(profile?.seconds===0&&profile?.mode!=='timer');
+  const paintState=(next)=>{
+    state=typeof next==='boolean'?next:null;
+    card.classList.toggle('on',state===true);
+    status.textContent=state===true?'ON':state===false?'OFF':'Estado pendiente';
+    button.setAttribute('aria-label',title.textContent+' · '+(state===true?'encendido':state===false?'apagado':'estado por consultar'));
+    button.setAttribute('aria-pressed',String(state===true));
+  };
+  paintState(state);
+  button.onclick=async()=>{
+    if(busy)return;
+    busy=true;button.disabled=true;status.textContent='Procesando…';
+    try{
+      // No apagar a ciegas si el estado remoto todavía no está confirmado.
+      if(isManual()&&state===null){const fresh=await read();paintState(fresh);if(state===null)throw new Error('No se pudo consultar el estado.');}
+      const target=isManual()?!state:true;
+      const result=await command(target);
+      paintState(result.autoOffConfirmed?false:result.state);
+      if(result.autoOffPending){status.textContent='OFF sin confirmar';}
+      if(result.timerSeconds&&!result.autoOffConfirmed){
+        window.setTimeout(()=>read().then(paintState).catch(()=>{}),(result.timerSeconds+1)*1000);
+      }
+    }catch(error){paintState(state);status.textContent=error.message||'Sin conexión';}
+    finally{busy=false;button.disabled=false;}
+  };
+  return {card,paintState};
+}
 async function loadManagedAccess(){
   if(managedAccessLoading||currentRole==="super_master"||!statusReady)return;
   managedAccessLoading=true;
   managedAccessGrid.replaceChildren();
-  const loading=document.createElement("p");loading.textContent="Cargando actuadores asignados…";managedAccessGrid.append(loading);
+  accessSettingsGrid.replaceChildren();
+  const loading=document.createElement('p');loading.textContent='Cargando accesos…';managedAccessGrid.append(loading);
   try{
     const [data,originalStatus,profileResult]=await Promise.all([
       managedAccessApi(),api("/api/status").catch(()=>({relays:[]})),
       api("/api/actuator-profiles").catch(error=>({profiles:[],error:error.message}))
     ]);
     managedAccessGrid.replaceChildren();
+    accessSettingsGrid.replaceChildren();
     window.AynActuatorVoice?.setProfiles(profileResult.profiles||[]);
-    const profiles=new Map((profileResult.profiles||[]).map(x=>[x.id,x]));
-    if(profileResult.error){
+    const profiles=new Map((profileResult.profiles||[]).map(item=>[item.id,item]));
+    if(profileResult.error&&currentRole==='admin'){
       const warning=document.createElement('p');warning.textContent='Configuración no disponible: '+profileResult.error;
-      managedAccessGrid.append(warning);
+      accessSettingsGrid.append(warning);
     }
     const items=data.actuators||[];
     const originals=(originalStatus.relays||[]).filter(x=>[1,2,3].includes(Number(x.relay)));
     if(!items.length&&!originals.length){
-      const empty=document.createElement("p");empty.textContent="No hay actuadores asignados a esta cuenta.";managedAccessGrid.append(empty);return;
+      const empty=document.createElement('p');empty.textContent='No hay actuadores asignados a esta cuenta.';
+      managedAccessGrid.append(empty);
+      if(currentRole==='admin'){
+        const settingEmpty=document.createElement('p');settingEmpty.textContent='Todavía no tienes actuadores para configurar.';
+        accessSettingsGrid.append(settingEmpty);
+      }
+      return;
     }
-    // Los relés originales son compartidos mediante permisos del Máster, nunca duplicados.
     for(const original of originals){
-      const card=document.createElement("article");card.className="relay-card managed-relay-card";
-      const info=document.createElement("div"),name=document.createElement("span"),state=document.createElement("strong");
-      name.className="relay-label";const profile=profiles.get('original-'+original.relay);name.textContent=profile?.name||"Actuador "+original.relay;
-      state.textContent=original.state===true?"ENCENDIDO":original.state===false?"APAGADO":"Estado pendiente";
-      info.append(name,state);
-      const controls=document.createElement("div");controls.className="managed-relay-actions";
-      const on=document.createElement("button"),off=document.createElement("button"),refreshState=document.createElement("button");
-      for(const [el,text] of [[on,'ON'],[off,'OFF'],[refreshState,'Actualizar']]){el.type="button";el.className="small-button";el.textContent=text;}
-      const busy=value=>{on.disabled=value;off.disabled=value;refreshState.disabled=value;};
-      const read=async()=>{const status=await api("/api/status"),current=(status.relays||[]).find(x=>x.relay===original.relay);
-        state.textContent=current?.state===true?"ENCENDIDO":current?.state===false?"APAGADO":"Estado pendiente";
-        card.classList.toggle("on",current?.state===true);};
-      const send=async value=>{busy(true);state.textContent="ORDEN EN CURSO…";
-        try{const result=await api("/api/control",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({relay:original.relay,state:value})});
-          state.textContent=result.autoOffConfirmed?"APAGADO":result.state===true?"ENCENDIDO":result.state===false?"APAGADO":"Estado pendiente";
-          card.classList.toggle("on",result.state===true&&!result.autoOffConfirmed);
-          if(result.timerSeconds&&!result.autoOffConfirmed)setTimeout(()=>read().catch(()=>{}),(result.timerSeconds+1)*1000);
-        }catch(error){state.textContent=error.message;}finally{busy(false);}};
-      on.onclick=()=>send(true);off.onclick=()=>send(false);
-      refreshState.onclick=async()=>{busy(true);try{await read();}catch(error){state.textContent=error.message;}finally{busy(false);}};
-      controls.append(on,off,refreshState);card.append(info,controls);
-      if(profile)profileEditor(card,profile);
-      managedAccessGrid.append(card);
+      const profile=profiles.get('original-'+original.relay);
+      const read=async()=>{
+        const result=await api("/api/status");
+        return (result.relays||[]).find(item=>item.relay===original.relay)?.state;
+      };
+      const command=async state=>api("/api/control",{
+        method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({relay:original.relay,state})
+      });
+      const built=accessButton(profile,'Actuador '+original.relay,original.state,command,read);
+      managedAccessGrid.append(built.card);
+      if(currentRole==='admin'&&profile){
+        const card=document.createElement('article');card.className='access-settings-card';
+        profileEditor(card,profile);accessSettingsGrid.append(card);
+      }
     }
     for(const item of items){
-      const card=document.createElement("article");card.className="relay-card managed-relay-card";
-      const info=document.createElement("div");
-      const name=document.createElement("span");name.className="relay-label";const profile=profiles.get('managed-'+item.id);name.textContent=profile?.name||item.name||"Actuador";
-      const state=document.createElement("strong");state.textContent="Estado pendiente";
-      info.append(name,state);
-      const controls=document.createElement("div");controls.className="managed-relay-actions";
-      const on=document.createElement("button");on.type="button";on.className="small-button";on.textContent="ON";
-      const off=document.createElement("button");off.type="button";off.className="small-button";off.textContent="OFF";
-      const refreshState=document.createElement("button");refreshState.type="button";refreshState.className="small-button";refreshState.textContent="Actualizar";
-      const setBusy=value=>{on.disabled=value;off.disabled=value;refreshState.disabled=value;};
-      const read=async()=>{const result=await managedAccessApi({action:"status",id:item.id});state.textContent=result.state===true?"ENCENDIDO":result.state===false?"APAGADO":"Estado pendiente";card.classList.toggle("on",result.state===true);};
-      on.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{const result=await managedAccessApi({action:"control",id:item.id,state:true});state.textContent=result.autoOffConfirmed?"APAGADO":result.state===true?"ENCENDIDO":"Estado pendiente";card.classList.toggle("on",result.state===true&&!result.autoOffConfirmed);}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
-      off.onclick=async()=>{setBusy(true);state.textContent="ORDEN EN CURSO…";try{await managedAccessApi({action:"control",id:item.id,state:false});state.textContent="APAGADO";card.classList.remove("on");}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
-      refreshState.onclick=async()=>{setBusy(true);try{await read();}catch(error){state.textContent=error.message;}finally{setBusy(false);}};
-      controls.append(on,off,refreshState);card.append(info,controls);
-      if(profile)profileEditor(card,profile);
-      managedAccessGrid.append(card);read().catch(()=>{});
+      const profile=profiles.get('managed-'+item.id);
+      const read=async()=>{
+        const result=await managedAccessApi({action:'status',id:item.id});
+        return result.state;
+      };
+      const command=async state=>managedAccessApi({action:'control',id:item.id,state});
+      const built=accessButton(profile,item.name||'Actuador',null,command,read);
+      managedAccessGrid.append(built.card);
+      read().then(built.paintState).catch(()=>{});
+      if(currentRole==='admin'&&profile){
+        const card=document.createElement('article');card.className='access-settings-card';
+        profileEditor(card,profile);accessSettingsGrid.append(card);
+      }
     }
   }catch(error){
     managedAccessGrid.replaceChildren();
-    const failed=document.createElement("p");failed.textContent=error.message;managedAccessGrid.append(failed);
+    const failed=document.createElement('p');failed.textContent=error.message;managedAccessGrid.append(failed);
   }finally{managedAccessLoading=false;}
 }
 const mainMenu = document.createElement("nav");
@@ -252,6 +310,12 @@ const homeWatermark = document.querySelector(".home-watermark");
 const homeWatermarkOrigin = document.createComment("Ubicación original del logo A&N");
 if (homeWatermark) homeWatermark.before(homeWatermarkOrigin);
 const homeBrandSlot = homeDashboard.querySelector(".home-dashboard-brand");
+function syncAccessBrand(view){
+  if(!homeWatermark)return;
+  if(view==="access")accessBrandSlot.append(homeWatermark);
+  else if(document.body.classList.contains("user-layout"))homeBrandSlot.append(homeWatermark);
+  else if(homeWatermarkOrigin.parentNode)homeWatermarkOrigin.after(homeWatermark);
+}
 const syncHomeVoice = () => {
   const listening = voiceCommand.classList.contains("listening");
   homeVoiceButton.classList.toggle("listening", listening);
@@ -433,12 +497,13 @@ function prepareFunctionScreen(view) {
   functionTitle.textContent="Inicio";
   functionConfig.hidden=!["super_master","admin"].includes(currentRole)||["menu","settings"].includes(view);
   if(!user && ready) mainMenu.hidden=view!=="menu";
-  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel];
+  const panels=[mainMenu,adminPanel,bookingsPanel,reportsPanel,databasePanel,systemPanel,userSettingsPanel,accessSettingsPanel];
   for(const panel of panels) {panel.classList.remove("function-screen");if(ready && panel.parentElement!==document.body) document.body.append(panel);}
   if(ready) for(const panel of document.querySelectorAll(".community-panel,.panic-panel")) if(panel.parentElement!==document.body) document.body.append(panel);
-  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel})[view];
+  const chosen=({menu:mainMenu,admins:adminPanel,users:adminPanel,temporary:adminPanel,history:adminPanel,bookings:bookingsPanel,reports:reportsPanel,database:databasePanel,system:systemPanel,settings:userSettingsPanel,"access-settings":accessSettingsPanel})[view];
   if(ready && chosen) {chosen.classList.add("function-screen");chosen.scrollTop=0;}
   userSettingsPanel.hidden=!ready||view!=="settings";
+  accessSettingsPanel.hidden=!ready||currentRole!=='admin'||view!=="access-settings";
   functionSettings.hidden=user||!ready||!["voice","tools"].includes(view);
   if(!user){
     if(currentRole==="admin"||view==="settings")mountPersonalSettings();
@@ -449,10 +514,15 @@ function prepareFunctionScreen(view) {
   }
 }
 function showView(view) {
+  if(view==="access-settings"&&currentRole!=="admin")view="access";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   if(statusReady&&currentRole!=="super_master"&&matrixViewId(view,currentRole)&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   currentView = view;
+  syncAccessBrand(view);
+  accessActionsPanel.hidden=true;
+  accessActionsToggle.setAttribute("aria-expanded","false");
+  accessActionsToggle.hidden=currentRole!=="admin";
   if(statusReady)window.AynNavigation?.visit('app',view);
   prepareFunctionScreen(view);
   document.dispatchEvent(new Event("ayn-menu-view"));
@@ -489,10 +559,10 @@ function showView(view) {
   for (const button of mainMenu.querySelectorAll("button"))
     button.classList.toggle("active", button.dataset.view === view);
   const control = view === "control";
-  const managedAccessVisible=currentRole!=="super_master"&&(user?view==="access":currentRole==="admin"&&["control","access"].includes(view));
+  const managedAccessVisible=currentRole!=="super_master"&&view==="access";
   relayGrid.hidden=currentRole!=="super_master"||!control;
   managedAccessPanel.hidden=!managedAccessVisible;
-  if(managedAccessVisible)loadManagedAccess();
+  if(managedAccessVisible||view==="access-settings")loadManagedAccess();
   refresh.hidden=!control||currentRole!=="super_master";
   adminPanel.hidden = !(
     ["admins", "users", "temporary", "history"].includes(view) &&

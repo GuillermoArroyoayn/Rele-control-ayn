@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v165-access-profiles";
+const CACHE = "reles-ayn-v166-access-clean";
 const ASSETS = [
   "/community.js?v=20261004-release111",
   "/community.css?v=20261006-orbit123",
@@ -17,14 +17,14 @@ const ASSETS = [
   "/app-icon-192.png",
   "/app-icon-512.png",
   "/manifest.webmanifest",
-  "/styles.css?v=20261008-access165",
+  "/styles.css?v=20261008-access166",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
   "/ui-feedback.css?v=20261006-orbit123",
   "/ain-local-voice.js?v=20261008-btaudio154",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-access165",
+  "/app.js?v=20261008-access166",
   "/panic.js?v=20261007-settings137",
   "/reports.js?v=20261004-release111",
   "/ui-feedback.js?v=20261004-release111",

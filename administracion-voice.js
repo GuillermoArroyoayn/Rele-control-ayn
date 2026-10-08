@@ -402,7 +402,13 @@
     event.stopPropagation();
     button.blur();
     if(enabled)stop(true);
-    else enable(true);
+    else {
+      if(window.AynCallPriority&&!window.AynCallPriority.armFromGesture()){
+        paint('☎ Micrófono reservado para la llamada. Usa los botones.','idle');
+        return;
+      }
+      enable(true);
+    }
   });
 
   window.setInterval(()=>{
@@ -424,7 +430,10 @@
       clearTimeout(restartTimer);restartTimer=0;
       clearTimeout(phraseTimer);phraseBuffer='';wakeUntil=0;
       recognition?.abort();listening=starting=false;
-      if(enabled)paint('☎ AIN en pausa. Puedes manejar los accesos por botón.','idle');
+      if(enabled){
+        if(window.AynCallPriority?.requiresGesture())enabled=false;
+        paint('☎ Micrófono liberado. Usa botones durante la llamada; activa voz al terminar.','idle');
+      }
     }else if(enabled)start();else restore();
   });
   window.addEventListener('pageshow',restore);
@@ -433,8 +442,8 @@
   if(localStorage.getItem('aynVoiceSelected')!=='false'){
     localStorage.setItem('aynVoiceSelected','true');
     if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
-      enabled=true;
-      paint('☎ Llamada: micrófono de AIN en pausa','idle');
+      enabled=false;
+      paint('☎ Micrófono protegido. Activa la voz al terminar tu llamada.','idle');
     }else enable(false);
   }else paint('Toca el micrófono para activar AYN','idle');
 })();

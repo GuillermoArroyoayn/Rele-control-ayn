@@ -1659,6 +1659,10 @@ if (!SpeechRecognition) {
       stopVoiceMode();
       return;
     }
+    if(window.AynCallPriority&&!window.AynCallPriority.armFromGesture()){
+      setVoiceStatus('☎ Teléfono en uso. La voz debe permanecer en pausa.');
+      return;
+    }
     voiceEnabled = true;
     localStorage.setItem("aynVoiceSelected", "true");
     voiceSessionGeneration += 1;
@@ -1715,7 +1719,14 @@ if (!SpeechRecognition) {
       recognition?.abort();
       voiceListening=voiceStarting=false;
       voiceCommand.classList.remove('listening');
-      if(voiceEnabled)setVoiceStatus('☎ Micrófono de AIN suspendido. Puedes usar los botones durante la llamada.');
+      if(voiceEnabled){
+        if(window.AynCallPriority?.requiresGesture()){
+          voiceEnabled=false;
+          voiceCommand.setAttribute('aria-pressed','false');
+          voiceCommand.innerHTML='<span aria-hidden="true">🎙️</span> Activar AIN por voz';
+        }
+        setVoiceStatus('☎ AIN liberó el micrófono. Los botones siguen funcionando. Activa la voz al terminar la llamada.');
+      }
     }else restoreVoiceSelection();
   });
   window.addEventListener('online',restoreVoiceSelection);

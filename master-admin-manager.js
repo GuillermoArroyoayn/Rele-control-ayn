@@ -79,8 +79,17 @@
       if(admin.status!=='blocked')actions.append(btn('Bloquear administrador',()=>changeStatus('blocked'),'danger'));
     }
     actions.append(btn('Reemplazar administrador',()=>showReplacement(),'primary'));
-    actions.append(btn('Eliminar administrador',()=>removeAdmin(),'danger'));
+    actions.append(btn(admin.hasCommunity?'Eliminar solo administrador':'Eliminar administrador sin comunidad',
+      ()=>removeAdmin(),'danger'));
     content.append(el('h3','','Gestión de cuenta'),actions);
+    if(admin.hasCommunity){
+      const fullDelete=document.createElement('a');
+      fullDelete.className='master-admin-edit master-admin-delete-community';
+      fullDelete.textContent='Eliminar comunidad completa y sus administradores';
+      fullDelete.href='/matrix.html?group='+encodeURIComponent(admin.groupId)+'#delete-community';
+      content.append(fullDelete);
+      content.append(el('p','master-admin-hint','Esta operación se confirma en el Constructor de App, ingresando nuevamente la clave de acceso del Máster.'));
+    }
     const hint=el('p','master-admin-hint','El Máster conserva el control. El reemplazo no elimina usuarios, reservas ni actuadores de la comunidad.');
     content.append(hint);
   }
@@ -92,7 +101,10 @@
   }
   async function removeAdmin(){
     const a=admins.find(a=>a.id===selectedId);
-    if(!a||!confirm('¿Eliminar el acceso de '+a.name+'? La comunidad y sus datos se conservarán. Si es el único administrador con usuarios o actuadores, primero deberás reemplazarlo.'))return;
+    const warning=a?.hasCommunity?
+      '¿Eliminar solo el acceso de '+a.name+'? Su comunidad y sus datos se conservarán. Si tiene usuarios o actuadores sin otro administrador, primero deberás reemplazarlo.':
+      '¿Eliminar al administrador '+(a?.name||'')+'? No tiene comunidad asignada, por lo que no se requiere reemplazante.';
+    if(!a||!confirm(warning))return;
     await request({action:'deleteAdmin',adminId:a.id});
     close();await reload();
   }

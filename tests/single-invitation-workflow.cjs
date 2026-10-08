@@ -16,7 +16,7 @@ assert(api.includes("if(b.action==='prepareAdmin')")&&api.includes("if(b.action=
 assert(api.includes("if(b.action==='invite')")&&api.includes("if(req.method==='POST'&&b.action==='claim')"));
 assert(api.includes("A.manager(auth)"));
 assert(app.includes('normalizePhone(invitePhone)'),'Conservar el alta personalizada desde invitación');
-assert(sw.includes('reles-ayn-v183-clear-admin-folder'));
+assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
 assert(sw.includes('/app.js?v=20261008-voice181'));
 assert(!sw.includes('/share.css?'));
 assert(index.includes('/app.js?v=20261008-voice181'));

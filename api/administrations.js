@@ -16,6 +16,14 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      if(invitation.groupId&&invitation.groupId!=='master'&&
+         await A.redis('HGET','ayn:matrix:deleted-groups',invitation.groupId))
+        throw A.error('La comunidad fue eliminada. Esta invitación ya no es válida.',410);
+      if(invitation.role==='user'&&invitation.groupId&&invitation.groupId!=='master'){
+        const activeCommunity=await Matrix.getPublished(invitation.groupId);
+        if(!activeCommunity||activeCommunity.status==='deleted')
+          throw A.error('Esta comunidad ya no está disponible. Solicita una nueva invitación.',410);
+      }
       if(invitation.role==='admin'){
         const target=await Matrix.getPublished(invitation.groupId);
         if(!target||target.status==='deleted')

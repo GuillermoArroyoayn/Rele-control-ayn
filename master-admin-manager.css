@@ -55,3 +55,6 @@
   .master-admin-actions,.master-admin-choices{grid-template-columns:1fr}
   .master-admin-content{padding:12px}
 }
+
+/* v184 · acceso a eliminación completa, confirmada con clave en el Constructor */
+.master-admin-delete-community{color:#ffbec6!important;border:1px solid #aa586b;border-radius:10px;padding:12px;text-align:center;font-weight:800;background:#351b33}

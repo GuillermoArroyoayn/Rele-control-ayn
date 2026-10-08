@@ -7,5 +7,5 @@ assert(app.includes('const eagerProfiles=await api("/api/actuator-profiles")'));
 assert(app.includes('if(authorized.length){'));
 assert(app.includes('managedAccessGrid.append(built.card);'));
 assert(app.includes('read().then(built.paintState).catch(()=>{});'));
-assert(sw.includes('reles-ayn-v183-clear-admin-folder'));
+assert(sw.includes('reles-ayn-v184-community-pin-confirm'));
 console.log('AYN v172: estado guardado permanente y botones de acceso visibles OK.');

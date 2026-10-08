@@ -108,3 +108,28 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
   border-radius:12px;white-space:normal}
 #deleteAdmin:disabled{opacity:.55;cursor:wait}
 @media(max-width:760px){#deleteAdmin.danger{width:100%;min-height:62px}}
+
+/* v184: confirmación protegida al eliminar una comunidad completa. */
+.matrix-delete-community{background:#7b1e38!important;border:2px solid #f6a3b5!important}
+.community-delete-dialog{
+  width:min(92vw,520px);max-height:min(86dvh,720px);overflow-y:auto;
+  border:2px solid #e39da9;border-radius:18px;
+  background:#091c36;color:#f6faff;padding:clamp(16px,4vw,28px);
+  box-shadow:0 18px 48px #000b;
+}
+.community-delete-dialog::backdrop{background:#001026c9}
+.community-delete-dialog form{display:grid;gap:14px}
+.community-delete-dialog h2{font-size:clamp(19px,5vw,25px);margin:0}
+.community-delete-impact{white-space:pre-line;line-height:1.65;font-weight:700;
+  color:#d5efff!important;border:1px solid #39628a;border-radius:10px;
+  background:#102b4b;padding:12px}
+.community-delete-warning{font-size:13px;line-height:1.55;color:#ffc7cb!important}
+.community-delete-dialog label{font-weight:800;line-height:1.4}
+#communityDeletePin{box-sizing:border-box;display:block;width:100%;min-height:50px;
+  padding:12px;border:2px solid #6d9fc8;border-radius:10px;
+  background:#061326;color:#fff;font-size:19px}
+.community-delete-error{color:#ffbbc2!important;line-height:1.45;font-weight:750}
+.community-delete-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.community-delete-actions button{white-space:normal;min-height:54px}
+.community-delete-actions .danger{background:#ad2d45!important;border-color:#ffb2bc!important}
+@media(max-width:480px){.community-delete-actions{grid-template-columns:1fr}}

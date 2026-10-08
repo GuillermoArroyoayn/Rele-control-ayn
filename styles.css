@@ -1474,3 +1474,17 @@ body[data-user-view="access"] .managed-access-grid > .access-button-card:last-ch
   .managed-access-panel .access-button-card,.managed-access-panel .access-activation-button{min-height:126px}
   .managed-access-panel .access-actuator-name{font-size:15px}
 }
+/* v167: Accesos y sus ajustes se renderizan como ventanas independientes
+   montadas en body, igual que Reportes y Agenda. */
+body.app-screen-mode[data-user-view="access"] .managed-access-panel.function-screen,
+body.user-layout[data-user-view="access"] .managed-access-panel.function-screen{
+  display:block!important;visibility:visible!important;
+  height:calc(100dvh - 74px - env(safe-area-inset-top,0px))!important;
+}
+body.app-screen-mode[data-user-view="access-settings"] .access-settings-panel.function-screen{
+  display:block!important;visibility:visible!important;
+}
+.access-load-warning{grid-column:1/-1;color:var(--theme-text,#eef9ff);
+  padding:10px 12px;border:1px solid var(--theme-border,#5ee7ff99);
+  border-radius:12px;margin:8px 0;font-size:14px;line-height:1.45}
+.managed-access-grid>.small-button{grid-column:1/-1}

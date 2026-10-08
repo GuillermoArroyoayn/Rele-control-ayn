@@ -12,6 +12,8 @@ assert(admin.includes("let data,currentTab='home'"),'Administrator default is In
 assert(admin.includes("if(['home','menu','timers','equipment','people','history'].includes(initialSection))"),'Explicit admin deep links preserved');
 assert(admin.includes("if(invitationToken)"),'Personal invitations remain supported');
 assert(adminHtml.includes('id="homeDashboard"'),'Administrator home remains present');
+assert(adminHtml.includes('href="/#access" data-admin-module="access"'),'El acceso desde Inicio debe abrir el panel /#access, no la vista vacía /#control');
+assert(!adminHtml.includes('href="/#control" data-admin-module="access"'),'No restablecer ruta antigua que deja Accesos en blanco');
 assert(adminHtml.includes('/administracion.js?v=20261008-access167'));
 assert(html.includes('/app.js?v=20261008-access172'));
 assert(sw.includes('reles-ayn-v172-profile-first'));

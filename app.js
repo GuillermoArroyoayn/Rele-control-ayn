@@ -1064,7 +1064,9 @@ async function loadStatus() {
     finishBootLayout();
     setRelayAccess([]);
     configureUserLayout(false);
-    show(e.message, true);
+    const accessMessage=e.accessStatus==="pending"&&!e.message.includes("Código de equipo:")
+      ? `${e.message} Código de equipo: ${getDeviceId()}` : e.message;
+    show(accessMessage, true);
   } finally {
     refresh.disabled = false;
   }

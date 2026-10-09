@@ -298,7 +298,12 @@ module.exports=async(req,res)=>{
       const profile=auth.role==='super_master'?null:await Profiles.get(auth,'managed-'+item.id,await A.records());
       const seconds=b.state?A.seconds(profile?profile.seconds:item.timerSeconds,item.timer):0;
       const delivery=await require('../lib/timed-command').runTimed(item.deviceId,item.code,b.state,seconds,item.timer);
-      if(b.state)await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id].adminName||auth.device.name,role:auth.role,groupId:item.groupId,relay:item.id,state:true,result:'success'}).catch(()=>{});
+      if(b.state){
+        const guestId=auth.registry.devices[auth.device.id]?.temporaryPermissionId||'';
+        await addHistory({deviceId:auth.device.id,userName:auth.registry.devices[auth.device.id].adminName||auth.device.name,role:auth.role,
+          groupId:item.groupId,relay:item.id,state:true,result:'success',
+          ...(guestId?{kind:'temporary',temporaryPermissionId:guestId,actor:auth.device.name,action:'Acceso temporal · Actuador '+item.name+' activado'}:{})}).catch(()=>{});
+      }
       return res.json({ok:true,state:delivery.state,timerSeconds:seconds,autoOffConfirmed:delivery.autoOffConfirmed,autoOffPending:Boolean(delivery.autoOffPending),message:delivery.message||(delivery.autoOffConfirmed?'Activado y apagado automáticamente, confirmado por el equipo.':'Orden enviada. Actualiza para confirmar el estado real.')});
     }
     throw A.error('Acción desconocida.');

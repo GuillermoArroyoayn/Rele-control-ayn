@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v197-admin-voice-aliases";
+const CACHE = "reles-ayn-v194-sos-user-choice-v195-temporary-access-v196-guest-split-v197-admin-voice-aliases";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",

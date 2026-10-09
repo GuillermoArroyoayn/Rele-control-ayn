@@ -56,9 +56,12 @@ assert.equal(functionSettings.hidden,true,'Se oculta el panel de voz fuera de su
 assert(app.includes('Aún no hay usuarios registrados para asignar permisos temporales'));
 assert(app.includes('No se pudieron cargar los permisos temporales'));
 assert(app.includes('Agenda de espacios comunes'),'Agenda sigue implementada');
-assert(html.includes('href="/#temporary"')&&html.includes('href="/#bookings"')&&html.includes('href="/#voice"'));
+assert(html.includes('href="/#temporary"')&&html.includes('href="/#bookings"')&&html.includes('href="/#settings"'));
+assert(!html.includes('href="/#voice"'),'Control de voz no debe duplicarse en el menú');
+assert(app.includes("masterRoute==='settings'&&['super_master','admin'].includes(currentRole)"),
+  'Configuración debe abrirse en el administrador y el Máster');
 assert(/\/app\.js\?v=20261008-[\w-]+/.test(index));
 assert(index.includes('/styles.css?v=20261008-adminroutes185'));
 assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(css.includes('/* v185 — herramientas del administrador'));
-console.log('Admin v185: Permisos temporales, Agenda y Control de voz abren ruta correcta; reconocimiento visible; vacíos informados; regresión de Configuración OK.');
+console.log('Admin: Permisos temporales y Agenda mantienen rutas; voz únicamente en Configuración del menú; ruta directa de voz preservada.');

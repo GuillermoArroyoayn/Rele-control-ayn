@@ -91,3 +91,5 @@ const devices=mounts('api/devices.js',{
  assert.deepEqual([...adminLimited.allowedRelays],[1],'Respetar el límite entregado al administrador');
  console.log('Seguridad de residentes Katy: solo Puerta; ocultamiento + API 403; permisos individuales, administrador intacto.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+// Misma puerta de seguridad: las invitaciones temporales nunca amplían permisos.
+require('./temporary-permissions.cjs');

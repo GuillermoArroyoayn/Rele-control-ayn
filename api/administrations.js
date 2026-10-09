@@ -238,7 +238,8 @@ module.exports=async(req,res)=>{
     if(b.action==='assignOriginal'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster asigna los actuadores originales.',403);
       const relay=Number(b.relay);
-      if(!Number.isInteger(relay)||![1,2,3].includes(relay)||!process.env['TUYA_DEVICE_'+relay])throw A.error('Actuador original no disponible.',400);
+      if(!Number.isInteger(relay)||![1,2,3].includes(relay))throw A.error('Actuador original no disponible.',400);
+      await require('../lib/original-device-binding').resolve(relay);
       const groupId=A.group(auth,b.groupId);
       const reservedFor=await A.redis('HGET','ayn:matrix:original:reservations',String(relay));
       if(reservedFor&&reservedFor!==groupId)
@@ -264,7 +265,7 @@ module.exports=async(req,res)=>{
     if(b.action==='add'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster general agrega y asigna actuadores.',403);const groupId=A.group(auth,b.groupId);const deviceId=String(b.deviceId||'').trim(),code=String(b.code||'switch_1');
       if(!/^[a-zA-Z0-9]{8,64}$/.test(deviceId)||!/^switch_[1-9][0-9]?$/.test(code))throw A.error('ID o canal inválido.');
-      if([1,2,3].some(n=>process.env['TUYA_DEVICE_'+n]===deviceId))throw A.error('Este equipo pertenece al control original.');
+      if((await Promise.all([1,2,3].map(n=>require('../lib/original-device-binding').resolve(n).catch(()=>null)))).some(binding=>binding?.id===deviceId&&binding?.code===code))throw A.error('Este equipo pertenece al control original.');
       const token=await getToken();const result=await tuyaFetch('GET',`/v1.0/iot-03/devices/${deviceId}/functions`,'',token);const functions=result.result?.functions||[];
       if(!functions.some(f=>f.code===code&&f.type==='Boolean'))throw A.error('Este equipo no admite el canal ON/OFF indicado.');
       const timer=A.timerCapability(functions,code);const timerSeconds=A.seconds(b.timerSeconds??4,timer);const name=String(b.name||'').trim().slice(0,60);if(!name)throw A.error('Indica un nombre.');

@@ -13,6 +13,7 @@ const redis=async(...args)=>{
   if(cmd==='HSET'){if(!hashes.has(key))hashes.set(key,new Map());hashes.get(key).set(args[2],args[3]);return 1;}
   if(cmd==='HDEL')return hashes.get(key)?.delete(args[2])?1:0;
   if(cmd==='SET'){stored.set(key,{value:args[2],ttl:args[4]});return 'OK';}
+  if(cmd==='EXPIRE')return 1;
   if(cmd==='EVAL'){
     const group=hashes.get(args[3]),[id,before,after]=args.slice(4);
     if(group?.get(id)!==before)return 0;group.set(id,after);return 1;

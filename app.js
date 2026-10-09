@@ -112,7 +112,10 @@ function profileEditor(card,profile){
   const input=(type,value,max)=>{const el=document.createElement('input');el.type=type;el.value=value??'';if(max)el.maxLength=max;return el;};
   const name=field('Nombre del actuador',input('text',profile.name,60));name.required=true;
   const voice=field('Nombre para comando de voz',input('text',profile.voiceName||'',50));
-  voice.placeholder='Ej: Portón principal';
+  voice.placeholder='Ej: Puerta norte, Puerta sur';
+  const voiceHelp=document.createElement('small');
+  voiceHelp.textContent='Di «AYN, abre Puerta norte». Si dejas el nombre de voz vacío, ese actuador no responderá a órdenes de voz en esta administración.';
+  form.append(voiceHelp);
   const mode=document.createElement('select');
   for(const [key,label] of [['timer','Con temporizador'],['manual','ON/OFF manual']]){
     const option=document.createElement('option');option.value=key;option.textContent=label;mode.append(option);
@@ -520,6 +523,15 @@ const panicSettingsSection=document.createElement("section");
 panicSettingsSection.className="appearance panic-preferences";
 panicSettingsSection.innerHTML='<div><strong>Recibir alertas SOS</strong><small id="sosReceiveStatus" role="status">Recibir mensajes y la sirena SOS de otros residentes. Tu botón SOS siempre seguirá disponible.</small></div><button id="sosReceiveToggle" type="button" class="secondary" aria-pressed="true">Recibir alertas SOS: activado</button><div><strong>Notificaciones del teléfono</strong><small id="panicSettingsStatus">Permite avisos fuera de la aplicación cuando Android lo autoriza.</small></div><button id="panicSettingsPush" type="button" class="secondary">Configurar notificaciones</button>';
 userSettingsPanel.append(panicSettingsSection);
+// Acceso único a la edición de comandos: reutiliza Configurar accesos.
+// No crear una segunda lista de relés ni un menú de control por voz duplicado.
+const voiceNamesSettingsButton=document.createElement('button');
+voiceNamesSettingsButton.type='button';
+voiceNamesSettingsButton.className='small-button';
+voiceNamesSettingsButton.textContent='Cambiar nombres de comandos de voz';
+voiceNamesSettingsButton.hidden=true;
+voiceNamesSettingsButton.onclick=()=>showView('access-settings');
+userSettingsPanel.append(voiceNamesSettingsButton);
 function mountPersonalSettings(){
   for(const {node} of userSettingNodes)userSettingsPanel.insertBefore(node,panicSettingsSection);
 }
@@ -713,6 +725,7 @@ function showView(view) {
   if(statusReady&&currentRole!=="super_master"&&(view==="community-hub"||matrixViewId(view,currentRole))&&!matrixAllowed(view,currentRole))view=currentRole==="user"?"control":"menu";
   if(statusReady&&["super_master","admin"].includes(currentRole)&&view==="menu"){openAdministrationMenu();return;}
   currentView = view;
+  voiceNamesSettingsButton.hidden=currentRole!=='admin';
   syncAccessBrand(view);
   accessActionsPanel.hidden=true;
   accessActionsToggle.setAttribute("aria-expanded","false");
@@ -1416,6 +1429,9 @@ function stopVoiceMode(message = "AIN por voz desactivado.", persistSelection = 
 // Índice de frases verificadas: coincidencia directa antes de analizar variantes.
 const savedVoiceCommands = new Map((window.AinVoicePhrases?.phrases || []).map(item => [normalizeVoice(item.phrase),item.relay]));
 const resolveVoiceRelay = (command) => {
+  // Un administrador nunca hereda los nombres de los tres relés originales.
+  // Sus órdenes se resuelven por perfiles autorizados y nombre de voz guardado.
+  if(currentRole==='admin')return 0;
   if (savedVoiceCommands.has(command)) return savedVoiceCommands.get(command);
   const candidates = new Set();
   for (const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
@@ -1500,6 +1516,11 @@ async function runVoiceCommand(transcript) {
     return;
   }
   const relay=personalized?.kind==='original'?personalized.relay:resolveVoiceRelay(command);
+  if(currentRole==='admin'&&!personalized&&
+     /\b(?:rele|actuador|puerta|porton|acceso)\s+(?:numero\s+)?(?:1|2|3|uno|dos|tres)\b/.test(command)){
+    setVoiceStatus('Ese comando no está configurado. En Configuración puedes cambiar los nombres de voz.',true,true);
+    return;
+  }
   if (relay === -1) {
     setVoiceStatus("Ain está en espera de una nueva orden.");
     return;

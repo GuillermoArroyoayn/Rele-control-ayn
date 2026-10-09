@@ -1505,13 +1505,15 @@ async function runVoiceCommand(transcript) {
   const personalized=window.AynActuatorVoice?.match(command);
   if(personalized?.ambiguous){setVoiceStatus('Nombre de acceso ambiguo.',true);return;}
   if(personalized?.kind==='managed'){
-    if(!hasVoiceOpenIntent(command)){setVoiceStatus('Ain está en espera de una nueva orden.');return;}
+    const voiceName=window.AynActuatorVoice.confirmationName(personalized,0,command);
+    const confirmation=window.AynActuatorVoice.activationText(voiceName);
     const acknowledgement=acknowledgeVoiceCommand();
-    setVoiceStatus('Activando '+personalized.name+'…');
+    setVoiceStatus('Activando '+voiceName+'…');
     try{
       const result=await managedAccessApi({action:'control',id:personalized.id.slice(8),state:true});
       await acknowledgement;
-      setVoiceStatus(result.autoOffPending?'Orden enviada; apagado pendiente de confirmar.':personalized.name+' activado correctamente.',false,true);
+      if(result.ok!==true)throw Error('El servidor no confirmó la activación.');
+      setVoiceStatus(result.autoOffPending?confirmation+'. Apagado automático pendiente de confirmar.':confirmation+'.',false,true);
     }catch(error){setVoiceStatus(error.message,true,true);}
     return;
   }
@@ -1526,23 +1528,27 @@ async function runVoiceCommand(transcript) {
     return;
   }
   if (relay) {
+    const voiceName=window.AynActuatorVoice.confirmationName(personalized,relay,command);
+    const confirmation=window.AynActuatorVoice.activationText(voiceName);
     if (!allowedRelays.includes(relay)) {
-      const text = `No tienes permiso para abrir ${personalized?.name||personalized?.name||voiceRelayNames[relay]}.`;
+      const text = `No tienes permiso para abrir ${voiceName}.`;
       setVoiceStatus(text, true, true);
       return;
     }
-    const directAction = hasVoiceOpenIntent(command);
+    const directAction = Boolean(personalized)||hasVoiceOpenIntent(command);
     if (directAction) {
       const acknowledgement = acknowledgeVoiceCommand();
       if (!voiceEnabled) return;
-      setVoiceStatus(`Activando ${personalized?.name||voiceRelayNames[relay]}…`);
+      setVoiceStatus(`Activando ${voiceName}…`);
       const success = await controlRelay(relay, true, "voice");
       await acknowledgement;
       if (!voiceEnabled) return;
       setVoiceStatus(
         success
-          ? controlOutcomes.get(relay)?.autoOffPending?`${personalized?.name||voiceRelayNames[relay]}: ${controlOutcomes.get(relay).message||'activación enviada; apagado pendiente de confirmar.'}`:`${personalized?.name||voiceRelayNames[relay]} activado correctamente.`
-          : `No fue posible activar ${personalized?.name||voiceRelayNames[relay]}.`,
+          ? controlOutcomes.get(relay)?.autoOffPending
+              ? `${confirmation}. Apagado automático pendiente de confirmar.`
+              : `${confirmation}.`
+          : `No fue posible activar ${voiceName}.`,
         !success,
         true,
       );

@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v194-sos-user-choice";
+const CACHE = "reles-ayn-v194-sos-user-choice-v195-temporary-access";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -22,6 +22,8 @@ const ASSETS = [
   "/app-icon-512.png",
   "/manifest.webmanifest",
   "/styles.css?v=20261008-adminroutes185",
+  "/temporary-permissions.css?v=20261009-tmp01",
+  "/temporary-permissions.js?v=20261009-tmp01",
   "/booking.css?v=20261006-orbit123",
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
@@ -29,7 +31,7 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-sos194",
+  "/app.js?v=20261008-temp195",
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",

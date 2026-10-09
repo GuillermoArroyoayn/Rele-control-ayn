@@ -16,6 +16,17 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      let temporaryGrant=null;
+      if(invitation.temporaryGrantId){
+        if(invitation.role!=='user'||!invitation.groupId)throw A.error('Invitación temporal inválida.',403);
+        const grantRaw=await A.redis('HGET','ayn:temporary:grants:'+invitation.groupId,invitation.temporaryGrantId);
+        if(!grantRaw)throw A.error('Permiso temporal cancelado o eliminado.',410);
+        temporaryGrant=JSON.parse(grantRaw);
+        if(temporaryGrant.active!==true||Date.now()>=Date.parse(temporaryGrant.endsAt))
+          throw A.error('El permiso temporal está desactivado o vencido.',410);
+        if(temporaryGrant.groupId!==invitation.groupId||temporaryGrant.phone!==invitation.phone)
+          throw A.error('Esta invitación no corresponde al permiso temporal.',403);
+      }
       if(invitation.groupId&&invitation.groupId!=='master'&&
          await A.redis('HGET','ayn:matrix:deleted-groups',invitation.groupId))
         throw A.error('La comunidad fue eliminada. Esta invitación ya no es válida.',410);
@@ -64,7 +75,7 @@ module.exports=async(req,res)=>{
         if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
         upgradedExistingUser=masterAdminUpgrade||alreadySameAdmin;
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:[...new Set([...(replacedAdmin?.relays||[]),...reservedRelays])].sort((a,b)=>a-b),actuatorIds:[],inviteHash:A.hash(b.token),createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:temporaryGrant?[...temporaryGrant.relays]:[...new Set([...(replacedAdmin?.relays||[]),...reservedRelays])].sort((a,b)=>a-b),actuatorIds:[],inviteHash:A.hash(b.token),accessStartsAt:temporaryGrant?.startsAt||'',accessEndsAt:temporaryGrant?.endsAt||'',temporaryPermissionId:temporaryGrant?.id||'',createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
         if(replacedAdmin){
           replacedAdmin.status='deleted';replacedAdmin.replacedBy=id;
           replacedAdmin.statusChangedAt=new Date().toISOString();replacedAdmin.statusChangedBy=invitation.creator;
@@ -77,6 +88,13 @@ module.exports=async(req,res)=>{
         await Matrix.markStatus(invitation.groupId,'active',invitation.name);
       }
       if(upgradedExistingUser||invitation.replaceAdminId)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:invitation.replaceAdminId?'Reemplazo de administrador confirmado; acceso anterior eliminado':'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
+      if(temporaryGrant){
+        await A.redis('HSET','ayn:temporary:grants:'+invitation.groupId,temporaryGrant.id,
+          JSON.stringify({...temporaryGrant,claimedAt:new Date().toISOString(),deviceId:id})).catch(e=>console.error('No se pudo sincronizar invitado temporal:',e));
+        await addHistory({kind:'temporary',groupId:invitation.groupId,userName:temporaryGrant.name,
+          phone:temporaryGrant.phone,actor:temporaryGrant.name,action:'Invitación aceptada · Equipo vinculado',
+          startsAt:temporaryGrant.startsAt,endsAt:temporaryGrant.endsAt,relays:temporaryGrant.relays}).catch(()=>{});
+      }
       await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
     const auth=await A.access(req);

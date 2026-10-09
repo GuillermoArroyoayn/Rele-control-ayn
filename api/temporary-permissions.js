@@ -54,7 +54,8 @@ module.exports=async function handler(req,res){
           status:expired?'expired':grant.active!==true?'inactive':grant.claimedAt?'active':'pending'});
       }
       permissions.sort((a,b)=>Date.parse(b.startsAt)-Date.parse(a.startsAt));
-      const history=await readHistory(500,'temporary',groupId);
+      const history=(await readHistory(500,'temporary',groupId))
+        .filter(entry=>entry.kind==='temporary'&&entry.groupId===groupId);
       return res.status(200).json({groups:available,groupId,relays,permissions,history});
     }
     if(b.action==='create'){

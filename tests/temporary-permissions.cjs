@@ -52,9 +52,13 @@ const send=async(method,body={},query={})=>{
  assert.ok(Date.parse(grant.endsAt)-Date.parse(grant.startsAt)<=3600000);
  assert.ok(Date.parse(grant.endsAt)-Date.parse(grant.startsAt)>=3599000);
  assert.equal((await send('POST',{action:'create',groupId:'group-A',name:'Duplicado',phone:'56912345678',hours:2,relays:[1]})).status,409);
+ events.unshift({kind:'permissions',groupId:'group-A',userName:'Residente estable',action:'Permiso permanente modificado'});
+ events.unshift({kind:'temporary',groupId:'group-B',userName:'Visita de otra comunidad',action:'Permiso temporal ajeno'});
  const list=await send('GET',{}, {groupId:'group-A'});
  assert.equal(list.status,200);assert.equal(list.response.permissions[0].status,'pending');
  assert.equal(list.response.groups.length,1);
+ assert.equal(list.response.history.length,1,'Historial temporal excluye residentes estables y otras comunidades');
+ assert.equal(list.response.history[0].userName,'Visita');
  const disabled=await send('POST',{action:'toggle',groupId:'group-A',id:grant.id,active:false});
  assert.equal(disabled.status,200);assert.equal(disabled.response.active,false);
  const pausedList=await send('GET',{}, {groupId:'group-A'});

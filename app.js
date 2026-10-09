@@ -770,7 +770,9 @@ function showView(view) {
   const deviceArea = ["admins", "users", "temporary"].includes(view);
   adminPanel.querySelector(".admin-title").hidden = !deviceArea;
   const intro = adminPanel.querySelector(":scope > p");
-  if (intro) intro.hidden = !deviceArea;
+  if (intro) intro.hidden = !deviceArea || view==="temporary";
+  const adminTitle=adminPanel.querySelector(".admin-title h2");
+  if(adminTitle)adminTitle.textContent=view==="temporary"?"Permisos temporales":"Equipos asociados";
   deviceList.hidden = !deviceArea;
   if (deviceArea) loadDevices();
   if (view === "history") loadHistory();
@@ -1820,6 +1822,11 @@ async function changeDeviceStatus(device, status) {
 }
 
 async function loadDevices() {
+  if(currentView==="temporary"){
+    if(window.AynTemporaryPermissions)await window.AynTemporaryPermissions.render(deviceList,api);
+    else deviceList.textContent="No se pudo cargar el módulo de permisos temporales.";
+    return;
+  }
   try {
     const data = await api("/api/devices");
     deviceList.innerHTML = "";

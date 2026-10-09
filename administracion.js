@@ -142,6 +142,27 @@ function attachOriginalDiagnostics(item,row,aside){
     const idField=node('input');idField.type='text';idField.maxLength=64;idField.autocomplete='off';
     idField.placeholder='ID del dispositivo vinculado en Tuya';
     idLabel.append(idField);
+    const discovery=node('div');discovery.className='relay-original-cloud-choices';
+    const choices=node('div');
+    discovery.append(button('Buscar relés disponibles en Tuya',async()=>{
+      choices.replaceChildren();
+      const cloud=await repairOriginalApi({action:'candidates',relay:item.relay});
+      if(!cloud.devices.length){
+        choices.append(node('p','Tuya no devolvió dispositivos. Puedes escribir el ID manualmente.'));
+        return;
+      }
+      const label=node('label','Elegir un equipo del proyecto Tuya');
+      const select=node('select');
+      const placeholder=node('option','Seleccionar el relé que corresponde físicamente');placeholder.value='';
+      select.append(placeholder);
+      for(const device of cloud.devices){
+        const option=node('option',device.name+' · '+(device.online===true?'Conectado':device.online===false?'Sin conexión':'Estado desconocido')+' · …'+device.idEnding);
+        option.value=device.id;select.append(option);
+      }
+      select.onchange=()=>{if(select.value)idField.value=select.value;};
+      label.append(select);
+      choices.append(label,node('p','El nombre permite orientar la búsqueda, pero debes confirmar físicamente que sea el relé correcto.'));
+    }),choices);
     const codeLabel=node('label','Canal ON/OFF');
     const codeField=node('input');codeField.type='text';codeField.value=result.code;
     codeField.maxLength=16;codeLabel.append(codeField);
@@ -164,7 +185,7 @@ function attachOriginalDiagnostics(item,row,aside){
       preview.textContent='VERIFICADO EN TUYA · '+describe(checked)+'. Confirma que es el dispositivo físico correcto antes de guardar.';
       approvedPreview=proposal;save.disabled=false;
     }),save);
-    panel.append(idLabel,codeLabel,preview,actions);
+    panel.append(idLabel,discovery,codeLabel,preview,actions);
   }));
   row.append(panel);
 }

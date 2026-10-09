@@ -246,18 +246,21 @@
     const personalized=window.AynActuatorVoice?.match(command);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
+      const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
+      const confirmation=window.AynActuatorVoice.activationText(name);
       const activation=(async()=>{
         const response=await fetch('/api/administrations',{method:'POST',headers:headers(),body:JSON.stringify({action:'control',id:personalized.id.slice(8),state:true})});
         const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||'Orden rechazada.');
+        if(!response.ok||result.ok!==true)throw new Error(result.error||'Orden rechazada.');
         return result;
       })();
       await speak('OK');
       try{
-        await activation;
-        paint(personalized.name+' activado correctamente','listening');
-        await speak(personalized.name+' activado correctamente');
-      }catch(error){paint(error.message,'error');await speak('No fue posible activar '+personalized.name);}
+        const result=await activation;
+        const message=result.autoOffPending?confirmation+'. Apagado automático pendiente de confirmar.':confirmation+'.';
+        paint(message,'listening');
+        await speak(message);
+      }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -266,20 +269,20 @@
       await speak('Indica un solo acceso');
       return;
     }
-    if(relay&&isOpenIntent(command)){
-      const names={1:'Actuador uno',2:'Actuador dos',3:'Actuador tres'};
-      if(personalized?.name)names[relay]=personalized.name;
-      paint('Orden recibida: '+names[relay],'listening');
+    if(relay&&(personalized||isOpenIntent(command))){
+      const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
+      const confirmation=window.AynActuatorVoice.activationText(name);
+      paint('Orden recibida: '+name,'listening');
       const activation=controlRelay(relay);
       await speak('OK');
       try{
         const result=await activation;
-        paint(names[relay]+' activado correctamente','listening');
-        await speak(names[relay]+' activado correctamente');
+        paint(confirmation+'.','listening');
+        await speak(confirmation);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},350);
       }catch(error){
         paint(error.message,'error');
-        await speak('No fue posible activar '+names[relay]);
+        await speak('No fue posible activar '+name);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
       }
       return;

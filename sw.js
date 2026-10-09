@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v202-tuya-relay-repair";
+const CACHE = "reles-ayn-v203-tuya-cloud-discovery";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -35,8 +35,8 @@ const ASSETS = [
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261009-repair202",
-  "/administracion.js?v=20261009-repair202",
+  "/administracion.css?v=20261009-repair203",
+  "/administracion.js?v=20261009-repair203",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",

@@ -1020,6 +1020,8 @@ async function loadStatus() {
     if(savedAccessGroupId!==currentGroupId){accessProfilesJustSaved.clear();savedAccessGroupId=currentGroupId;}
     currentMatrix = data.appMatrix || null;
     statusReady = true;
+    document.documentElement.dataset.accessReady="true";
+    window.dispatchEvent(new Event("ayn:access-ready"));
     applyMatrixPresentation();
     // La portada del perfil administrador es el inicio real del sistema.
     // Conservar las rutas explícitas (/#control, /#bookings, etc.).
@@ -1058,6 +1060,7 @@ async function loadStatus() {
     }
   } catch (e) {
     statusReady = false;
+    delete document.documentElement.dataset.accessReady;
     finishBootLayout();
     setRelayAccess([]);
     configureUserLayout(false);
@@ -1717,6 +1720,7 @@ if (!SpeechRecognition) {
     }
   };
   voiceCommand.addEventListener("click", () => {
+    if (!statusReady) { setVoiceStatus("Ingresa y guarda tu PIN antes de activar la voz.", true); pinInput.focus(); return; }
     // Un usuario que dejó la voz seleccionada puede recuperarla con el mismo
     // botón después de una interrupción no notificada por Android.
     if(voiceEnabled&&(window.AynCallPriority&&!window.AynCallPriority.shouldListen())){
@@ -1751,6 +1755,7 @@ if (!SpeechRecognition) {
     stopVoiceMode("Preferencia de voz guardada.", false);
   });
   const restoreVoiceSelection = () => {
+    if (!statusReady) return;
     if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") === "false") return;
     if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) {
       // Conservar la selección visible sin reclamar el micrófono durante llamadas.
@@ -1813,6 +1818,7 @@ if (!SpeechRecognition) {
       }
     }else restoreVoiceSelection();
   });
+  window.addEventListener('ayn:access-ready',restoreVoiceSelection);
   window.addEventListener('online',restoreVoiceSelection);
   window.addEventListener("pageshow", restoreVoiceSelection);
   window.addEventListener("pageshow",()=>{

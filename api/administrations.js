@@ -270,7 +270,7 @@ module.exports=async(req,res)=>{
       const timer=A.timerCapability(functions,code);const timerSeconds=A.seconds(b.timerSeconds??4,timer);const name=String(b.name||'').trim().slice(0,60);if(!name)throw A.error('Indica un nombre.');
       const id=A.uuid(),item={id,groupId,deviceId,code,name,timer,timerSeconds,timerConfigured:true,approved:auth.role==='super_master',createdAt:new Date().toISOString()};
       const added=await A.redis('EVAL',"if redis.call('HEXISTS',KEYS[1],ARGV[1])==1 then return 0 end redis.call('HSET',KEYS[1],ARGV[1],ARGV[2]); redis.call('HSET',KEYS[2],ARGV[2],ARGV[3]); return 1",2,'ayn:managed:device-owners','ayn:managed:actuators',deviceId+':'+code,id,JSON.stringify(item));if(!added)throw A.error('Este actuador ya está registrado.',409);
-      return res.json({ok:true,approved:item.approved});
+      return res.json({ok:true,id,approved:item.approved,groupId:item.groupId});
     }
     const item=(await A.records()).find(d=>d.id===b.id);if(!item||!A.visible(auth,item))throw A.error('Actuador no autorizado.',403);
     if(b.action==='assign'){

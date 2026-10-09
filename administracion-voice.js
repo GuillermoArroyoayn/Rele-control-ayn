@@ -14,6 +14,7 @@
   let lastCommand='';
   let lastCommandAt=0;
   let allowedRelays=[];
+  let voiceRole='';
   let statusReady=false;
   let phraseBuffer='';
   let phraseTimer=0;
@@ -109,22 +110,32 @@
   }
 
   async function refreshAccess(){
-    const response=await fetch('/api/status',{headers:headers()});
+    // Los perfiles antiguos nunca deben sobrevivir a un cambio de cuenta o permisos.
+    statusReady=false;
+    allowedRelays=[];
+    voiceRole='';
+    window.AynActuatorVoice?.setProfiles([]);
+    const response=await fetch('/api/status',{headers:headers(),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
-    allowedRelays=(data.allowedRelays||[]).map(Number);
-    try{
-      const profilesResponse=await fetch('/api/actuator-profiles',{headers:headers()});
-      if(profilesResponse.ok){
-        const profiles=await profilesResponse.json();
-        window.AynActuatorVoice?.setProfiles(profiles.profiles||[]);
-      }
-    }catch{/* Mantener los comandos tradicionales si no hay red. */}
+    voiceRole=data.role||'';
+    allowedRelays=(data.allowedRelays||[]).map(Number).filter(n=>[1,2,3].includes(n));
+    if(voiceRole==='admin'||voiceRole==='user'){
+      // El catálogo de esta comunidad es la única fuente de nombres reconocibles.
+      const profilesResponse=await fetch('/api/actuator-profiles',{headers:headers(),cache:'no-store'});
+      const profiles=await profilesResponse.json().catch(()=>({}));
+      if(!profilesResponse.ok)throw Object.assign(
+        new Error(profiles.error||'No se pudieron actualizar los comandos de voz.'),{status:profilesResponse.status});
+      window.AynActuatorVoice?.setProfiles(profiles.profiles||[]);
+    }
     statusReady=true;
     return data;
   }
 
   function resolveRelay(command){
+    // Los tres nombres históricos son exclusivos del Máster. Un administrador
+    // solo puede usar nombres configurados en los perfiles de su comunidad.
+    if(voiceRole!=='super_master')return 0;
     if(savedVoiceCommands.has(command))return savedVoiceCommands.get(command);
     const direct=new Set();
     for(const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)){
@@ -224,6 +235,14 @@
     }
     if(routeByVoice(command))return;
 
+    if(!statusReady){
+      try{await refreshAccess();}
+      catch(error){
+        paint('No se pudieron validar los accesos de esta comunidad.','error');
+        await speak('No puedo confirmar los accesos disponibles.');
+        return;
+      }
+    }
     const personalized=window.AynActuatorVoice?.match(command);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
@@ -263,6 +282,12 @@
         await speak('No fue posible activar '+names[relay]);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
       }
+      return;
+    }
+    if(voiceRole==='admin'&&!personalized&&
+       /\b(?:rele|actuador|puerta|porton|acceso)\s+(?:numero\s+)?(?:1|2|3|uno|dos|tres)\b/.test(command)){
+      paint('Este comando no está configurado para esta comunidad.','listening');
+      await speak('Ese comando no está configurado. Cambia el nombre desde Configuración.');
       return;
     }
     if(/\b(?:inicio|volver)\b/.test(command)){

@@ -625,7 +625,7 @@ function buildMenu() {
   if(currentRole==='super_master'){const back=document.createElement('a');back.href='/administracion.html';back.className='small-button';back.dataset.view='master';back.innerHTML='<span class="menu-icon" aria-hidden="true">👑</span><span class="menu-label">Menú Máster</span>';mainMenu.append(back);}
   const roleMenu =
     currentRole === "super_master"
-      ? menuDefinitions.filter(([id]) => !["settings"].includes(id))
+      ? menuDefinitions
       : currentRole === "admin"
         ? menuDefinitions.filter(([id]) => !["admins", "database"].includes(id))
         : menuDefinitions.filter(([id]) => ["settings"].includes(id));
@@ -650,7 +650,7 @@ function buildMenu() {
   mainMenu.hidden = false;
   const masterViews={control:'control',temporary:'temporary',bookings:'bookings',reportes:'reports',voice:'voice',panic:'panic',wall:'wall',polls:'polls','community-hub':'community-hub'};
   if(currentRole==='super_master'&&masterViews[masterRoute]){showView(masterViews[masterRoute]);return;}
-  if(currentRole!=='super_master'&&masterRoute==='settings'){showView('settings');return;}
+  if(masterRoute==='settings'&&['super_master','admin'].includes(currentRole)){showView('settings');return;}
   if(["wall","polls","community-hub"].includes(masterRoute)){showView(masterRoute);return;}
   showView(
     allowed.some(([id]) => id === currentView) ? currentView : "control",

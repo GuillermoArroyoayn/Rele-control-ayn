@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v199-personalized-voice-confirmations";
+const CACHE = "reles-ayn-v200-safari-navigation-recovery";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -43,13 +43,17 @@ const ASSETS = [
   "/actuator-voice.js?v=20261009-alias199",
   "/administracion-voice.js?v=20261009-alias199"
 ];
-self.addEventListener("install", (e) =>
-  e.waitUntil(
-    caches
-      .open(CACHE)
-      .then((c) => c.addAll(ASSETS))
-      .then(() => self.skipWaiting()),
-  ),
+// Una imagen o archivo opcional que falle no debe bloquear la actualización en iOS.
+self.addEventListener("install", (event) =>
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(CACHE);
+      await Promise.allSettled(ASSETS.map(asset => cache.add(asset)));
+    } catch (error) {
+      // Safari podrá navegar online aunque el almacenamiento de caché no esté disponible.
+    }
+    await self.skipWaiting();
+  })()),
 );
 self.addEventListener("activate", (e) =>
   e.waitUntil(
@@ -66,11 +70,46 @@ self.addEventListener("activate", (e) =>
 self.addEventListener("message", (e) => {
   if (e.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
-self.addEventListener("fetch", (e) => {
-  if (new URL(e.request.url).pathname.startsWith("/api/")) return;
-  const url=new URL(e.request.url);
-  const refresh=url.origin===self.location.origin&&(e.request.mode==='navigate'||/\.(js|css)$/.test(url.pathname));
-  e.respondWith(fetch(e.request,refresh?{cache:'no-store'}:undefined).catch(() => caches.open(CACHE).then(cache=>cache.match(e.request))));
+// Nunca devolver undefined a respondWith: Safari muestra una pantalla blanca
+// con "Returned response is null" cuando una página invitada no está en caché.
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  // Autorización e invitaciones nunca se almacenan en este service worker.
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  const isNavigation = request.mode === "navigate" || request.destination === "document";
+  const refresh = isNavigation || /\.(?:js|css|html)$/.test(url.pathname);
+  event.respondWith((async () => {
+    try {
+      const network = await fetch(request, refresh ? {cache:"no-store"} : undefined);
+      if (network instanceof Response) return network;
+    } catch (error) {
+      // Solo en errores de red: intentar una versión offline.
+    }
+    try {
+      const cache = await caches.open(CACHE);
+      const exact = await cache.match(request);
+      if (exact instanceof Response) return exact;
+      if (isNavigation) {
+        const shell = url.pathname.startsWith("/administracion") ?
+          "/administracion.html" : "/index.html";
+        const fallback = await cache.match(shell) || await caches.match(shell);
+        if (fallback instanceof Response) return fallback;
+      }
+    } catch (error) {
+      // Almacenamiento no disponible: se entregará una respuesta HTTP válida.
+    }
+    if (isNavigation) {
+      return new Response(
+        '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="font:16px system-ui;padding:28px"><h1>A&N Control</h1><p>Sin conexión con el servidor. Comprueba Internet y vuelve a intentar. Tu invitación no se ha eliminado.</p><button onclick="location.reload()" style="padding:12px 18px">Reintentar</button></body></html>',
+        {status:503,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}}
+      );
+    }
+    return new Response("Recurso temporalmente no disponible.",{
+      status:503,headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"}
+    });
+  })());
 });
 
 self.addEventListener('push',event=>{

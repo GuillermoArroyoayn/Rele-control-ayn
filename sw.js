@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v194-sos-user-choice-v195-temporary-access-v196-guest-split-v197-admin-voice-aliases";
+const CACHE = "reles-ayn-v199-personalized-voice-confirmations";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -31,17 +31,17 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261008-voice197",
+  "/app.js?v=20261009-alias199",
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261008-mic182",
-  "/administracion.js?v=20261008-guest196",
+  "/administracion.css?v=20261009-relay198",
+  "/administracion.js?v=20261009-relay198",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
-  "/actuator-voice.js?v=20261009-voice197",
-  "/administracion-voice.js?v=20261009-voice197"
+  "/actuator-voice.js?v=20261009-alias199",
+  "/administracion-voice.js?v=20261009-alias199"
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(

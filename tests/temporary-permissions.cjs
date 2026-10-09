@@ -14,7 +14,7 @@ const redis=async(...args)=>{
   if(cmd==='HDEL')return hashes.get(key)?.delete(args[2])?1:0;
   if(cmd==='SET'){stored.set(key,{value:args[2],ttl:args[4]});return 'OK';}
   if(cmd==='EVAL'){
-    const group=hashes.get(args[4]),[id,before,after]=args.slice(5);
+    const group=hashes.get(args[3]),[id,before,after]=args.slice(4);
     if(group?.get(id)!==before)return 0;group.set(id,after);return 1;
   }
   throw Error('Comando inesperado: '+cmd);

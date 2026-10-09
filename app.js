@@ -227,10 +227,12 @@ function accessButton(profile,fallbackName,initialState,command,read) {
       const target=isManual()?!state:true;
       // La API espera el ciclo temporizado antes de responder.
       card.classList.add('activation-pending');
-      paintState(target);
-      status.textContent=target?'Activación solicitada, esperando confirmación':'Apagado solicitado, esperando confirmación';
+      // No encender el indicador visual hasta que la API confirme el estado.
+      // El temporizador solicitado tampoco prueba que el relé físico haya cambiado.
+      status.textContent=target?'Verificando activación con Tuya…':'Verificando apagado con Tuya…';
       button.setAttribute('aria-label',title.textContent+' · '+status.textContent);
       const result=await command(target);
+      if(result?.ok!==true)throw new Error('La orden no fue confirmada por A&N Control.');
       if(result.autoOffConfirmed){
         paintState(false);
       }else if(result.autoOffPending){

@@ -194,7 +194,7 @@ function renderRelayCenter(){
     main.append(node('strong',item.name),node('small',(item.original?'Original '+item.relay:'Incorporado')+' · '+relayGroupName(item.groupId)));
     const aside=node('div');aside.className='relay-registered-status';
     const state=node('span',item.original?(item.error?'Sin verificar':'Relé original'):'Registrado');
-    state.className='relay-live-state';aside.append(state);
+    state.className='relay-live-state';aside.append(state);row.append(main,aside);
     if(item.original)attachOriginalDiagnostics(item,row,aside);
     if(!item.original){
       aside.append(button('Comprobar',async()=>{
@@ -209,7 +209,7 @@ function renderRelayCenter(){
         }
       }));
     }
-    row.append(main,aside);inventory.append(row);
+    inventory.append(row);
   }
   if(!registered.length)inventory.append(node('p',query?'No hay coincidencias.':'Todavía no hay relés registrados.'));
   const anyInstalled=all.length>0;

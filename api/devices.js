@@ -11,13 +11,13 @@ module.exports=async function handler(req,res){
     const isSuper=auth.role==="super_master";
     const configured=isSuper?[1,2,3]:await configuredOriginalRelays(auth.groupId);
     const grantableRelays=isSuper?[1,2,3]:auth.allowedRelays.filter(relay=>configured.includes(relay));
-    const canManage=(id,item)=>isSuper||(item.role==="user"&&item.groupId===auth.groupId);
+    const canManage=(id,item)=>!item.temporaryPermissionId&&(isSuper||(item.role==="user"&&item.groupId===auth.groupId));
 
     if(req.method==="GET"){
-      const activeDevices=Object.entries(registry.devices).filter(([id,item])=>isSuper||canManage(id,item)).map(([id,item])=>({
+      const activeDevices=Object.entries(registry.devices).filter(([id,item])=>canManage(id,item)).map(([id,item])=>({
         id,name:item.adminName||item.name,deviceName:item.name,adminName:item.adminName||"",phone:item.phone||"",role:id===registry.masterId?"super_master":item.role||"user",groupId:item.groupId||"",status:item.status,relays:!isSuper&&item.role==='user'?(item.relays||[]).filter(relay=>grantableRelays.includes(relay)):item.relays,accessStartsAt:item.accessStartsAt||"",accessEndsAt:item.accessEndsAt||"",createdAt:item.createdAt,lastSeen:item.lastSeen,statusChangedAt:item.statusChangedAt
       }));
-      const removedDevices=Object.entries(registry.revoked||{}).filter(([id,item])=>isSuper||(item.role==="user"&&item.groupId===auth.groupId)).map(([id,item])=>({
+      const removedDevices=Object.entries(registry.revoked||{}).filter(([id,item])=>canManage(id,item)).map(([id,item])=>({
         id,name:item.adminName||item.name||"Equipo eliminado",deviceName:item.name||"Equipo eliminado",adminName:item.adminName||"",phone:item.phone||"",role:item.role||"user",groupId:item.groupId||"",status:"removed",relays:item.relays||[],accessStartsAt:item.accessStartsAt||"",accessEndsAt:item.accessEndsAt||"",createdAt:item.createdAt,revokedAt:item.revokedAt
       }));
       const devices=[...activeDevices,...removedDevices].sort((a,b)=>a.role==="super_master"?-1:b.role==="super_master"?1:a.role==="admin"&&b.role!=="admin"?-1:b.role==="admin"&&a.role!=="admin"?1:String(a.createdAt||"").localeCompare(String(b.createdAt||""))||a.id.localeCompare(b.id));

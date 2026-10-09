@@ -144,25 +144,37 @@ function attachOriginalDiagnostics(item,row,aside){
     idLabel.append(idField);
     const discovery=node('div');discovery.className='relay-original-cloud-choices';
     const choices=node('div');
-    discovery.append(button('Buscar relés disponibles en Tuya',async()=>{
-      choices.replaceChildren();
-      const cloud=await repairOriginalApi({action:'candidates',relay:item.relay});
-      if(!cloud.devices.length){
-        choices.append(node('p','Tuya no devolvió dispositivos. Puedes escribir el ID manualmente.'));
-        return;
+    choices.setAttribute('role','status');
+    choices.setAttribute('aria-live','polite');
+    const searchCloud=button('Buscar relés disponibles en Tuya',async()=>{
+      choices.replaceChildren(node('p','Consultando los dispositivos del proyecto Tuya…'));
+      try{
+        const cloud=await repairOriginalApi({action:'candidates',relay:item.relay});
+        choices.replaceChildren();
+        if(!Array.isArray(cloud.devices)||!cloud.devices.length){
+          choices.append(node('p','Tuya no devolvió dispositivos en este proyecto. Puedes ingresar el ID desde Smart Life y comprobarlo aquí.'));
+          return;
+        }
+        const label=node('label','Elegir un equipo del proyecto Tuya');
+        const select=node('select');
+        const placeholder=node('option','Seleccionar el relé que corresponde físicamente');placeholder.value='';
+        select.append(placeholder);
+        for(const device of cloud.devices){
+          const option=node('option',device.name+' · '+(device.online===true?'Conectado':device.online===false?'Sin conexión':'Estado desconocido')+' · …'+device.idEnding);
+          option.value=device.id;select.append(option);
+        }
+        select.onchange=()=>{if(select.value)idField.value=select.value;};
+        label.append(select);
+        choices.append(label,node('p','Compara el nombre y confirma físicamente cuál es el relé correcto antes de guardar.'));
+      }catch(error){
+        choices.replaceChildren();
+        const detail=node('p','No se pudo obtener la lista de dispositivos de Tuya: '+(error.message||'error de consulta')+'.');
+        detail.className='relay-original-cloud-error';
+        detail.setAttribute('role','alert');
+        choices.append(detail,node('p','Esto no modifica el Actuador 2. Puedes ingresar el ID del relé desde Smart Life en el campo anterior y utilizar «Comprobar nuevo ID / canal».'));
       }
-      const label=node('label','Elegir un equipo del proyecto Tuya');
-      const select=node('select');
-      const placeholder=node('option','Seleccionar el relé que corresponde físicamente');placeholder.value='';
-      select.append(placeholder);
-      for(const device of cloud.devices){
-        const option=node('option',device.name+' · '+(device.online===true?'Conectado':device.online===false?'Sin conexión':'Estado desconocido')+' · …'+device.idEnding);
-        option.value=device.id;select.append(option);
-      }
-      select.onchange=()=>{if(select.value)idField.value=select.value;};
-      label.append(select);
-      choices.append(label,node('p','El nombre permite orientar la búsqueda, pero debes confirmar físicamente que sea el relé correcto.'));
-    }),choices);
+    });
+    discovery.append(searchCloud,choices);
     const codeLabel=node('label','Canal ON/OFF');
     const codeField=node('input');codeField.type='text';codeField.value=result.code;
     codeField.maxLength=16;codeLabel.append(codeField);

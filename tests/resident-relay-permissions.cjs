@@ -93,3 +93,4 @@ const devices=mounts('api/devices.js',{
 })().catch(error=>{console.error(error);process.exitCode=1;});
 // Misma puerta de seguridad: las invitaciones temporales nunca amplían permisos.
 require('./temporary-permissions.cjs');
+require('./temporary-session-isolation.cjs');

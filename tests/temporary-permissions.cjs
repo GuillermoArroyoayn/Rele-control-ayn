@@ -27,7 +27,7 @@ vm.runInNewContext(fs.readFileSync(repoRoot+'/api/temporary-permissions.js','utf
  if(name==='../lib/administrations')return A;
  if(name==='../lib/devices')return {configuredOriginalRelays:async group=>group==='group-A'?[1]:[3]};
  if(name==='../lib/history')return {addHistory:async r=>events.unshift({...r,createdAt:new Date().toISOString()}),readHistory:async()=>events};
- if(name==='../lib/whatsapp')return {normalizePhone:s=>String(s).replace(/\\D/g,'')};
+ if(name==='../lib/whatsapp')return {normalizePhone:s=>String(s).replace(/\D/g,'')};
  throw Error('Dependencia inesperada '+name);
  },Date,console,process:{env:{}},URL
 });

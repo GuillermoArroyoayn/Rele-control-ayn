@@ -108,6 +108,66 @@ function relayCenterCard(item){
   const status=button('Comprobar',async()=>{state.textContent='Comprobando…';try{const result=await api({action:'status',id:item.id});state.textContent=result.state===true?'ON · conectado':result.state===false?'OFF · conectado':'Sin estado';state.dataset.state=result.state===true?'on':result.state===false?'off':'unknown';}catch(error){state.textContent='Sin respuesta';state.dataset.state='error';throw error;}});
   assignRow.append(select,assign,status);card.append(top,meta,assignRow);return card;
 }
+async function repairOriginalApi(body){
+  const response=await fetch('/api/original-device-repair',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-app-pin':$('pin').value.trim(),
+      'x-device-id':deviceId(),'x-device-name':localStorage.getItem('relayDeviceName')||'Celular Android'},
+    body:JSON.stringify(body)
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'No fue posible comprobar el vínculo con Tuya.');
+  return result;
+}
+function attachOriginalDiagnostics(item,row,aside){
+  const panel=node('section');
+  panel.className='relay-original-diagnostic';
+  panel.hidden=true;
+  const describe=result=>[
+    'Dispositivo Tuya: '+result.deviceName,
+    'ID terminado en: '+result.deviceIdEnding,
+    'Conectado: '+(result.online===true?'Sí':result.online===false?'No':'No informado'),
+    'Canal configurado: '+result.code+(result.codeValid===false?' (no disponible)':''),
+    'Estado Tuya: '+(result.state===true?'ON':result.state===false?'OFF':'No disponible'),
+    'Canales disponibles: '+(result.channels.map(c=>c.code).join(', ')||'ninguno')
+  ].join(' · ');
+  aside.append(button('Diagnosticar vínculo Tuya',async()=>{
+    const result=await repairOriginalApi({action:'diagnose',relay:item.relay});
+    panel.replaceChildren();
+    panel.hidden=false;
+    panel.append(node('h4','Comprobación · Actuador '+item.relay));
+    panel.append(node('p',describe(result)));
+    panel.append(node('p','Esta lectura no activa el relé. Compara el nombre y el estado con Smart Life. Si corresponde a otro equipo o a un ID antiguo, comprueba un ID nuevo antes de guardarlo.'));
+    const idLabel=node('label','ID Tuya corregido (vacío = conservar el actual)');
+    const idField=node('input');idField.type='text';idField.maxLength=64;idField.autocomplete='off';
+    idField.placeholder='ID del dispositivo vinculado en Tuya';
+    idLabel.append(idField);
+    const codeLabel=node('label','Canal ON/OFF');
+    const codeField=node('input');codeField.type='text';codeField.value=result.code;
+    codeField.maxLength=16;codeLabel.append(codeField);
+    const preview=node('p','Primero comprueba la nueva identificación. No se cambia nada con esta consulta.');
+    preview.setAttribute('role','status');
+    const actions=node('div');actions.className='relay-original-repair-actions';
+    let approvedPreview=null;
+    const save=button('Guardar vínculo confirmado',async()=>{
+      if(!approvedPreview||approvedPreview.id!==idField.value.trim()||approvedPreview.code!==codeField.value.trim())
+        throw new Error('Vuelve a comprobar el ID y el canal antes de guardar.');
+      if(!confirm('¿Actualizar SOLO el vínculo Tuya del Actuador '+item.relay+'? No cambiará sus administradores ni permisos.'))return;
+      const saved=await repairOriginalApi({action:'bind',relay:item.relay,deviceId:approvedPreview.id,code:approvedPreview.code,confirm:true});
+      notify('Vínculo del Actuador '+item.relay+' guardado. Prueba su funcionamiento físico en condiciones seguras.');
+      await load();
+    });save.disabled=true;
+    actions.append(button('Comprobar nuevo ID / canal',async()=>{
+      approvedPreview=null;save.disabled=true;
+      const proposal={id:idField.value.trim(),code:codeField.value.trim()};
+      const checked=await repairOriginalApi({action:'preview',relay:item.relay,deviceId:proposal.id,code:proposal.code});
+      preview.textContent='VERIFICADO EN TUYA · '+describe(checked)+'. Confirma que es el dispositivo físico correcto antes de guardar.';
+      approvedPreview=proposal;save.disabled=false;
+    }),save);
+    panel.append(idLabel,codeLabel,preview,actions);
+  }));
+  row.append(panel);
+}
 function renderRelayCenter(){
   if(!data||data.role!=='super_master'||currentTab!=='equipment')return;
   relayAssignmentOptions($('relayBulkGroup'),$('relayBulkGroup').value||'unassigned');
@@ -135,6 +195,7 @@ function renderRelayCenter(){
     const aside=node('div');aside.className='relay-registered-status';
     const state=node('span',item.original?(item.error?'Sin verificar':'Relé original'):'Registrado');
     state.className='relay-live-state';aside.append(state);
+    if(item.original)attachOriginalDiagnostics(item,row,aside);
     if(!item.original){
       aside.append(button('Comprobar',async()=>{
         state.textContent='Comprobando…';

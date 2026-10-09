@@ -74,6 +74,9 @@ module.exports=async function handler(req,res){
         temporaryGrantId:grant.id,accessStartsAt:startsAt,accessEndsAt:endsAt,relays};
       const inviteKey='ayn:managed:invite:'+A.hash(token);
       await A.redis('HSET',key,grant.id,JSON.stringify(grant));
+      // Caducidad de respaldo: no retener registros personales indefinidamente
+      // cuando una comunidad deje de utilizar o consultar el módulo.
+      await A.redis('EXPIRE',key,String(181*86400));
       try{await A.redis('SET',inviteKey,JSON.stringify(invite),'EX',String(hours*3600));}
       catch(e){await A.redis('HDEL',key,grant.id).catch(()=>{});throw e;}
       const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();

@@ -50,6 +50,7 @@ module.exports=async function handler(req,res){
       }
 
       if((registry.masterIds||[]).includes(id)) return res.status(400).json({error:"Los permisos de un equipo Máster no se modifican desde aquí. Puedes pausarlo o eliminarlo."});
+      if(item.temporaryPermissionId)return res.status(403).json({error:"Los accesos de invitados temporales se gestionan únicamente desde Permisos temporales."});
       const relays=[...new Set((Array.isArray(req.body?.relays)?req.body.relays:[]).map(Number))].filter(relay=>[1,2,3].includes(relay)).sort();
       if(!relays.length) return res.status(400).json({error:"Selecciona por lo menos un actuador."});
       if(!isSuper&&relays.some(relay=>!grantableRelays.includes(relay)))

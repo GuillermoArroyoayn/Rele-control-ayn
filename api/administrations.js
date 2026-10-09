@@ -100,7 +100,7 @@ module.exports=async(req,res)=>{
     const auth=await A.access(req);
     if(req.method==='GET'){
       const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
-      const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
+      const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&!d.temporaryPermissionId&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       const matrix=auth.role==='admin'?Matrix.publicConfig(await Matrix.ensure(auth.groupId,auth.device.adminName||auth.device.name||'Administración'),'admin'):null;
       const originals=auth.role==='super_master'?(await T.originalList()).map(item=>({...item,
         assignedGroup:Object.values(auth.registry.devices).find(d=>d.role==='admin'&&d.status==='active'&&(d.relays||[]).includes(item.relay))?.groupId||'master'})):[];
@@ -183,7 +183,7 @@ module.exports=async(req,res)=>{
       let promotedExistingUsers=0;
       if(role==='admin'&&auth.role==='super_master'){
         await A.updateRegistry(registry=>{
-          const matches=Object.entries(registry.devices).filter(([,item])=>item.role==='user'&&WhatsApp.normalizePhone(item.phone)===phone);
+          const matches=Object.entries(registry.devices).filter(([,item])=>item.role==='user'&&!item.temporaryPermissionId&&WhatsApp.normalizePhone(item.phone)===phone);
           for(const [,user] of matches){
             user.role='admin';
             user.groupId=groupId;
@@ -214,7 +214,7 @@ module.exports=async(req,res)=>{
       let promoted=null;
       await A.updateRegistry(registry=>{
         const user=registry.devices[userId];
-        if(!user||user.role!=='user'||!user.groupId)throw A.error('Selecciona un usuario válido de una administración.',404);
+        if(!user||user.role!=='user'||!user.groupId||user.temporaryPermissionId)throw A.error('Selecciona un residente permanente de una administración.',404);
         user.role='admin';
         user.status='active';
         user.adminName=user.adminName||user.name||'Administrador';
@@ -229,11 +229,11 @@ module.exports=async(req,res)=>{
     if(b.action==='permissions'){
       A.manager(auth);const groupId=A.group(auth,b.groupId);const all=await A.records();const ids=[...new Set(Array.isArray(b.actuatorIds)?b.actuatorIds:[])];
       if(ids.some(id=>!all.some(d=>d.id===id&&d.groupId===groupId&&d.approved)))throw A.error('Actuadores inválidos.');
-      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId)throw A.error('Usuario fuera de esta administración.',403);user.actuatorIds=ids;if(b.apartment!==undefined)user.apartment=String(b.apartment).trim().slice(0,30);});await addHistory({kind:'permissions',groupId,userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Permisos de actuadores actualizados',actuatorIds:ids}).catch(()=>{});return res.json({ok:true});
+      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.role!=='user'||user.groupId!==groupId||user.temporaryPermissionId)throw A.error('Usuario permanente fuera de esta administración.',403);user.actuatorIds=ids;if(b.apartment!==undefined)user.apartment=String(b.apartment).trim().slice(0,30);});await addHistory({kind:'permissions',groupId,userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Permisos de actuadores actualizados',actuatorIds:ids}).catch(()=>{});return res.json({ok:true});
     }
     if(b.action==='accountStatus'){
       A.manager(auth);if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado inválido.');
-      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||b.userId===registry.masterId||b.userId===auth.device.id)throw A.error('Cuenta no modificable.',403);if(auth.role!=='super_master'&&(user.role!=='user'||user.groupId!==auth.groupId))throw A.error('Cuenta fuera de tu administración.',403);user.status=b.status;user.statusChangedAt=new Date().toISOString();user.statusChangedBy=auth.device.id;});await addHistory({kind:'permissions',groupId:auth.registry.devices[b.userId]?.groupId||'master',userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Estado de acceso: '+b.status}).catch(()=>{});return res.json({ok:true});
+      await A.updateRegistry(registry=>{const user=registry.devices[b.userId];if(!user||user.temporaryPermissionId||b.userId===registry.masterId||b.userId===auth.device.id)throw A.error('Cuenta no modificable desde usuarios permanentes.',403);if(auth.role!=='super_master'&&(user.role!=='user'||user.groupId!==auth.groupId))throw A.error('Cuenta fuera de tu administración.',403);user.status=b.status;user.statusChangedAt=new Date().toISOString();user.statusChangedBy=auth.device.id;});await addHistory({kind:'permissions',groupId:auth.registry.devices[b.userId]?.groupId||'master',userName:auth.registry.devices[b.userId]?.adminName||b.userId,actor:auth.device.name,action:'Estado de acceso: '+b.status}).catch(()=>{});return res.json({ok:true});
     }
     if(b.action==='assignOriginal'){
       if(auth.role!=='super_master')throw A.error('Solo el Máster asigna los actuadores originales.',403);

@@ -8,7 +8,12 @@ module.exports=async function handler(req,res){
   if(req.method!=="GET") return res.status(405).json({error:"Método no permitido"});
   try{
     const auth=await authorize(req);
-    if(!auth.ok) return res.status(auth.status).json({error:auth.error,pending:Boolean(auth.pending),accessStatus:auth.accessStatus});
+    if(!auth.ok){
+      const deviceId=String(req.headers["x-device-id"]||"").trim();
+      const error=auth.pending&&/^[a-zA-Z0-9-]{16,80}$/.test(deviceId)
+        ? `${auth.error} Código de equipo: ${deviceId}` : auth.error;
+      return res.status(auth.status).json({error,pending:Boolean(auth.pending),accessStatus:auth.accessStatus});
+    }
     const relays=[];
     for(const relay of auth.allowedRelays){
       try{ const state=await getRelay(relay);relays.push({relay,state});await setRelayState(relay,state).catch(error=>console.error("No se pudo sincronizar el estado:",error)); }

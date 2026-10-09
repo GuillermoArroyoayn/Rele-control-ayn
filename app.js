@@ -631,7 +631,7 @@ function buildMenu() {
     temporary:'temporary',bookings:'bookings',voice:'voice',history:'history',
     reports:'reports',reportes:'reports',wall:'wall',polls:'polls','community-hub':'community-hub',
     panic:'panic',settings:'settings',users:'users',admins:'admins'};
-  if(currentRole==='admin'&&directViews[masterRoute]){
+  if(['admin','super_master'].includes(currentRole)&&directViews[masterRoute]){
     showView(directViews[masterRoute]);return;
   }
   if(currentRole==='super_master'&&statusReady&&!masterRoute){sessionStorage.setItem("aynAdminView","home");location.replace('/administracion.html#home');return;}

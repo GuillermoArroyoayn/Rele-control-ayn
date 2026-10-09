@@ -3,7 +3,7 @@
  const normalize=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
  let profiles=[];
  const setProfiles=values=>{profiles=(Array.isArray(values)?values:[]).filter(x=>x&&x.voiceName&&typeof x.id==='string').map(x=>({
-   id:x.id,kind:x.kind,relay:x.relay,name:x.voiceName||x.name,alias:normalize(x.voiceName)
+   id:x.id,kind:x.kind,relay:x.relay,name:x.name,alias:normalize(x.voiceName)
  }));};
  function match(command){
    const text=normalize(command);

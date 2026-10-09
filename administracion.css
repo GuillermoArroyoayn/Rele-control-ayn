@@ -803,3 +803,25 @@ body[data-admin-view="home"] .home-dashboard > .home-voice-button:focus-visible{
     padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
   }
 }
+
+
+/* Registro de relés: confirmaciones claras junto al botón Guardar. */
+.relay-registration-feedback{margin:12px 4px 2px;padding:12px 14px;border:1px solid #76addb;border-radius:12px;background:#082a4d;color:#f3f9ff;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.relay-registration-feedback[data-kind="success"]{border-color:#3ecb96}
+.relay-registration-feedback[data-kind="warning"]{border-color:#f4bb69}
+.relay-registration-feedback[data-kind="error"]{border-color:#f18f99}
+.relay-registration-feedback[data-kind="pending"]{border-color:#76addb}
+/* Inventario unificado: vista de solo consulta, no replica registros ni permisos. */
+.relay-all-folder{margin-bottom:18px}
+.relay-all-folder>summary strong{font-size:16px}
+.relay-all-folder>.relay-center-grid{gap:8px}
+.relay-registered-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0!important;padding:12px!important;border:1px solid var(--theme-border,#5ee7ff99)!important;background:var(--theme-panel,#083b78)!important;border-radius:12px}
+.relay-registered-info{min-width:0;overflow-wrap:anywhere}
+.relay-registered-info strong{display:block;font-size:15px}
+.relay-registered-info small{margin-top:4px;font-size:12px}
+.relay-registered-status{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.relay-registered-status button{min-height:36px;padding:7px 10px;font-size:12px}
+@media(max-width:540px){
+  .relay-registered-entry{align-items:flex-start;flex-direction:column}
+  .relay-registered-status{justify-content:flex-start}
+}

@@ -1,3 +1,4 @@
+const Binding=require('../lib/original-device-binding');
 const A=require('../lib/administrations');
 const M=require('../lib/app-matrix');
 const {checkPin}=require('../lib/tuya');
@@ -103,7 +104,9 @@ module.exports=async(req,res)=>{
         groupName:groupNames.get(item.groupId)||'Sin administración'
       }));
       const reservations=await originalReservations();
-      const originalPool=[1,2,3].filter(originalAvailable).map(relay=>{
+      const availableOriginals=[];
+      for(const relay of [1,2,3]){try{await Binding.resolve(relay);availableOriginals.push(relay);}catch(e){if(e.status!==410&&originalAvailable(relay))availableOriginals.push(relay);}}
+      const originalPool=availableOriginals.map(relay=>{
         const owner=originalOwner(auth.registry,relay);
         const groupId=owner?.[1]?.groupId||reservations[relay]||'master';
         return {id:'original:'+relay,relay,name:'Relé Máster '+relay,kind:'original',groupId,
@@ -120,6 +123,7 @@ module.exports=async(req,res)=>{
 
     if(b.action==='assignOriginal'){
       const relay=Number(b.relay);
+      await Binding.resolve(relay);
       if(!originalAvailable(relay))throw A.error('Relé original no configurado o no disponible.',400);
       if(status==='deleted')throw A.error('Esta administración está eliminada.',409);
       const reservations=await originalReservations();

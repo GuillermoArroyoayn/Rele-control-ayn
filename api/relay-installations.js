@@ -21,7 +21,8 @@ async function lookup(id){
 }
 async function verify(item){
  if(!validId(item.deviceId))throw A.error('Primero empareja el equipo y agrega el ID real de Tuya.');
- if([1,2,3].some(n=>process.env['TUYA_DEVICE_'+n]===item.deviceId))throw A.error('Este equipo pertenece al control original.');
+ const bindings=await Promise.all([1,2,3].map(n=>require('../lib/original-device-binding').resolve(n).catch(e=>{if(e.status===410)return null;throw e;})));
+ if(bindings.some(x=>x?.id===item.deviceId&&x?.code===item.code))throw A.error('Este equipo pertenece al control original.');
  const token=await getToken(),root='/v1.0/iot-03/devices/'+item.deviceId;
  // Solo lectura: verificar nunca activa o apaga un equipo.
  const detail=(await tuyaFetch('GET',root,'',token)).result||{};

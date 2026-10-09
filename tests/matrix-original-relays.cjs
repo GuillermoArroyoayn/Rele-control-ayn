@@ -5,7 +5,7 @@ const A={access:async()=>({role,registry,device:{name:'Máster',id:'master'}}),e
 const config=id=>({groupId:id,status:id==='B'?'pending':'active',branding:{communityName:id},modules:[],actuators:[]});
 const M={listPublished:async()=>[config('B'),config('A')],getPublished:async(id)=>config(id),getDraft:async()=>null,ensure:async(id)=>config(id),CATALOG:[]};
 const sandboxModule={exports:{}};
-vm.runInNewContext(fs.readFileSync('api/app-matrix.js','utf8'),{module:sandboxModule,process:{env:{TUYA_DEVICE_1:'x',TUYA_DEVICE_2:'y',TUYA_DEVICE_3:'z'}},require:n=>n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:{addHistory:async()=>{}}});
+vm.runInNewContext(fs.readFileSync('api/app-matrix.js','utf8'),{module:sandboxModule,process:{env:{TUYA_DEVICE_1:'x',TUYA_DEVICE_2:'y',TUYA_DEVICE_3:'z'}},require:n=>n==='../lib/original-device-binding'?{resolve:async()=>({id:'test'})}:n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:{addHistory:async()=>{}}});
 async function request(body){let code=200,value;await sandboxModule.exports({method:body?'POST':'GET',body},{setHeader(){},status(n){code=n;return this},json(v){value=v;return this}});return {code,value}}
 (async()=>{
 let r=await request();assert.equal(r.code,200);assert.equal(r.value.originalPool.length,3);assert.equal(r.value.originalPool.filter(x=>x.groupId==='master').length,2);

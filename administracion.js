@@ -115,10 +115,46 @@ function renderRelayCenter(){
   renderEnrolledRelays();
   const query=$('relaySearch').value.trim().toLocaleLowerCase('es');
   const all=data.actuators||[];
+  const originals=(data.originalActuators||[]).filter(item=>[1,2,3].includes(Number(item.relay)));
+  const allCount=all.length+originals.length;
+  const inventory=$('allRegisteredRelayList');
+  inventory.replaceChildren();
+  $('allRegisteredCount').textContent=allCount+' relé'+(allCount===1?'':'s');
+  const registered=[
+    ...originals.map(item=>({
+      id:'original-'+item.relay,name:item.name||'Actuador '+item.relay,
+      groupId:item.assignedGroup||'master',original:true,relay:item.relay,error:item.error||''
+    })),
+    ...all.map(item=>({...item,original:false}))
+  ].filter(item=>!query||(item.name+' '+relayGroupName(item.groupId)).toLocaleLowerCase('es').includes(query))
+    .sort((a,b)=>a.name.localeCompare(b.name,'es',{numeric:true}));
+  for(const item of registered){
+    const row=node('article');row.className='relay-registered-entry';
+    const main=node('div');main.className='relay-registered-info';
+    main.append(node('strong',item.name),node('small',(item.original?'Original '+item.relay:'Incorporado')+' · '+relayGroupName(item.groupId)));
+    const aside=node('div');aside.className='relay-registered-status';
+    const state=node('span',item.original?(item.error?'Sin verificar':'Relé original'):'Registrado');
+    state.className='relay-live-state';aside.append(state);
+    if(!item.original){
+      aside.append(button('Comprobar',async()=>{
+        state.textContent='Comprobando…';
+        try{
+          const checked=await api({action:'status',id:item.id});
+          state.textContent=checked.state===true?'Estado ON':checked.state===false?'Estado OFF':'Sin estado disponible';
+          state.dataset.state=checked.state===true?'on':checked.state===false?'off':'unknown';
+        }catch(error){
+          state.textContent='Error al comprobar';state.dataset.state='error';
+          relayRegistrationFeedback('No se pudo comprobar «'+item.name+'»: '+error.message,'error');
+        }
+      }));
+    }
+    row.append(main,aside);inventory.append(row);
+  }
+  if(!registered.length)inventory.append(node('p',query?'No hay coincidencias.':'Todavía no hay relés registrados.'));
   const anyInstalled=all.length>0;
-  $('relaySearch').parentElement.hidden=!anyInstalled;
+  $('relaySearch').parentElement.hidden=!allCount;
   $('relayBulkAssign').closest('.relay-bulk-bar').hidden=!anyInstalled;
-  $('relayCenterLists').hidden=!anyInstalled;
+  $('relayCenterLists').hidden=!allCount;
   const matches=item=>!query||(item.name+' '+relayGroupName(item.groupId)).toLocaleLowerCase('es').includes(query);
   const filtered=all.filter(matches);
   $('unassignedActuators').replaceChildren();
@@ -240,14 +276,25 @@ $('invite').onsubmit=async event=>{
 };
 
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteLink').value);notify('Enlace copiado.');}catch{$('inviteLink').select();notify('Selecciona y copia el enlace.');}};
+function relayRegistrationFeedback(message,kind='info'){
+  let el=$('relayRegistrationFeedback');
+  if(!el){
+    el=node('div');el.id='relayRegistrationFeedback';el.className='relay-registration-feedback';
+    el.setAttribute('role','status');el.setAttribute('aria-live','polite');
+    $('relayAddSubmit').insertAdjacentElement('afterend',el);
+  }
+  el.textContent=message;el.dataset.kind=kind;el.hidden=!message;
+  if(message&&kind!=='pending')el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
 const addMode=timerMode($('timer'));$('timer').parentElement.before(addMode.label);
 $('enrolledRelaySelect').onchange=updateEnrolledRelayMode;
 $('add').onsubmit=async e=>{
   e.preventDefault();
   const b=e.submitter||$('relayAddSubmit'),target=$('relayAddGroup').value||'unassigned';
-  const selection=$('enrolledRelaySelect').value;
+  const selection=$('enrolledRelaySelect').value,adding=selection==='new';
   if(!selection){notify('Selecciona un relé registrado.',true);return;}
   b.disabled=true;
+  if(adding)relayRegistrationFeedback('Guardando relé en A&N Control…','pending');
   try{
     if(selection.startsWith('original:')){
       await api({action:'assignOriginal',relay:Number(selection.slice(9)),groupId:target});
@@ -255,15 +302,33 @@ $('add').onsubmit=async e=>{
     }else if(selection.startsWith('managed:')){
       await api({action:'assign',id:selection.slice(8),groupId:target});
       notify('Actuador existente asignado a '+relayGroupName(target)+'.');
-    }else if(selection==='new'){
-      await api({action:'add',name:$('actuatorName').value,deviceId:$('deviceId').value,code:$('channel').value,timerSeconds:addMode.value(),groupId:target});
-      notify('Relé nuevo registrado y asignado a '+relayGroupName(target)+'.');
+    }else if(adding){
+      const name=$('actuatorName').value.trim();
+      const result=await api({action:'add',name,deviceId:$('deviceId').value,code:$('channel').value,timerSeconds:addMode.value(),groupId:target});
+      if(result.ok!==true)throw Error('El servidor no confirmó el registro.');
+      relayRegistrationFeedback('Relé «'+name+'» guardado por el servidor. Verificando su aparición en la lista…','pending');
       $('actuatorName').value='';$('deviceId').value='';
-    }else throw new Error('Selección inválida.');
+      relayAddOpen=currentTab==='equipment';
+      let verified=false;
+      try{
+        await load();
+        verified=Boolean((data?.actuators||[]).some(item=>item.id===result.id&&item.name===name&&item.groupId===target));
+      }catch(error){
+        relayRegistrationFeedback('Relé «'+name+'» guardado en el servidor, pero no se pudo actualizar la lista: '+error.message+'. No vuelvas a registrarlo.','warning');
+        return;
+      }
+      relayRegistrationFeedback(verified?
+        '✓ Relé «'+name+'» guardado correctamente y visible en la lista. Asignado a: '+relayGroupName(target)+'. Para comprobar su estado, usa «Comprobar» en «Todos los relés registrados».':
+        'El servidor aceptó el registro de «'+name+'», pero todavía no aparece en la lista. Actualiza la pantalla antes de intentar registrarlo otra vez.',
+        verified?'success':'warning');
+      return;
+    }else throw Error('Selección inválida.');
     relayAddOpen=currentTab==='equipment';await load();
     if(currentTab==='equipment')$('enrolledRelaySelect').focus();
-  }catch(error){notify(error.message,true);}
-  finally{b.disabled=false;updateEnrolledRelayMode();}
+  }catch(error){
+    if(adding)relayRegistrationFeedback('No se pudo guardar el relé: '+error.message,'error');
+    else notify(error.message,true);
+  }finally{b.disabled=false;updateEnrolledRelayMode();}
 };
 $('refresh').onclick=async()=>{const b=$('refresh');b.disabled=true;try{for(const button of $('actuators').querySelectorAll('button'))if(button.textContent==='Actualizar estado')await button.onclick();}finally{b.disabled=false;}};
 $('toggleRelayAdd').onclick=()=>{relayAddOpen=!relayAddOpen;render();$('toggleRelayAdd').textContent=relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado';if(relayAddOpen)setTimeout(()=>$('actuatorName').focus(),0);};

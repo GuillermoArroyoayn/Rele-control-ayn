@@ -44,8 +44,22 @@ module.exports=async(req,res)=>{
     if(auth.role!=='super_master')throw A.error('Solo el Máster general puede comprobar y reparar estos vínculos.',403);
     const b=req.body||{},relay=Binding.checkRelay(b.relay);
     const action=String(b.action||'');
-    if(!['diagnose','preview','bind'].includes(action))throw A.error('Acción desconocida.',400);
+    if(!['diagnose','preview','bind','candidates'].includes(action))throw A.error('Acción desconocida.',400);
     const existing=await Binding.resolve(relay);
+    if(action==='candidates'){
+      const token=await getToken(),devices=[];
+      for(let page=1;page<=3;page++){
+        const cloud=await tuyaFetch('GET','/v1.0/devices?page_no='+page+'&page_size=20','',token);
+        const found=cloud.result?.devices||[];
+        for(const item of found){
+          if(!Binding.validId(item.id))continue;
+          devices.push({id:item.id,name:String(item.name||item.product_name||'Dispositivo').slice(0,80),
+            online:typeof item.online==='boolean'?item.online:null,idEnding:String(item.id).slice(-6)});
+        }
+        if(found.length<20)break;
+      }
+      return res.status(200).json({ok:true,relay,devices});
+    }
     const deviceId=String(b.deviceId||existing.id).trim();
     const code=String(b.code||existing.code).trim();
     if(!Binding.validId(deviceId)||!Binding.validCode(code))throw A.error('ID de Tuya o canal inválido.',400);

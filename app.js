@@ -2055,6 +2055,13 @@ async function loadDevices() {
           permissions.append(label);
         }
 
+        for (const actuator of (data.managedActuators || []).filter(a=>a.groupId===device.groupId)) {
+          const label=document.createElement("label"), checkbox=document.createElement("input");
+          checkbox.type="checkbox";checkbox.value=actuator.id;checkbox.dataset.managed="true";
+          checkbox.checked=device.role==='admin'||(device.actuatorIds||[]).includes(actuator.id);
+          label.append(checkbox,document.createTextNode(' '+actuator.name));permissions.append(label);
+        }
+
         const temporary = document.createElement("div");
         temporary.className = "temporary-permissions";
         temporary.hidden = currentView !== "temporary";
@@ -2095,10 +2102,11 @@ async function loadDevices() {
         save.textContent =
           device.status === "pending" ? "Autorizar" : "Guardar permisos";
         save.addEventListener("click", async () => {
-          const relays = [...permissions.querySelectorAll("input:checked")].map(
+          const relays = [...permissions.querySelectorAll("input:checked:not([data-managed])")].map(
             (input) => Number(input.value),
           );
-          if (!relays.length) {
+          const actuatorIds=[...permissions.querySelectorAll("input[data-managed]:checked")].map(input=>input.value);
+          if (!relays.length && !actuatorIds.length && (roleSelect?.value||device.role)!=="admin") {
             show("Selecciona por lo menos un actuador.", true);
             return;
           }
@@ -2118,6 +2126,7 @@ async function loadDevices() {
               body: JSON.stringify({
                 deviceId: device.id,
                 relays,
+                actuatorIds,
                 adminName,
                 phone,
                 role: roleSelect?.value || "user",

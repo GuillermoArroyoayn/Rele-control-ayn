@@ -14,7 +14,7 @@
   };
   function match(command){
     const text=normalize(command);
-    if(!text||/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
+    if(/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
     // El llamador comprueba AIN y permisos antes de entregar el nombre autorizado.
     // La frase puede ser solamente el nombre, o incluir un verbo compatible.
     const parsed=/^(?:me (?:abres|abris|activas) |(?:abrir|abre|abreme|activar|activa|enciende|encender|prender|prende|acciona|accionar) )(?:el |la |los |las )?(.+)$/.exec(text);

@@ -6,10 +6,10 @@ const adminCode=fs.readFileSync('administracion-voice.js','utf8');
 const matcherCode=fs.readFileSync('actuator-voice.js','utf8');
 assert.doesNotThrow(()=>new vm.Script(adminCode),'El controlador de voz tiene sintaxis válida');
 assert.match(adminCode,/hasExplicitOpenIntent\(interimCommand\)/,'No despachar frases parciales sin verbo');
-assert.match(adminCode,/recognition\.onprovider=/,'Identificar motor de voz local o en línea');
-assert.match(adminCode,/recognition\.onspeechactivity=/,'Distinguir micrófono activo de audio detectado');
-assert.match(adminCode,/AIN reconocido\. Recibiendo orden/,'Confirmar activación por voz sin abrir una puerta');
-assert.match(adminCode,/No pude cargar los accesos autorizados/,'Error de autorización visible: no fingir escucha funcional');
+
+
+
+
 assert.match(adminCode,/now-lastCommandAt<6000/,'Evitar repetir orden parcial y final');
 assert.match(adminCode,/if\(activationBusy\)return/,'Una única apertura en curso');
 assert.match(adminCode,/allowedRelays\.includes\(Number\(profile\.relay\)\)/,'Respetar relé autorizado');

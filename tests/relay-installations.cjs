@@ -67,7 +67,7 @@ async function run(action,payload={},method='POST'){
  assert(!html.includes('Prepara el relé en el taller. Al llegar al condominio,'),'Eliminar párrafo redundante');
  assert(html.includes('relay-install-advanced')&&html.includes('relay-install-help'),'Mantener la información técnica bajo detalle accesible');
  assert(html.includes('relayInstallerSaved'),'Separar listado de relés guardados');
- assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!anyInstalled"),'Ocultar carpetas vacías');
+ assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!allCount"),'Ocultar carpetas sin relés originales ni gestionados');
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
  assert(html.includes('/relay-installer.js?v=20261008-compact160'));

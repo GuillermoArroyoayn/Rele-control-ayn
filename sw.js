@@ -40,7 +40,7 @@ const ASSETS = [
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
-  "/actuator-voice.js?v=20261009-voice213",
+  "/actuator-voice.js?v=20261009-direct214",
   "/administracion-voice.js?v=20261009-alias199"
 ];
 // Una imagen o archivo opcional que falle no debe bloquear la actualización en iOS.

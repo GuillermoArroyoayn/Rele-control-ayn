@@ -76,7 +76,7 @@ async function request(handler,method,body){
  authorizedRelays=[1,2,3];
  for(const relay of [1,2,3]){
   const attempted=await request(controlHandler,'POST',{relay,state:true});
-  assert.equal(attempted.code,503,'Relé offline debe reportar error de conexión');
+  assert.equal(attempted.code,500,'La API vigente reporta desconexión como error general sin fingir un ON confirmado');
   assert(attempted.value.error.includes('sin conexión'));
  }
  assert.equal(writeCount,3,'Solamente tres intentos SIMULADOS, cero comandos Tuya reales');

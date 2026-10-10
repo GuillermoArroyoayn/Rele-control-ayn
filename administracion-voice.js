@@ -22,6 +22,7 @@
   let voiceSpeaking=false;
   let fastDispatchKey='';
   let fastDispatchAt=0;
+  let activationBusy=false;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -121,8 +122,12 @@
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
     voiceRole=data.role||'';
-    const community=String(data.communityName||data.appMatrix?.branding?.communityName||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    voiceCarla=['admin','user'].includes(voiceRole)&&/\b(?:carla|karla)\b/.test(community);
+    // El nombre del propietario y la marca publicada pueden ser distintos.
+    // Admitir ambos identificadores, sin depender de un nombre de relé global.
+    const communityNames=[data.communityName,data.appMatrix?.branding?.communityName];
+    voiceCarla=['admin','user'].includes(voiceRole)&&communityNames.some(name=>
+      /\b(?:carla|karla)\b/.test(String(name||'').normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,'').toLowerCase()));
     allowedRelays=(data.allowedRelays||[]).map(Number).filter(n=>[1,2,3].includes(n));
     if(voiceRole==='admin'||voiceRole==='user'){
       // El catálogo de esta comunidad es la única fuente de nombres reconocibles.
@@ -151,6 +156,11 @@
     if(!direct.size&&/\bporton\b/.test(command))direct.add(2);
     if(!direct.size&&/\bpuerta\b/.test(command))direct.add(3);
     return direct.size===1?[...direct][0]:direct.size>1?-1:0;
+  }
+
+  function hasExplicitOpenIntent(command){
+    return !/\b(?:no|nunca|cancelar|cancela|detener|cerrar|cierra|apagar|apaga|desactivar)\b/.test(command)&&
+      /\b(?:abrir|abre|abres|abrime|abreme|activar|activa|enciende|encender|prender|prende|accionar|acciona)\b/.test(command);
   }
 
   function isOpenIntent(command){
@@ -229,7 +239,8 @@
     }
     wakeUntil=0;
     const now=Date.now();
-    if(command===lastCommand&&now-lastCommandAt<2500)return;
+    // Una transcripción parcial y su final nunca deben causar dos pulsos.
+    if(command===lastCommand&&now-lastCommandAt<6000)return;
     lastCommand=command;lastCommandAt=now;
 
     if(/\b(?:detener voz|desactivar voz|apagar voz)\b/.test(command)){
@@ -249,7 +260,15 @@
     }
     const personalized=window.AynActuatorVoice?.match(command)||window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
+    // Para Karla jamás basta decir un nombre suelto (p.ej. "Puerta").
+    // Se necesita una orden expresa y se conserva la autorización del servidor.
+    if(voiceCarla&&personalized&&!hasExplicitOpenIntent(command)){
+      paint('Di AIN abre puerta para activar el acceso','listening');
+      return;
+    }
+    if(activationBusy)return;
     if(personalized?.kind==='managed'){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       const activation=(async()=>{
@@ -265,6 +284,7 @@
         paint(message,'listening');
         await speak(message);
       }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
+      finally{activationBusy=false;}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -274,6 +294,7 @@
       return;
     }
     if(relay&&(personalized||isOpenIntent(command))){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       paint('Orden recibida: '+name,'listening');
@@ -288,7 +309,7 @@
         paint(error.message,'error');
         await speak('No fue posible activar '+name);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
-      }
+      }finally{activationBusy=false;}
       return;
     }
     if(voiceRole==='admin'&&!personalized&&
@@ -409,11 +430,26 @@
           const interimCommand=hasWake(normalized)?removeWake(normalized):normalized;
           const relay=resolveRelay(interimCommand);
           const specificTarget=/\b(?:1|2|3|uno|un|dos|tres|primero|segundo|tercero|qr|vehicular|peatonal)\b/.test(interimCommand);
-          const key=relay>0&&specificTarget&&isOpenIntent(interimCommand)?relay+':'+interimCommand:'';
-          if(key&&key!==fastDispatchKey&&Date.now()-fastDispatchAt>900){
+          // La voz de administraciones usa nombres propios, no los números del Máster.
+          // Despachar una frase COMPLETA reconocida como parcial, sin esperar
+          // a que el proveedor marque isFinal (puede tardar o nunca llegar).
+          const profile=window.AynActuatorVoice?.match(interimCommand)||
+            window.AynActuatorVoice?.matchSingleDoor(interimCommand,voiceCarla);
+          const profileAllowed=profile&&!profile.ambiguous&&
+            (profile.kind==='managed'||(profile.kind==='original'&&allowedRelays.includes(Number(profile.relay))));
+          const authorized=Date.now()<wakeUntil&&statusReady&&isOpenIntent(interimCommand)&&
+            (!voiceCarla||hasExplicitOpenIntent(interimCommand));
+          const key=authorized&&profileAllowed?'profile:'+profile.id+':'+interimCommand:
+            authorized&&relay>0&&specificTarget?relay+':'+interimCommand:'';
+          if(key&&!activationBusy&&Date.now()-fastDispatchAt>900&&
+             (key!==fastDispatchKey||Date.now()-fastDispatchAt>3000)){
             fastDispatchKey=key;fastDispatchAt=Date.now();
             phraseBuffer='';clearTimeout(phraseTimer);
-            executeCommand(transcript).catch(()=>{});
+            paint('AIN reconoció la orden. Activando acceso…','listening');
+            executeCommand(transcript).catch(error=>paint(error.message||'No fue posible activar el acceso.','error'));
+            // Evitar que la misma frase se ejecute otra vez en el resultado final.
+            if(profileAllowed)recognition.consumeUtterance?.();
+            break;
           }
         }
         if(result.isFinal||result.utteranceEnded===true){

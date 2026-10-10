@@ -6,6 +6,15 @@
 
 **Caso de referencia:** se instala un relé en otra Wi-Fi; debe quedar como **Puerta** de una administración concreta; se vincula el celular de la administradora (caso Carla/Karla). El objetivo es dejar **un relé** visible y operable en **una sola comunidad**, sin tocar otros relés.
 
+## Copia de recuperación alojada en Vercel (Preview)
+
+- **URL comprobada:** https://rele-control-m2wkp87of-rele-ayn.vercel.app/
+- **Despliegue:** `dpl_HjX6jFtV74SwVbx2nCwc2w3iXCSd` en el proyecto `rele-control-ayn`, equipo `rele-ayn`, tipo **Preview**, estado **READY**.
+- **Verificación:** portada y rutas `/backup/MANIFIESTO-SIN-SECRETOS.json` y `/backup/GUIA-RAPIDA.md` respondieron **HTTP 200**.
+- **Contenido:** manuales de operación, permisos de usuarios/administradores, diagnóstico Vercel 403 y manifiesto sin secretos.
+- **Límite:** es una copia operativa en un despliegue Preview de Vercel, **no** almacenamiento duradero de bases de datos ni resguardo de PIN, tokens OAuth, contraseñas o variables secretas. Los despliegues están sujetos a políticas de retención del proveedor. La copia del código sigue en GitHub y el ZIP de recuperación se conserva en la Biblioteca privada de ChatGPT.
+- **Integridad:** no se actualizó producción; se generó una Preview independiente.
+
 ## Respaldos de continuidad (9-10-2026)
 
 - **Código de producción inmovilizado para recuperación:** rama [`backup/produccion-estable-20261009`](https://github.com/GuillermoArroyoayn/Rele-control-ayn/tree/backup/produccion-estable-20261009), creada desde el commit que Vercel informó como desplegado en producción. Este respaldo está en el mismo repositorio, **no es un espejo externo**.

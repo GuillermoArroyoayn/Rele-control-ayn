@@ -18,8 +18,9 @@ assert.match(script, /if \(busy\) return;/, 'Sin doble orden por pulsaciones rep
 assert.match(script, /outcome\.autoOffConfirmed !== true && outcome\.autoOffPending !== true && outcome\.state !== true/, 'No informar éxito sin confirmación');
 assert.match(script, /profileGroupId !== data\?\.groupId/, 'No reutilizar perfil de otra comunidad');
 assert.match(html, /href="\/#access" data-admin-module="access"/, 'El enlace habitual sigue funcionando como respaldo');
-assert.match(html, /administracion\.js\?v=20261010-carla01/, 'Carga versionada de la mejora');
+const adminAsset=html.match(/\/administracion\.js\?v=[\w-]+/)?.[0];
+assert(adminAsset, 'Administración usa script versionado');
 assert.match(css, /data-carla-pulse/, 'Estilo de pulsador');
-assert.match(sw, /administracion\.js\?v=20261010-carla01/, 'PWA con respaldo offline');
+assert(sw.includes(adminAsset), 'PWA conserva el archivo correcto de administración');
 assert.match(sw, /reles-ayn-v215-carla-puerta/, 'Nueva versión de caché');
 console.log('Pulsador Carla: aislamiento, un único relé, temporizador, doble toque, confirmación y PWA correctos.');

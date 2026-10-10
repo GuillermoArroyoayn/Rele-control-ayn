@@ -31,6 +31,7 @@ const Whatsapp={normalizePhone:v=>String(v||'').replace(/\D/g,''),sendInvitation
 function handler(file){
   const scope={module:{exports:{}},process:{env:{APP_PUBLIC_URL:'https://example.vercel.app'}},require:id=>{
     if(id==='../lib/administrations')return A;
+    if(id==='../lib/admin-history-recovery')return {discover:async()=>[],groupPattern:/^group-[a-zA-Z0-9-]{10,80}$/,idPattern:/^[a-zA-Z0-9-]{16,80}$/};
     if(id==='../lib/app-matrix')return Matrix;
     if(id==='../lib/whatsapp')return Whatsapp;
     if(id==='../lib/history')return {addHistory:async()=>{}};

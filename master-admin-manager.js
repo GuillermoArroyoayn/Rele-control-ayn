@@ -204,7 +204,64 @@
       const removed=data.deletedAdmins||[];
       recoveryList.replaceChildren();
       if(!removed.length){
-        recoveryList.append(el('p','','No hay cuentas de administrador eliminadas en este registro.'));
+        recoveryList.append(el('p','','No quedan cuentas eliminadas en el registro actual. Buscaré en el historial de comunidades.'));
+        const params=new URLSearchParams(location.search);
+        const nameInput=el('input','master-admin-input');
+        nameInput.placeholder='Nombre anterior (ej. Karla Hogar)';
+        nameInput.value=params.get('recoveryName')||'';
+        nameInput.maxLength=70;
+        const deviceInput=el('input','master-admin-input');
+        deviceInput.placeholder='Código del teléfono original';
+        deviceInput.value=params.get('recoveryDevice')||'';
+        deviceInput.maxLength=80;deviceInput.autocomplete='off';
+        const nameLabel=el('label','','Nombre de la administración anterior');
+        nameLabel.append(nameInput);
+        const idLabel=el('label','','Identificador de su teléfono anterior');
+        idLabel.append(deviceInput);
+        recoveryList.append(nameLabel,idLabel);
+        const results=el('div','master-admin-recovery-results');
+        const search=el('button','master-admin-action primary','Buscar en historial del servidor');
+        search.type='button';
+        search.onclick=async()=>{
+          search.disabled=true;
+          results.replaceChildren(el('p','','Revisando archivos y registros de la comunidad…'));
+          try{
+            const data=await request({action:'findHistoricalAdmins',name:nameInput.value.trim()});
+            results.replaceChildren();
+            if(!(data.candidates||[]).length){
+              results.append(el('p','','No se encontró una comunidad con ese nombre en el historial conservado. No se modificó ningún acceso.'));
+              return;
+            }
+            for(const account of data.candidates){
+              const row=el('section','master-admin-recovery-row');
+              row.append(el('strong','',account.name),
+                el('p','',account.archived?'Se encontró la marca de eliminación de esta comunidad.':
+                  'Se encontró historial de actividad de esta comunidad.'));
+              const restore=el('button','master-admin-action primary','Recuperar teléfono y administración');
+              restore.type='button';
+              restore.onclick=async()=>{
+                const originalDevice=deviceInput.value.trim();
+                if(!originalDevice){results.append(el('p','','Falta el código original del teléfono; no voy a inventar otro.'));return;}
+                if(!confirm('¿Restablecer '+account.name+' en su teléfono ORIGINAL? No se asignan relés ni se reactivan usuarios automáticamente.'))return;
+                restore.disabled=true;
+                try{
+                  await request({action:'restoreHistoricalAdmin',groupId:account.groupId,
+                    name:account.name,deviceId:originalDevice});
+                  results.replaceChildren(el('p','','Administración recuperada: '+account.name+
+                    '. El mismo teléfono ya tiene rol administrador. Falta revisar y asignar exclusivamente Puerta.'));
+                  await reload();
+                }catch(e){
+                  results.append(el('p','','Recuperación no realizada: '+(e.message||'error')));
+                  restore.disabled=false;
+                }
+              };
+              row.append(restore);results.append(row);
+            }
+          }catch(e){results.replaceChildren(el('p','','La búsqueda no pudo completarse: '+(e.message||'error')));}
+          finally{search.disabled=false;}
+        };
+        recoveryList.append(search,results);
+        if(nameInput.value.trim())search.click();
       }
       for(const item of removed){
         const row=el('div','master-admin-recovery-row');

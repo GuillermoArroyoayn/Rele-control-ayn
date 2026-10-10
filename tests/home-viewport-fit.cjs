@@ -95,3 +95,6 @@ require('./sos-reception-preferences.cjs');
 
 // El arranque sin pantalla intermedia también debe ejecutarse en el Safety Gate.
 require('./start-home-immediate.cjs');
+
+// Prueba segura sin Tuya ni dispositivos energizados.
+require('./relays-offline-diagnostics.cjs');

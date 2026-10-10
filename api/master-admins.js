@@ -93,15 +93,27 @@ module.exports=async(req,res)=>{
       if(Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
         throw A.error('Ya existe un administrador activo de esta comunidad.',409);
       const managed=(await A.records()).filter(item=>item.groupId===groupId);
-      if(managed.length)throw A.error('La comunidad conserva relés asignados. Primero revisa los permisos para evitar activaciones accidentales.',409);
+      // La instalación Karla Hogar tiene un único relé ya registrado. Para
+      // recuperar su cuenta sin dar acceso accidental, liberarlo lógicamente:
+      // nunca se envía ninguna orden Tuya ON/OFF ni se duplica el equipo.
+      if(managed.length>1)throw A.error('Hay varios relés en esta comunidad. Revisa sus asignaciones antes de recuperar la cuenta.',409);
       const tombstone=await A.redis('HGET','ayn:matrix:deleted-groups',groupId);
       const published=await Matrix.getPublished(groupId);
       const now=new Date().toISOString(),backupId=A.uuid();
       await A.redis('SET','ayn:recovery:admin:'+backupId,
         JSON.stringify({createdAt:now,groupId,deviceId,previous:existing||revoked||null,
-          archivedMarker:tombstone,published}), 'EX',604800);
+          archivedMarker:tombstone,published,managedActuators:managed}), 'EX',604800);
       // Tras esta marca, ninguna invitación anterior puede reautorizar equipos.
       await A.redis('HSET','ayn:matrix:restored-groups',groupId,now);
+      // Antes de reactivar al administrador, quitar la asignación del relé
+      // conservando exactamente su ID Tuya, canal y temporizador. Solo el
+      // Máster podrá volver a asignarlo desde Relés / Actuadores.
+      for(const actuator of managed){
+        const moved=await A.redis('EVAL',
+          "local raw=redis.call('HGET',KEYS[1],ARGV[1]); if not raw then return 0 end; local item=cjson.decode(raw); if item.groupId~=ARGV[2] then return 0 end; item.groupId='unassigned'; redis.call('HSET',KEYS[1],ARGV[1],cjson.encode(item)); return 1",
+          1,'ayn:managed:actuators',actuator.id,groupId);
+        if(moved!==1)throw A.error('Cambió la asignación del relé. No se recuperó ninguna autorización.',409);
+      }
       await A.updateRegistry(registry=>{
         const current=registry.devices[deviceId],removed=registry.revoked?.[deviceId];
         if(current?.role==='super_master'||current?.status==='active'||
@@ -117,7 +129,11 @@ module.exports=async(req,res)=>{
           restoredAt:now,restoredBy:auth.device.id,statusChangedAt:now};
         if(registry.revoked)delete registry.revoked[deviceId];
         for(const user of Object.values(registry.devices))
-          if(user.role==='user'&&user.groupId===groupId&&user.status==='active')user.status='paused';
+          if(user.role==='user'&&user.groupId===groupId){
+            if(user.status==='active')user.status='paused';
+            // Ningún permiso antiguo vuelve a encender un relé al reasignarlo.
+            user.relays=[];user.actuatorIds=[];
+          }
       });
       const next={...(published||Matrix.defaultConfig(groupId,requested)),groupId,status:'active',
         actuators:[],branding:{...(published?.branding||{}),communityName:requested,
@@ -125,9 +141,9 @@ module.exports=async(req,res)=>{
       await Matrix.publish(next,auth.device.name);
       if(tombstone)await A.redis('HDEL','ayn:matrix:deleted-groups',groupId);
       await addHistory({kind:'permissions',groupId,userName:requested,actor:auth.device.name,
-        action:'Identidad original recuperada desde historial; sin relés, usuarios en pausa'}).catch(()=>{});
+        action:'Identidad original recuperada; relé conservado sin asignar, usuarios sin permisos'}).catch(()=>{});
       return res.json({ok:true,name:requested,groupId,restoredDevice:true,
-        accessPending:true,backupId});
+        accessPending:true,relaySavedUnassigned:managed.length,backupId});
     }
     if(b.action==='restoreDeletedAdmin'){
       const deleted=auth.registry.devices[id],revoked=auth.registry.revoked?.[id];

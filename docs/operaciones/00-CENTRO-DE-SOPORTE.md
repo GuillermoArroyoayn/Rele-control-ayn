@@ -1,6 +1,6 @@
 # AYN CONTROL — CENTRO DE SOPORTE DE INSTALACIONES
 
-**ACTUALIZACIÓN 2026-10-09 — Vercel:** hay una solución de trabajo verificada: consultar proyecto, despliegues, dominios y nombres de variables sin incluir el campo `teamId` ni `slug`. El acceso de ámbito de equipo y logs continúa con 403 y exige reautorización del titular. Abrir [DIAGNÓSTICO Y SOLUCIÓN VERCEL](./VERCEL-DIAGNOSTICO-ACCESO.md).
+**ACTUALIZACIÓN 2026-10-09 — Vercel:** la autorización del equipo **Relé ayn / `rele-ayn` quedó recuperada**, comprobada con llamadas administrativas, despliegues, errores de runtime y eventos de build. La recuperación fue: ChatGPT → Vercel → Reconectar → Relé ayn → Configurar → Autorizar → Permitir acceso. Ver [DIAGNÓSTICO Y SOLUCIÓN VERCEL](./VERCEL-DIAGNOSTICO-ACCESO.md).
 
 **Guarda este enlace en los favoritos del teléfono Máster.** Esta es la entrada única para la próxima instalación, sin volver a buscar páginas ni repetir altas. Instrucciones operativas, NO secretos ni acceso automático al cliente.
 
@@ -48,6 +48,6 @@
 
 - Carpeta creada en **rama de documentación de GitHub**, bajo **PR #123**, todavía no integrada a `main`.
 - El **AYN Safety Gate** registró fallo en la prueba `tests/access-state-feedback.cjs`: el botón permaneció `OFF` en vez de pasar inmediatamente a `ON`. Es un bloqueo de integración **independiente de la documentación**; requiere revisión antes de fusionar.
-- Estado de Vercel: el conector devuelve `403 forbidden` para el equipo `rele-ayn`. **No se confirma despliegue a producción ni instalación celular desde esta carpeta.**
+- Estado de Vercel: **403 de autorización resuelto** y producción verificada como **READY**; no se ha modificado ni instalado un relé/celular desde esta carpeta.
 
 **Criterio de soporte futuro:** primero consultar esta carpeta y el estado real; no pedir de nuevo fotos/IDs/claves ya validados, ni improvisar altas duplicadas o cambios en otras comunidades.

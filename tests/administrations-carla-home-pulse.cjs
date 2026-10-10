@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const script=fs.readFileSync('administracion.js','utf8');
+const html=fs.readFileSync('administracion.html','utf8');
+const css=fs.readFileSync('administracion.css','utf8');
+const sw=fs.readFileSync('sw.js','utf8');
+
+assert.match(script, /data\?\.role !== 'admin'/, 'No afectar a usuarios o Máster');
+assert.match(script, /\(\?:carla\|karla\)/, 'Limitar a Carla\/Karla');
+assert.match(script, /profiles\.length !== 1/, 'No elegir un relé cuando hay varios');
+assert.match(script, /const original = profile.kind === 'original'/, 'Soportar relé original autorizado');
+assert.match(script, /const managed = profile.kind === 'managed'/, 'Soportar relé administrado autorizado');
+assert.match(script, /profile\.mode !== 'timer'/, 'No pulsar relé sin apagado automático');
+assert.match(script, /Number\(profile\.seconds\) > 0/, 'Temporizador real obligatorio');
+assert.match(script, /'\/api\/actuator-profiles'/, 'Catálogo autenticado: relé permitido');
+assert.match(script, /event\.preventDefault\(\)/, 'Acción directa sin navegación');
+assert.match(script, /if \(busy\) return;/, 'Sin doble orden por pulsaciones repetidas');
+assert.match(script, /outcome\.autoOffConfirmed !== true && outcome\.autoOffPending !== true && outcome\.state !== true/, 'No informar éxito sin confirmación');
+assert.match(script, /profileGroupId !== data\?\.groupId/, 'No reutilizar perfil de otra comunidad');
+assert.match(html, /href="\/#access" data-admin-module="access"/, 'El enlace habitual sigue funcionando como respaldo');
+const adminAsset=html.match(/\/administracion\.js\?v=[\w-]+/)?.[0];
+assert(adminAsset, 'Administración usa script versionado');
+assert.match(css, /data-carla-pulse/, 'Estilo de pulsador');
+assert(sw.includes(adminAsset), 'PWA conserva el archivo correcto de administración');
+assert.match(sw, /reles-ayn-v215-carla-puerta/, 'Nueva versión de caché');
+console.log('Pulsador Carla: aislamiento, un único relé, temporizador, doble toque, confirmación y PWA correctos.');

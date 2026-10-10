@@ -941,3 +941,10 @@ body[data-admin-view="home"] .home-dashboard > .home-voice-button:focus-visible{
 .relay-original-cloud-choices > div[role="status"]{min-width:0;max-width:100%;overflow-wrap:anywhere}
 .relay-original-cloud-choices > div[role="status"] p{margin:6px 0;font-size:13px;line-height:1.45}
 .relay-original-cloud-error{padding:11px;border:1px solid #f39393;border-radius:9px;color:#ffe5e5;background:rgba(126,24,38,.26)}
+
+/* Pulsador Puerta · Carla */
+#homeDashboard .home-quick-card[data-carla-pulse] .home-quick-icon svg{display:none!important}
+#homeDashboard .home-quick-card[data-carla-pulse] .home-quick-icon::after{content:'⏻';font-size:50px;line-height:1;color:#7bd2ff}
+#homeDashboard .home-quick-card[data-carla-pulse="sending"]{opacity:.65;pointer-events:none}
+#homeDashboard .home-carla-pulse-status{font-size:12px;line-height:1.2;color:#cceaff;text-align:center}
+#homeDashboard .home-carla-pulse-status[data-error="true"]{color:#ffd0d0}

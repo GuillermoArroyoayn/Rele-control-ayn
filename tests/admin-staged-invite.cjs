@@ -50,7 +50,7 @@ function load(name){
  require:id=>id==='../lib/administrations'?A:id==='../lib/app-matrix'?Matrix:
  id==='../lib/whatsapp'?WhatsApp:id==='../lib/history'?{addHistory:async row=>history.push(row)}:
  id==='../lib/tuya'?{checkPin:()=>true}:id==='../lib/actuator-timers'?{originalList:async()=>[]}:
- id==='../lib/actuator-profiles'?{}:(()=>{throw new Error('unexpected '+id)})()};
+ id==='../lib/actuator-profiles'?{}:id==='../lib/original-device-binding'?{resolve:async()=>{throw Object.assign(new Error('Sin relé configurado'),{status:410});}}:(()=>{throw new Error('unexpected '+id)})()};
  vm.runInNewContext(fs.readFileSync('api/'+name+'.js','utf8'),ctx);
  return box.exports;
 }

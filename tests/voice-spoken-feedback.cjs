@@ -7,8 +7,8 @@ assert(admin.includes("localStorage.getItem('aynVoiceResponsesSilentV2')==='true
 assert(html.includes('AIN confirma las órdenes con “OK”'));
 assert(!html.includes('id="bluetoothQuiet" type="checkbox" checked'));
 const actuatorVoice=fs.readFileSync('actuator-voice.js','utf8');
-assert(admin.includes("await speak('OK')")&&admin.includes('AynActuatorVoice.activationText'),
-  'El administrador confirma OK y usa la frase común de activación');
+assert(admin.includes("await speak('OK, '+message)")&&admin.includes('AynActuatorVoice.activationText'),
+  'El administrador confirma OK y resultado en una sola locución');
 assert(actuatorVoice.includes("+' correctamente'"),'La frase común confirma correctamente la activación');
 assert(user.includes('acknowledgeVoiceCommand()')&&user.includes('AynActuatorVoice.activationText'),
   'El usuario recibe OK y confirmación verbal mediante el nombre del actuador autorizado');

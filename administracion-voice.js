@@ -228,6 +228,20 @@
     return false;
   }
 
+  // Una sola locución tras validar la respuesta del equipo evita que Android
+  // pierda la segunda voz al cancelar/reiniciar SpeechSynthesis.
+  async function sayActivationResult(name,confirmation,result){
+    // Los endpoints de control devuelven ok:true solo tras validar ON con Tuya.
+    // El flujo de respuesta progresiva exige remoteStateConfirmed:true.
+    if(!result||result.ok!==true||result.activationConfirmed===false||
+       result.remoteStateConfirmed===false)
+      throw new Error('El servidor no confirmó la activación de '+name+'.');
+    const message=result.autoOffPending?
+      confirmation+'. Apagado automático pendiente de confirmar.':confirmation+'.';
+    paint('OK, '+message,'listening');
+    await speak('OK, '+message);
+  }
+
   async function executeCommand(raw){
     const normalized=normalize(raw);
     const woke=hasWake(normalized);
@@ -269,20 +283,15 @@
       activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
-      const activation=(async()=>{
+      try{
         const response=await fetch('/api/administrations',{method:'POST',headers:headers(),body:JSON.stringify({action:'control',id:personalized.id.slice(8),state:true})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok||result.ok!==true)throw new Error(result.error||'Orden rechazada.');
-        return result;
-      })();
-      await speak('OK');
-      try{
-        const result=await activation;
-        const message=result.autoOffPending?confirmation+'. Apagado automático pendiente de confirmar.':confirmation+'.';
-        paint(message,'listening');
-        await speak(message);
-      }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
-      finally{activationBusy=false;}
+        await sayActivationResult(name,confirmation,result);
+      }catch(error){
+        paint(error.message,'error');
+        await speak('No pude confirmar la activación de '+name+'.');
+      }finally{activationBusy=false;}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -295,19 +304,18 @@
       activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
-      paint('Orden recibida: '+name,'listening');
-      const activation=controlRelay(relay);
-      await speak('OK');
+      paint('Orden recibida: '+name+'. Esperando confirmación.','listening');
       try{
-        const result=await activation;
-        paint(confirmation+'.','listening');
-        await speak(confirmation);
-        setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},350);
+        const result=await controlRelay(relay);
+        await sayActivationResult(name,confirmation,result);
       }catch(error){
         paint(error.message,'error');
-        await speak('No fue posible activar '+name);
+        await speak('No pude confirmar la activación de '+name+'.');
+      }finally{
+        activationBusy=false;
+        // No cancelar ni sobreescribir la confirmación durante la locución.
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
-      }finally{activationBusy=false;}
+      }
       return;
     }
     if(voiceRole==='admin'&&!personalized&&

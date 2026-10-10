@@ -106,3 +106,6 @@ require('./karla-voice-resident-pulse.cjs');
 
 // Contrato de seguridad: QR retirado y eliminación de originales no revivible.
 require('./retired-qr-safety.cjs');
+
+// Validación de voz completa/parcial de Karla sin hardware ni permisos del QR.
+require('./karla-voice-interim-safe.cjs');

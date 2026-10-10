@@ -18,7 +18,7 @@ module.exports=async(req,res)=>{
       const invitation=JSON.parse(raw);
       if(invitation.groupId&&invitation.groupId!=='master'){
         const restoredAt=await A.redis('HGET','ayn:matrix:restored-groups',invitation.groupId);
-        if(restoredAt&&(!invitation.createdAt||Date.parse(invitation.createdAt)<=Date.parse(restoredAt)))
+        if(restoredAt&&(!Number.isFinite(Date.parse(invitation.createdAt))||Date.parse(invitation.createdAt)<=Date.parse(restoredAt)))
           throw A.error('Invitación anterior a la recuperación. Solicita una nueva.',410);
       }
       let temporaryGrant=null;

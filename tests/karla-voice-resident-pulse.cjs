@@ -8,7 +8,7 @@ const voice=window.AynActuatorVoice;
 const door={id:'original-2',kind:'original',relay:2,name:'Puerta',voiceName:'',mode:'timer',seconds:4};
 voice.setProfiles([door]);
 assert.equal(voice.match('abre puerta'),null,'Un nombre no configurado no usa el alias global');
-for(const phrase of ['puerta','abre puerta','abrir la puerta','activar puerta','abre puerta por favor']){
+for(const phrase of ['puerta','abre puerta','abrir la puerta','activar puerta','abre puerta por favor','me abres la puerta','por favor abre la puerta','ábreme la puerta','abre la puerta por favor']){
   assert.equal(voice.matchSingleDoor(phrase,true)?.id,door.id,'Puerta unica: '+phrase);
 }
 for(const phrase of ['no abrir puerta','cierra puerta','apaga puerta','abrir puerta y porton','abre porton']){

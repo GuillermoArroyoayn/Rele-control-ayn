@@ -64,6 +64,9 @@ async function request(handler,method,body){
  assert(status.value.relays.every(x=>x.state===null&&x.error.includes('sin conexión')));
  assert.equal(readCount,3);
  assert.equal(writeCount,0,'Consultar estado NO activa contactos');
+ const invalidMethod=await request(controlHandler,'GET',{relay:1,state:true});
+ assert.equal(invalidMethod.code,405,'Una consulta GET jamás acciona un relé');
+ assert.equal(writeCount,0);
  authorizedRelays=[];
  for(const relay of [1,2,3]){
   const denied=await request(controlHandler,'POST',{relay,state:true});

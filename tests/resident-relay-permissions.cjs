@@ -100,3 +100,6 @@ const devices=mounts('api/devices.js',{
 // Misma puerta de seguridad: las invitaciones temporales nunca amplían permisos.
 require('./temporary-permissions.cjs');
 require('./temporary-session-isolation.cjs');
+
+// Validación adicional: orden de voz y pulsador directo de Karla.
+require('./karla-voice-resident-pulse.cjs');

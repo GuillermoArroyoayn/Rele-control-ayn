@@ -60,7 +60,7 @@ async function request(handler,method,body){
 (async()=>{
  const status=await request(statusHandler,'GET');
  assert.equal(status.code,200);
- assert.deepEqual(status.value.relays.map(x=>x.relay),[1,2,3]);
+ assert.deepEqual(Array.from(status.value.relays,x=>x.relay),[1,2,3]);
  assert(status.value.relays.every(x=>x.state===null&&x.error.includes('sin conexión')));
  assert.equal(readCount,3);
  assert.equal(writeCount,0,'Consultar estado NO activa contactos');

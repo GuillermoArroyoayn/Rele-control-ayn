@@ -13,11 +13,10 @@
   function match(command){
     const text=normalize(command);
     if(!text||/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
-    // Solo aceptar una orden EXPLÍCITA tras la palabra AIN.
-    // Un nombre aislado puede oírse en una conversación: nunca activar por "puerta".
-    const parsed=/^(?:me (?:abres|abris|activas) |(?:abrir|abre|activar|activa|enciende|encender|prender|prende|acciona|accionar) )(?:el |la |los |las )?(.+)$/.exec(text);
-    if(!parsed)return null;
-    const target=parsed[1];
+    // El llamador comprueba AIN y permisos antes de entregar el nombre autorizado.
+    // La frase puede ser solamente el nombre, o incluir un verbo compatible.
+    const parsed=/^(?:me (?:abres|abris|activas) |(?:abrir|abre|abreme|activar|activa|enciende|encender|prender|prende|acciona|accionar) )(?:el |la |los |las )?(.+)$/.exec(text);
+    const target=parsed?parsed[1]:text.replace(/^(?:el |la |los |las )/,'');
     const found=profiles.filter(x=>x.alias===target);
     return found.length===1?found[0]:found.length>1?{ambiguous:true}:null;
   }

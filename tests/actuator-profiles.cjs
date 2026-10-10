@@ -62,13 +62,28 @@ const managedId='managed-00000000-0000-0000-0000-000000000001';
  const resolver=voiceWindow.AynActuatorVoice;
  resolver.setProfiles([{id:'original-1',kind:'original',relay:1,name:'Portón principal',voiceName:'Puerta'},{
    id:managedId,kind:'managed',name:'Quincho',voiceName:'Luz quincho'}]);
+ assert.equal(resolver.match('puerta').relay,1,'Nombre directo tras palabra AIN');
  assert.equal(resolver.match('abrir puerta').relay,1);
+ assert.equal(resolver.match('abre la puerta').relay,1);
+ assert.equal(resolver.match('activa puerta').relay,1);
+ assert.equal(resolver.match('luz quincho').kind,'managed');
  assert.equal(resolver.match('activa la luz quincho').kind,'managed');
- for(const text of ['apaga luz quincho','no abrir puerta','cerrar puerta','puerta','abrir portón']){
+ for(const text of ['apaga luz quincho','no abrir puerta','cerrar puerta','abrir portón','puerta norte','zona sur','AIN puerta']){
   assert.equal(resolver.match(text),null,'No debe activar '+text);
  }
  resolver.setProfiles([{id:'original-2',kind:'original',relay:2,name:'Portón condominio B',voiceName:'Portón'}]);
  assert.equal(resolver.match('AYN abre portón'),null,'Wake word se retira antes del cotejo de alias.');
+ assert.equal(resolver.match('portón').relay,2);
  assert.equal(resolver.match('abre portón').relay,2);
- console.log('Profiles v168: Puerta y Portón por condominio; unicidad local, permisos, temporizador y órdenes explícitas OK.');
+ resolver.setProfiles([{id:'original-2',kind:'original',relay:2,name:'Portón sur',voiceName:'Portón zona sur'}]);
+ for(const text of ['portón zona sur','abrir portón zona sur','abre el portón zona sur','activa portón zona sur','enciende portón zona sur']){
+  assert.equal(resolver.match(text).relay,2,'Nombre o sinónimo reconocido: '+text);
+ }
+ for(const text of ['portón','portón zona','zona sur','portón zona norte','AYN portón zona sur','no portón zona sur']){
+  assert.equal(resolver.match(text),null,'No activar por nombre incompleto o sin verificación de AIN: '+text);
+ }
+ resolver.setProfiles([{id:'original-1',kind:'original',relay:1,voiceName:'Portón zona sur'},
+   {id:'original-2',kind:'original',relay:2,voiceName:'Portón zona sur'}]);
+ assert.equal(resolver.match('portón zona sur').ambiguous,true,'Nombre ambiguo no selecciona un relé al azar');
+ console.log('Profiles: AIN más nombre directo, verbos opcionales, coincidencia exacta, negaciones y ambigüedad protegidas.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

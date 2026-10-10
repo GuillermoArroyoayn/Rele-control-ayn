@@ -13,8 +13,13 @@
         const savedPin = localStorage.getItem("relayPin");
         const savedRole = localStorage.getItem("aynLastRole");
         if (savedPin) {
-          document.documentElement.dataset.bootLayout = savedRole === "user" ? "user" : "validating";
-          if (savedRole === "super_master" && !location.hash) location.replace("/administracion.html");
+          // Una sesión ya identificada como Máster/Administrador abre directamente Inicio.
+          // El servidor siempre valida rol y permisos antes de habilitar acciones.
+          if (["super_master", "admin"].includes(savedRole) && !location.hash && !location.search) {
+            location.replace("/administracion.html#home");
+          } else {
+            document.documentElement.dataset.bootLayout = savedRole === "user" ? "user" : "validating";
+          }
         }
       } catch {}
     </script>

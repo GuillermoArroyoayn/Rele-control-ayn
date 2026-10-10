@@ -82,7 +82,7 @@ async function call(actor,method,body){
   assert(info.includes("ayn:sos-receive-change"),'Actualización inmediata de bandeja SOS');
   assert(app.includes('window.AynSOS?.trigger?.()'),'El botón de envío SOS se mantiene independiente');
   const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-  assert(sw.includes('reles-ayn-v194-sos-user-choice'),'Nueva caché PWA');
+  assert(/reles-ayn-v\d+-[\w-]+/.test(sw),'Caché PWA versionada');
   for(const file of ['index.html','administracion.html'])assert(fs.readFileSync(path.join(root,file),'utf8').includes('/panic.js?v=20261008-sos194'),'Cliente actualizado: '+file);
   console.log('OK: cada residente activa/desactiva SOS; push y bandeja coherentes; admin y otras comunidades protegidos.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

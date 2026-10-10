@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v211-instant-home";
+const CACHE = "reles-ayn-v212-verified-on";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -31,7 +31,7 @@ const ASSETS = [
   "/ayn-call-priority.js?v=20261008-voice181",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
-  "/app.js?v=20261009-login207",
+  "/app.js?v=20261009-startup212",
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",

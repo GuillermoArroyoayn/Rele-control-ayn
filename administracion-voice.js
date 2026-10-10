@@ -23,6 +23,8 @@
   let fastDispatchKey='';
   let fastDispatchAt=0;
   let activationBusy=false;
+  let voiceEngine='pendiente';
+  let lastSpeechFeedbackAt=0;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -399,11 +401,12 @@
     enabled=true;
     button.setAttribute('aria-pressed','true');
     try{await refreshAccess();}catch(error){
-      if([401,403].includes(error.status)){
-        stop(false);
-        paint('La sesión necesita nuevamente tu clave','error');
-        return;
-      }
+      // Nunca indicar que AYN puede abrir la puerta si faltan autorizaciones.
+      stop(false);
+      paint([401,403].includes(error.status)?
+        'No pude validar tu sesión. Revisa la clave de acceso y toca el micrófono.':
+        'No pude cargar los accesos autorizados. Revisa Internet y toca el micrófono para reintentar.','error');
+      return;
     }
     start();
   }
@@ -411,10 +414,25 @@
   recognition=Recognition?new Recognition():null;
   if(recognition){
     recognition.onloading=text=>{if(enabled)paint(text||'Activando AYN…','starting');};
+    recognition.onprovider=(provider,reason)=>{
+      voiceEngine=provider==='deepgram'?'en línea':provider==='local'?'local':'pendiente';
+      if(enabled)paint(provider==='local'?
+        'Preparando voz local (puede requerir descargar el idioma español)…':
+        'Motor de voz en línea conectado. Preparando micrófono…','starting');
+    };
+    recognition.onspeechactivity=()=>{
+      // Indicador local: no enviar grabaciones, texto ni datos de voz al servidor.
+      if(!enabled||!listening||voiceSpeaking)return;
+      const now=Date.now();
+      if(now-lastSpeechFeedbackAt>3000){
+        lastSpeechFeedbackAt=now;
+        paint('Micrófono detectó sonido. Di AIN, abre puerta.','listening');
+      }
+    };
     recognition.onstart=()=>{
       if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){recognition.abort();listening=starting=false;return;}
       starting=false;listening=true;retryCount=0;
-      paint('AYN está escuchando','listening');
+      paint('AYN está escuchando ('+voiceEngine+'). Di AIN, abre puerta.','listening');
     };
     recognition.onresult=event=>{
       if(!enabled||voiceSpeaking||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
@@ -424,8 +442,12 @@
         const transcript=alternatives.find(x=>hasWake(normalize(x)))||alternatives[0];
         if(!transcript)continue;
         const normalized=normalize(transcript);
-        if(hasWake(normalized))wakeUntil=Date.now()+7000;
-        if(!result.isFinal&&hasWake(normalized))paint('AYN escuchó la activación. Recibiendo orden…','listening');
+        if(hasWake(normalized)){
+          wakeUntil=Date.now()+7000;
+          paint('AIN reconocido. Recibiendo orden…','listening');
+        }else if(result.isFinal&&Date.now()>wakeUntil){
+          paint('Se escuchó voz, pero no se reconoció AIN. Di AIN, abre puerta.','listening');
+        }
         if(!result.isFinal){
           const interimCommand=hasWake(normalized)?removeWake(normalized):normalized;
           const relay=resolveRelay(interimCommand);
@@ -472,7 +494,7 @@
         return;
       }
       stop(false);
-      paint(event.message||'No se pudo iniciar el micrófono','error');
+      paint(event.message||'No se pudo iniciar el reconocimiento de voz. Toca el micrófono para reintentar.','error');
     };
   }
 

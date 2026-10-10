@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v217-karla-voice-safe";
+const CACHE = "reles-ayn-v218-karla-voice-diagnostics";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -41,7 +41,7 @@ const ASSETS = [
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
   "/actuator-voice.js?v=20261010-karla216",
-  "/administracion-voice.js?v=20261010-karla217"
+  "/administracion-voice.js?v=20261010-karla218"
 ];
 // Una imagen o archivo opcional que falle no debe bloquear la actualización en iOS.
 self.addEventListener("install", (event) =>

@@ -22,6 +22,7 @@
   let voiceSpeaking=false;
   let fastDispatchKey='';
   let fastDispatchAt=0;
+  let activationBusy=false;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -157,6 +158,11 @@
     return direct.size===1?[...direct][0]:direct.size>1?-1:0;
   }
 
+  function hasExplicitOpenIntent(command){
+    return !/\b(?:no|nunca|cancelar|cancela|detener|cerrar|cierra|apagar|apaga|desactivar)\b/.test(command)&&
+      /\b(?:abrir|abre|abres|abrime|abreme|activar|activa|enciende|encender|prender|prende|accionar|acciona)\b/.test(command);
+  }
+
   function isOpenIntent(command){
     if(/\b(no|nunca|cancelar|cancela|detener|cerrar|apagar|desactivar)\b/.test(command))return false;
     if(savedVoiceCommands.has(command))return true;
@@ -233,7 +239,8 @@
     }
     wakeUntil=0;
     const now=Date.now();
-    if(command===lastCommand&&now-lastCommandAt<2500)return;
+    // Una transcripción parcial y su final nunca deben causar dos pulsos.
+    if(command===lastCommand&&now-lastCommandAt<6000)return;
     lastCommand=command;lastCommandAt=now;
 
     if(/\b(?:detener voz|desactivar voz|apagar voz)\b/.test(command)){
@@ -253,7 +260,15 @@
     }
     const personalized=window.AynActuatorVoice?.match(command)||window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
+    // Para Karla jamás basta decir un nombre suelto (p.ej. "Puerta").
+    // Se necesita una orden expresa y se conserva la autorización del servidor.
+    if(voiceCarla&&personalized&&!hasExplicitOpenIntent(command)){
+      paint('Di AIN abre puerta para activar el acceso','listening');
+      return;
+    }
+    if(activationBusy)return;
     if(personalized?.kind==='managed'){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       const activation=(async()=>{
@@ -269,6 +284,7 @@
         paint(message,'listening');
         await speak(message);
       }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
+      finally{activationBusy=false;}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -278,6 +294,7 @@
       return;
     }
     if(relay&&(personalized||isOpenIntent(command))){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       paint('Orden recibida: '+name,'listening');
@@ -292,7 +309,7 @@
         paint(error.message,'error');
         await speak('No fue posible activar '+name);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
-      }
+      }finally{activationBusy=false;}
       return;
     }
     if(voiceRole==='admin'&&!personalized&&
@@ -420,10 +437,11 @@
             window.AynActuatorVoice?.matchSingleDoor(interimCommand,voiceCarla);
           const profileAllowed=profile&&!profile.ambiguous&&
             (profile.kind==='managed'||(profile.kind==='original'&&allowedRelays.includes(Number(profile.relay))));
-          const authorized=Date.now()<wakeUntil&&statusReady&&isOpenIntent(interimCommand);
+          const authorized=Date.now()<wakeUntil&&statusReady&&isOpenIntent(interimCommand)&&
+            (!voiceCarla||hasExplicitOpenIntent(interimCommand));
           const key=authorized&&profileAllowed?'profile:'+profile.id+':'+interimCommand:
             authorized&&relay>0&&specificTarget?relay+':'+interimCommand:'';
-          if(key&&Date.now()-fastDispatchAt>900&&
+          if(key&&!activationBusy&&Date.now()-fastDispatchAt>900&&
              (key!==fastDispatchKey||Date.now()-fastDispatchAt>3000)){
             fastDispatchKey=key;fastDispatchAt=Date.now();
             phraseBuffer='';clearTimeout(phraseTimer);
@@ -431,6 +449,7 @@
             executeCommand(transcript).catch(error=>paint(error.message||'No fue posible activar el acceso.','error'));
             // Evitar que la misma frase se ejecute otra vez en el resultado final.
             if(profileAllowed)recognition.consumeUtterance?.();
+            break;
           }
         }
         if(result.isFinal||result.utteranceEnded===true){

@@ -10,6 +10,7 @@ const states = { 1: null, 2: null, 3: null };
 let allowedRelays = [];
 let currentRole = "user",
   currentGroupId = "",
+  currentCommunityName = "",
   currentMatrix = null;
 let currentView = "control";
 let startupResetAttempted = false;
@@ -478,6 +479,10 @@ for (const button of homeDashboard.querySelectorAll("[data-home-view]")) {
     if(button.dataset.homeView==='panic'&&['user','admin'].includes(currentRole)){
       if(window.AynSOS?.trigger?.())return; // Un toque: inicia la alarma, no abre ajustes.
     }
+    if(button.dataset.homeView==='access'&&carlaUserPulseProfile){
+      triggerCarlaUserPulse().catch(()=>{});
+      return;
+    }
     showView(button.dataset.homeView);
   });
 }
@@ -488,6 +493,89 @@ homeOverflowButton.addEventListener("click", () => {
 homeVoiceButton.addEventListener("click", () => {
   if (!voiceCommand.disabled) voiceCommand.click();
 });
+
+// Solo el usuario de Carla/Karla con UNA Puerta autorizada y temporizada
+// recibe un pulsador directo. Si hay dudas, se abre Accesos como siempre.
+const carlaUserAccessCard=homeDashboard.querySelector('[data-home-view="access"]');
+const carlaUserAccessLabel=carlaUserAccessCard.querySelector(':scope > span:nth-child(2)');
+const carlaUserAccessNote=document.createElement('small');
+carlaUserAccessNote.className='home-carla-user-pulse-status';
+carlaUserAccessNote.setAttribute('role','status');
+carlaUserAccessNote.setAttribute('aria-live','polite');
+carlaUserAccessNote.hidden=true;
+carlaUserAccessCard.append(carlaUserAccessNote);
+let carlaUserPulseProfile=null,carlaUserPulseGroupId='',carlaUserPulseBusy=false;
+const isCarlaCommunity=()=>{
+  if(currentRole!=='user'||!currentGroupId)return false;
+  const name=String(currentCommunityName||currentMatrix?.branding?.communityName||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return /\b(?:carla|karla)\b/.test(name);
+};
+function resetCarlaUserPulse(){
+  carlaUserPulseProfile=null;
+  carlaUserPulseGroupId='';
+  delete carlaUserAccessCard.dataset.carlaPulse;
+  carlaUserAccessCard.removeAttribute('aria-busy');
+  carlaUserAccessCard.removeAttribute('aria-label');
+  carlaUserAccessLabel.textContent='Accesos';
+  carlaUserAccessNote.hidden=true;
+  carlaUserAccessNote.textContent='';
+}
+async function prepareCarlaUserPulse(){
+  const groupId=currentGroupId;
+  resetCarlaUserPulse();
+  if(!statusReady||!isCarlaCommunity()||!matrixAllowed('access','user'))return;
+  const catalog=await api('/api/actuator-profiles');
+  if(currentGroupId!==groupId||!isCarlaCommunity()||!statusReady)return;
+  const profiles=Array.isArray(catalog.profiles)?catalog.profiles:[];
+  if(profiles.length!==1)return;
+  const profile=profiles[0];
+  const original=profile.kind==='original'&&/^original-[1-3]$/.test(profile.id)&&
+    Number(profile.relay)===Number(profile.id.slice(9))&&allowedRelays.includes(Number(profile.relay));
+  const managed=profile.kind==='managed'&&/^managed-[a-f0-9-]{36}$/i.test(profile.id);
+  if((!original&&!managed)||profile.mode!=='timer'||!(Number(profile.seconds)>0))return;
+  window.AynActuatorVoice?.setProfiles(profiles);
+  carlaUserPulseProfile=profile;
+  carlaUserPulseGroupId=groupId;
+  carlaUserAccessCard.dataset.carlaPulse='ready';
+  carlaUserAccessCard.setAttribute('aria-label','Pulsador Puerta. Toca para abrir');
+  carlaUserAccessLabel.textContent='Puerta';
+  carlaUserAccessNote.hidden=false;
+  carlaUserAccessNote.textContent='Tocar para abrir';
+}
+async function triggerCarlaUserPulse(){
+  const profile=carlaUserPulseProfile,groupId=carlaUserPulseGroupId;
+  if(!profile||!groupId||groupId!==currentGroupId||!statusReady||!isCarlaCommunity()){
+    resetCarlaUserPulse();showView('access');return;
+  }
+  if(carlaUserPulseBusy)return;
+  carlaUserPulseBusy=true;
+  carlaUserAccessCard.dataset.carlaPulse='sending';
+  carlaUserAccessCard.setAttribute('aria-busy','true');
+  carlaUserAccessNote.textContent='Verificando activación…';
+  try{
+    const original=profile.kind==='original';
+    const result=original?
+      await api('/api/control',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({relay:Number(profile.relay),state:true})}):
+      await api('/api/administrations',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({action:'control',id:profile.id.slice(8),state:true})});
+    if(result?.ok!==true||!(result.autoOffConfirmed===true||result.autoOffPending===true||result.state===true))
+      throw Error('No se confirmó la activación de Puerta.');
+    carlaUserAccessNote.textContent=result.autoOffConfirmed?'Puerta activada · apagado confirmado':
+      result.autoOffPending?'Puerta activada · apagado pendiente':'Puerta activada';
+  }catch(error){
+    carlaUserAccessNote.textContent=error.message||'No se pudo abrir Puerta.';
+    if(/permiso|autoriz|bloquead|pausa|403/i.test(error.message||'')){
+      carlaUserPulseProfile=null;
+      carlaUserAccessCard.dataset.carlaPulse='off';
+    }
+  }finally{
+    carlaUserPulseBusy=false;
+    if(carlaUserPulseProfile)carlaUserAccessCard.dataset.carlaPulse='ready';
+    carlaUserAccessCard.removeAttribute('aria-busy');
+  }
+}
 const homeWatermark = document.querySelector(".home-watermark");
 const homeWatermarkOrigin = document.createComment("Ubicación original del logo A&N");
 if (homeWatermark) homeWatermark.before(homeWatermarkOrigin);
@@ -1026,9 +1114,12 @@ async function loadStatus() {
     currentRole = data.role || "user";
     localStorage.setItem("aynLastRole",currentRole);
     currentGroupId = data.groupId || "";
+    currentCommunityName = data.communityName || "";
     if(savedAccessGroupId!==currentGroupId){accessProfilesJustSaved.clear();savedAccessGroupId=currentGroupId;}
     currentMatrix = data.appMatrix || null;
     statusReady = true;
+    if(currentRole==='user')prepareCarlaUserPulse().catch(()=>{resetCarlaUserPulse();});
+    else resetCarlaUserPulse();
     document.documentElement.dataset.accessReady="true";
     window.dispatchEvent(new Event("ayn:access-ready"));
     applyMatrixPresentation();
@@ -1447,7 +1538,7 @@ const savedVoiceCommands = new Map((window.AinVoicePhrases?.phrases || []).map(i
 const resolveVoiceRelay = (command) => {
   // Un administrador nunca hereda los nombres de los tres relés originales.
   // Sus órdenes se resuelven por perfiles autorizados y nombre de voz guardado.
-  if(currentRole==='admin')return 0;
+  if(currentRole==='admin'||isCarlaCommunity())return 0;
   if (savedVoiceCommands.has(command)) return savedVoiceCommands.get(command);
   const candidates = new Set();
   for (const match of command.matchAll(/\b(?:actuador|porton|puerta|acceso|rele)\s+(?:numero\s+)?(1|uno|un|primero|2|dos|segundo|3|tres|tercero)\b/g)) {
@@ -1472,12 +1563,14 @@ const hasVoiceOpenIntent = command => {
   return /^(?:el |la |los |las )?(?:porton|puerta|acceso|actuador|rele|qr)(?: (?:de|del|la|el|numero|entrada|salida|vehicular|peatonal|qr|1|2|3|uno|un|dos|tres|primero|segundo|tercero))*$/.test(command);
 };
 
+const authorizedVoiceProfile=command=>window.AynActuatorVoice?.match(command)||
+  window.AynActuatorVoice?.matchSingleDoor(command,isCarlaCommunity());
 const isCompleteFastVoiceCommand = (phrase) => {
   const normalized = normalizeVoice(phrase);
   if (!hasWakeWord(normalized) && Date.now() >= voiceWakeUntil) return false;
   const command = hasWakeWord(normalized) ? removeWakeWord(normalized) : normalized;
   if (/\b(no|nunca|jamas|cancelar|cancela|cancelado|detener)\b/.test(command)) return false;
-  return Boolean(window.AynActuatorVoice?.match(command))||resolveVoiceRelay(command) > 0 && hasVoiceOpenIntent(command);
+  return Boolean(authorizedVoiceProfile(command))||resolveVoiceRelay(command) > 0 && hasVoiceOpenIntent(command);
 };
 
 async function runVoiceCommand(transcript) {
@@ -1518,7 +1611,7 @@ async function runVoiceCommand(transcript) {
     setVoiceStatus("Orden cancelada. No se activó ningún acceso.", false, true);
     return;
   }
-  const personalized=window.AynActuatorVoice?.match(command);
+  const personalized=authorizedVoiceProfile(command);
   if(personalized?.ambiguous){setVoiceStatus('Nombre de acceso ambiguo.',true);return;}
   if(personalized?.kind==='managed'){
     const voiceName=window.AynActuatorVoice.confirmationName(personalized,0,command);

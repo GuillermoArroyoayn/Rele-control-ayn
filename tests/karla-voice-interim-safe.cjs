@@ -14,10 +14,10 @@ assert.match(adminCode,/now-lastCommandAt<6000/,'Evitar repetir orden parcial y 
 assert.match(adminCode,/if\(activationBusy\)return/,'Una única apertura en curso');
 assert.match(adminCode,/allowedRelays\.includes\(Number\(profile\.relay\)\)/,'Respetar relé autorizado');
 
-async function scenario({community='Karla Hogar',role='admin',allowed=[2],profiles}={}){
+async function scenario({community='Karla Hogar',role='admin',allowed=[2],profiles,silent=false}={}){
   let instance,click,current=100000,reads=0;
-  const calls=[],timers=[];
-  const storage=new Map([['aynVoiceSelected','false']]);
+  const calls=[],timers=[],spoken=[];
+  const storage=new Map([['aynVoiceSelected','false'],['aynVoiceResponsesSilentV2',String(silent)]]);
   const label={textContent:''};
   const button={classList:{toggle(){}},setAttribute(){},blur(){},addEventListener(name,fn){if(name==='click')click=fn;}};
   const window={AynCallPriority:{shouldListen:()=>true,armFromGesture:()=>true},
@@ -33,7 +33,7 @@ async function scenario({community='Karla Hogar',role='admin',allowed=[2],profil
   window.AinLocalRecognition=FakeRecognition;
   const speechSynthesis={
     cancel(){},paused:false,resume(){},
-    speak(u){u.onend?.();}
+    speak(u){spoken.push(u.text);u.onend?.();}
   };
   window.speechSynthesis=speechSynthesis;
   const fakeProfiles=profiles||[{id:'original-2',kind:'original',relay:2,name:'Puerta',voiceName:'',mode:'timer',seconds:4}];
@@ -70,9 +70,18 @@ async function scenario({community='Karla Hogar',role='admin',allowed=[2],profil
     for(const t of due){t.cleared=true;t.fn();}
     await flush();
   };
-  return {speech,flush,calls,instance,label,tick:ms=>{current+=ms;},runDue};
+  return {speech,flush,calls,spoken,instance,label,tick:ms=>{current+=ms;},runDue};
 }
 (async()=>{
+  const wakeOnly=await scenario({silent:true});
+  wakeOnly.speech('ain',true);await wakeOnly.flush();
+  assert.equal(wakeOnly.calls.length,0,'La palabra AIN aislada jamás abre el relé');
+  assert.equal(wakeOnly.spoken.at(-1),'Te escucho','Confirmación audible aunque el silencio Bluetooth previo esté activado');
+  wakeOnly.speech('abre puerta',true);await wakeOnly.runDue();
+  assert.equal(wakeOnly.calls.length,1,'La orden explícita posterior a AIN controla solo la Puerta');
+  assert.equal(wakeOnly.calls[0].body.relay,2,'El QR sigue sin control');
+  assert(wakeOnly.spoken.includes('OK'),'Se confirma la recepción por voz');
+  assert(wakeOnly.spoken.some(text=>/Puerta activada correctamente/i.test(text)),'Se confirma el resultado recibido del servidor');
   const karla=await scenario();
   karla.speech('ain abre puerta');
   await karla.flush();

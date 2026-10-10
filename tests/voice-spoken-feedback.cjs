@@ -23,14 +23,14 @@ function speechProbe(file,starting,ending){
   window:{speechSynthesis,AynCallPriority:{shouldListen:()=>callSafe},setTimeout:()=>1},
   speechSynthesis,SpeechSynthesisUtterance:class{constructor(text){this.text=text}},
   bluetoothQuietEnabled:()=>quiet,localStorage:{getItem:()=>quiet?'true':null},
-  recognition:{suppressAudio:false},voiceSpeaking:false,voiceSpeechGeneration:0,
+  recognition:{suppressAudio:false},voiceSpeaking:false,voiceCarla:false,voiceSpeechGeneration:0,
   voiceSpeechTimer:0,voiceEchoUntil:0,clearTimeout:()=>{},
   scheduleVoiceListening:()=>{},setTimeout:()=>1,
   Promise
  };
  vm.runInNewContext(file.slice(start,end)+'\nthis.reply=speak;',sandbox);
  return {play:async text=>{const result=sandbox.reply(text,()=>spoken.push(text));await Promise.resolve();return result;},
-  get played(){return played},setCall:v=>{callSafe=v},setQuiet:v=>{quiet=v}};
+  get played(){return played},setCall:v=>{callSafe=v},setQuiet:v=>{quiet=v},setCarla:v=>{sandbox.voiceCarla=v}};
 }
 (async()=>{
  const main=speechProbe(user,'const speak = (text, onFinished) => {','// Let the short acknowledgement');
@@ -45,5 +45,13 @@ function speechProbe(file,starting,ending){
  assert.deepEqual(control.played,['OK','Puerta activada correctamente']);
  control.setCall(false);await control.play('No hablar encima de llamada');
  assert.equal(control.played.length,2);
+ control.setCall(true);control.setQuiet(true);
+ await control.play('Silencio voluntario en otras comunidades');
+ assert.equal(control.played.length,2,'Silencio voluntario de otras comunidades permanece');
+ control.setCarla(true);
+ await control.play('Te escucho');
+ assert.equal(control.played.at(-1),'Te escucho','La preferencia Bluetooth antigua no silencia a Karla');
+ control.setCall(false);await control.play('La llamada tiene prioridad');
+ assert.equal(control.played.at(-1),'Te escucho','No hablar durante una llamada en Karla');
  console.log('Voz v181: OK y activación audibles por defecto, silencio voluntario y llamada con prioridad OK.');
 })().catch(error=>{console.error(error);process.exitCode=1});

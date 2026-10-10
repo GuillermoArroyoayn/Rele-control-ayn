@@ -8,7 +8,7 @@ const voice=window.AynActuatorVoice;
 const door={id:'original-2',kind:'original',relay:2,name:'Puerta',voiceName:'',mode:'timer',seconds:4};
 voice.setProfiles([door]);
 assert.equal(voice.match('abre puerta'),null,'Un nombre no configurado no usa el alias global');
-for(const phrase of ['puerta','abre puerta','abrir la puerta','activar puerta','abre puerta por favor']){
+for(const phrase of ['puerta','abre puerta','abrir la puerta','activar puerta','abre puerta por favor','me abres la puerta','por favor abre la puerta','ábreme la puerta','abre la puerta por favor']){
   assert.equal(voice.matchSingleDoor(phrase,true)?.id,door.id,'Puerta unica: '+phrase);
 }
 for(const phrase of ['no abrir puerta','cierra puerta','apaga puerta','abrir puerta y porton','abre porton']){
@@ -43,7 +43,7 @@ for(const [source,pattern,message] of [
   [admin,/allowedRelays\.includes\(relay\)/,'Administradora valida permisos'],
   [status,/communityName=String\(owner\?\.adminName/,'Nombre verificado desde el propietario de comunidad'],
   [index,/\/app\.js\?v=20261010-karla216/,'Nueva app versionada'],
-  [adminHtml,/\/administracion-voice\.js\?v=20261010-restore219/,'Nueva voz administracion versionada'],
-  [sw,/reles-ayn-v219-karla-voice-restore/,'Nueva caché para Android']
+  [adminHtml,/\/administracion-voice\.js\?v=20261010-audio220/,'Nueva voz administracion versionada'],
+  [sw,/reles-ayn-v220-karla-audio/,'Nueva caché para Android']
 ])assert.match(source,pattern,message);
 console.log('Karla voz y pulsador: una Puerta, permisos, comunidad, rechazo de ambigüedad y PWA OK.');

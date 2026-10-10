@@ -30,7 +30,9 @@
     if(profile.mode!=='timer'||!(Number(profile.seconds)>0))return null;
     const text=normalize(command);
     if(/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
-    return /^(?:(?:me abres|abrir|abre|abreme|abrime|activar|activa|enciende|encender|accionar|acciona) (?:el |la )?)?puerta(?: por favor)?$/.test(text)?profile:null;
+    // Variantes comunes del español sin coincidencias difusas con otro actuador.
+    // El verbo explícito se sigue exigiendo en administracion-voice.js.
+    return /^(?:(?:por favor )?(?:me (?:abres|abris|activas) |(?:abrir|abre|abreme|abrime|activar|activa|enciende|encender|accionar|acciona) )(?:el |la )?)?puerta(?: por favor)?$/.test(text)?profile:null;
   }
   function confirmationName(profile,relay,command){
     // El nombre usado para hablar manda sobre el nombre visible y sobre el número.

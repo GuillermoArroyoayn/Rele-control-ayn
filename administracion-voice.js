@@ -33,7 +33,7 @@
     .trim();
 
   const aliases={
-    habre:'abre',habrir:'abrir',avre:'abre',avrir:'abrir',abrime:'abre',abreme:'abre',
+    habre:'abre',habrir:'abrir',avre:'abre',avrir:'abrir',abrime:'abre',abreme:'abre',habreme:'abre',abrirla:'abre',
     pordon:'porton',porlon:'porton',atuador:'actuador',actuadores:'actuador',actualdor:'actuador',
     peatona:'peatonal',patonal:'peatonal',vehiculo:'vehicular',reles:'rele'
   };
@@ -85,7 +85,11 @@
   function speak(text){
     // Confirmaciones audibles por defecto, excepto si el usuario eligió silencio.
     // Nunca hablar encima de una llamada confirmada.
-    if(localStorage.getItem('aynVoiceResponsesSilentV2')==='true'||!('speechSynthesis' in window)||!text||
+    // La preferencia antigua de silencio Bluetooth se compartía entre todos los equipos.
+    // En la administración de Karla las respuestas de voz son audibles por defecto;
+    // mantener el silencio optativo vigente en otras comunidades y priorizar llamadas.
+    if((localStorage.getItem('aynVoiceResponsesSilentV2')==='true'&&!voiceCarla)||
+       !('speechSynthesis' in window)||!text||
        (window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return Promise.resolve();
     return new Promise(resolve=>{
       voiceSpeaking=true;
@@ -419,6 +423,16 @@
         if(!transcript)continue;
         const normalized=normalize(transcript);
         if(hasWake(normalized))wakeUntil=Date.now()+7000;
+        // Solo responder al AIN aislado cuando el reconocimiento ha finalizado.
+        // Nunca hablar encima de una frase "AIN abre puerta" todavía en proceso.
+        // La escucha sigue armada para la orden siguiente y no pulsa ningún relé.
+        if(voiceCarla&&result.isFinal&&hasWake(normalized)&&
+           !removeWake(normalized)&&!activationBusy){
+          phraseBuffer='';clearTimeout(phraseTimer);
+          paint('AIN listo. Dime qué puerta abrir.','listening');
+          speak('Te escucho').catch(()=>{});
+          continue;
+        }
         if(!result.isFinal&&hasWake(normalized))paint('AYN escuchó la activación. Recibiendo orden…','listening');
         if(!result.isFinal){
           const interimCommand=hasWake(normalized)?removeWake(normalized):normalized;

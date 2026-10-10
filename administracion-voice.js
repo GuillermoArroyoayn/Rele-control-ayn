@@ -33,7 +33,7 @@
     .trim();
 
   const aliases={
-    habre:'abre',habrir:'abrir',avre:'abre',avrir:'abrir',abrime:'abre',abreme:'abre',habreme:'abre',abrirla:'abre',
+    habre:'abre',habrir:'abrir',avre:'abre',avrir:'abrir',abri:'abrir',abrime:'abre',abreme:'abre',habreme:'abre',abrirla:'abre',
     pordon:'porton',porlon:'porton',atuador:'actuador',actuadores:'actuador',actualdor:'actuador',
     peatona:'peatonal',patonal:'peatonal',vehiculo:'vehicular',reles:'rele'
   };
@@ -43,7 +43,7 @@
     .replace(/\bactua dor\b/g,'actuador')
     .split(' ').map(word=>aliases[word]||word).join(' ');
 
-  const wakePattern=/^(?:(?:oye|hola|hey|ey) )?(?:ain|ains|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
+  const wakePattern=/^(?:(?:oye|hola|hey|ey) )?(?:ain|ains|auin|ayn|hain|aine|aing|ainh|pain|payn|pein|ein|einn|aen|ayen|aien|ai en|ay en|a i n|a y n|a in|a en|ey n|hay en|ahi en|ahi n|ay n|ai n)(?= |$)/;
   const softWakePattern=/^(?:ahi|hay|ay|ai)(?= |$)/;
   const hasWake=text=>wakePattern.test(text)||softWakePattern.test(text);
   const removeWake=text=>text.replace(wakePattern,' ').replace(softWakePattern,' ').replace(/\s+/g,' ').trim();
@@ -161,7 +161,7 @@
 
   function hasExplicitOpenIntent(command){
     return !/\b(?:no|nunca|cancelar|cancela|detener|cerrar|cierra|apagar|apaga|desactivar)\b/.test(command)&&
-      /\b(?:abrir|abre|abres|abrime|abreme|activar|activa|enciende|encender|prender|prende|accionar|acciona)\b/.test(command);
+      /\b(?:abrir|abre|abres|abris|abrime|abreme|activar|activa|activas|enciende|encender|prender|prende|accionar|acciona|desbloquea|desbloquear|pulsa|pulsar)\b/.test(command);
   }
 
   function isOpenIntent(command){
@@ -245,7 +245,7 @@
   async function executeCommand(raw){
     const normalized=normalize(raw);
     const woke=hasWake(normalized);
-    if(woke)wakeUntil=Date.now()+7000;
+    if(woke)wakeUntil=Date.now()+9000;
     if(!woke&&Date.now()>wakeUntil)return;
     const command=woke?removeWake(normalized):normalized;
     if(!command){
@@ -336,7 +336,7 @@
     const normalized=normalize(phraseBuffer);
     const command=hasWake(normalized)?removeWake(normalized):normalized;
     if(!command){
-      wakeUntil=Date.now()+7000;
+      wakeUntil=Date.now()+9000;
       paint('AYN está escuchando tu orden','listening');
       return;
     }
@@ -357,7 +357,7 @@
     if(!text)return;
     const authorized=hasWake(text)||Date.now()<wakeUntil||hasWake(phraseBuffer);
     if(!authorized)return;
-    if(hasWake(text))wakeUntil=Date.now()+7000;
+    if(hasWake(text))wakeUntil=Date.now()+9000;
     phraseBuffer=mergeFragments(phraseBuffer,text);
     schedulePhrase();
   }
@@ -430,7 +430,7 @@
         const transcript=alternatives.find(x=>hasWake(normalize(x)))||alternatives[0];
         if(!transcript)continue;
         const normalized=normalize(transcript);
-        if(hasWake(normalized))wakeUntil=Date.now()+7000;
+        if(hasWake(normalized))wakeUntil=Date.now()+9000;
         // Solo responder al AIN aislado cuando el reconocimiento ha finalizado.
         // Nunca hablar encima de una frase "AIN abre puerta" todavía en proceso.
         // La escucha sigue armada para la orden siguiente y no pulsa ningún relé.

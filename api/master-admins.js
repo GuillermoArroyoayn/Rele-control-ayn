@@ -59,9 +59,55 @@ module.exports=async(req,res)=>{
           users,usersCount:users.length,activeUsers:users.filter(u=>u.status==='active').length,
           modules,modulesCount:modules.length,actuatorsCount:actuators.length,originalRelays:(d.relays||[]).filter(n=>[1,2,3].includes(n))};
       }));
-      return res.json({admins});
+      const deletedAdmins=[
+        ...Object.entries(auth.registry.devices).filter(([,d])=>d.role==='admin'&&d.status==='deleted'),
+        ...Object.entries(auth.registry.revoked||{}).filter(([,d])=>d.role==='admin')
+      ].filter(([id,d])=>d.groupId&&d.groupId!=='master')
+       .map(([id,d])=>({id,name:d.adminName||d.name||'Administrador',groupId:d.groupId,
+         source:auth.registry.revoked?.[id]?'revoked':'deleted'}))
+       .sort((a,b)=>a.name.localeCompare(b.name,'es'));
+      return res.json({admins,deletedAdmins});
     }
     const b=req.body||{},id=String(b.adminId||'');
+    if(b.action==='restoreDeletedAdmin'){
+      const deleted=auth.registry.devices[id],revoked=auth.registry.revoked?.[id];
+      const target=deleted?.role==='admin'&&deleted.status==='deleted'?deleted:
+        revoked?.role==='admin'?revoked:null;
+      if(!id||!target)throw A.error('Cuenta eliminada no encontrada.',404);
+      const groupId=String(target.groupId||''),name=target.adminName||target.name||'Administrador';
+      if(!groupId||groupId==='master'||groupId==='unassigned'||b.expectedName!==name)
+        throw A.error('La identidad de la administración no coincide.',409);
+      if(Object.entries(auth.registry.devices).some(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
+        throw A.error('Otra cuenta administra esta comunidad. No se modificó el acceso.',409);
+      const tombstone=await A.redis('HGET','ayn:matrix:deleted-groups',groupId);
+      const published=await Matrix.getPublished(groupId);
+      const restoredAt=new Date().toISOString();
+      const backupId=A.uuid();
+      await A.redis('SET','ayn:recovery:admin:'+backupId,
+        JSON.stringify({createdAt:restoredAt,id,groupId,source:revoked?'revoked':'deleted',
+          target,tombstone,published}), 'EX',604800);
+      // Bloquear invitaciones previas a la recuperación, aunque todavía tengan vigencia.
+      await A.redis('HSET','ayn:matrix:restored-groups',groupId,restoredAt);
+      if(tombstone)await A.redis('HDEL','ayn:matrix:deleted-groups',groupId);
+      // Reactivar la carpeta SIN restaurar acceso a los relés ni residentes eliminados.
+      await Matrix.publish({... (published||Matrix.defaultConfig(groupId,name)),
+        groupId,status:'active',actuators:[]},auth.device.name);
+      await A.updateRegistry(registry=>{
+        const old=registry.devices[id],removed=registry.revoked?.[id];
+        const current=old?.role==='admin'&&old.status==='deleted'?old:
+          removed?.role==='admin'?removed:null;
+        if(!current||current.groupId!==groupId)
+          throw A.error('El registro cambió durante la recuperación.',409);
+        if(Object.entries(registry.devices).some(([otherId,d])=>otherId!==id&&d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
+          throw A.error('La comunidad tiene otro administrador activo.',409);
+        registry.devices[id]={...current,role:'admin',status:'active',groupId,relays:[],actuatorIds:[],
+          restoredAt,restoredBy:auth.device.id,statusChangedAt:restoredAt,statusChangedBy:auth.device.id};
+        if(registry.revoked)delete registry.revoked[id];
+      });
+      await addHistory({kind:'permissions',groupId,userName:name,actor:auth.device.name,
+        action:'Administrador recuperado, relés y usuarios pendientes de revisión'}).catch(()=>{});
+      return res.json({ok:true,name,groupId,backupId,relaysPending:true});
+    }
     if(b.action==='setStatus'){
       if(!['active','paused','blocked'].includes(b.status))throw A.error('Estado no válido.');
       let groupId='',name='';

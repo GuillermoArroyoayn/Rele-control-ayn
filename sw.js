@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v213-voice-safety";
+const CACHE = "reles-ayn-v214-direct-alias";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",

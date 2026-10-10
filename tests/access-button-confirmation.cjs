@@ -22,5 +22,7 @@ assert(app.includes("symbol.textContent=state===true?'ON':state===false?'OFF':'�
 assert(css.includes('.access-controls-page .access-actuator-status{'),'La segunda línea de estado existe solo para lectores de pantalla');
 assert(css.includes('clip-path:inset(50%)!important'),'OFF no se repite debajo de Puerta');
 assert(sw.match(/reles-ayn-v\d+-[a-z0-9-]+/));
-assert(html.match(/\/app\.js\?v=20261008-[a-z0-9]+/)&&html.includes('/styles.css?v=20261008-adminroutes185'));
+const appAsset=html.match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(appAsset&&sw.includes(appAsset),'El script de activación y la caché PWA deben coincidir');
+assert(html.includes('/styles.css?v=20261008-adminroutes185'));
 console.log('Accesos v170: pantalla aislada visible, botón Puerta y confirmación dentro del botón sin avisos duplicados.');

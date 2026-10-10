@@ -28,6 +28,8 @@ async function call(handler,method='GET',body={},query={}){
 const authorize=async()=>auth;
 const devices=make('api/devices.js',{
  '../lib/devices':{authorize,writeRegistry:async()=>{},configuredOriginalRelays:async()=>[1]},
+ '../lib/administrations':{records:async()=>[]},
+ '../lib/original-device-binding':{resolve:async relay=>({id:'test-original-'+relay,code:'switch_1'})},
  '../lib/history':{addHistory:async()=>{}}
 });
 const A={access:async()=>auth,manager:()=>{},records:async()=>[],group:(_,g)=>g||auth.groupId,

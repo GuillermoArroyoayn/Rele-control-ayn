@@ -13,10 +13,11 @@
   function match(command){
     const text=normalize(command);
     if(!text||/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
-    // Con orden explícita: "AIN, abre puerta". Sin verbo: "AIN, puerta".
-    // El emisor comprueba previamente la palabra de activación AIN y los permisos.
+    // Solo aceptar una orden EXPLÍCITA tras la palabra AIN.
+    // Un nombre aislado puede oírse en una conversación: nunca activar por "puerta".
     const parsed=/^(?:me (?:abres|abris|activas) |(?:abrir|abre|activar|activa|enciende|encender|prender|prende|acciona|accionar) )(?:el |la |los |las )?(.+)$/.exec(text);
-    const target=parsed?parsed[1]:text.replace(/^(?:el |la |los |las )/,'');
+    if(!parsed)return null;
+    const target=parsed[1];
     const found=profiles.filter(x=>x.alias===target);
     return found.length===1?found[0]:found.length>1?{ambiguous:true}:null;
   }

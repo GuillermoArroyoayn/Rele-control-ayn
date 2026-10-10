@@ -32,7 +32,8 @@ const tuya={getToken:async()=>'token',tuyaFetch:async(method,path)=>{
  if(path.endsWith('/status'))return {result:[{code:'switch_1',value:false}]};
  return {result:{id:'sampledevice123',online}};
 }};
-const m={exports:{}};vm.runInNewContext(source,{module:m,process:{env:{}},require:n=>n.includes('administrations')?A:tuya,Date,console});
+const m={exports:{}};vm.runInNewContext(source,{module:m,process:{env:{}},require:n=>n.includes('administrations')?A:n.includes('original-device-binding')?
+ {resolve:async()=>{throw Object.assign(new Error('Original no configurado'),{status:410});}}:tuya,Date,console});
 async function run(action,payload={},method='POST'){
  let status=200,body;const res={setHeader(){},status(n){status=n;return this;},json(v){body=v;return this;}};
  await m.exports({method,body:{action,...payload}},res);return {status,body};
@@ -66,7 +67,7 @@ async function run(action,payload={},method='POST'){
  assert(!html.includes('Prepara el relé en el taller. Al llegar al condominio,'),'Eliminar párrafo redundante');
  assert(html.includes('relay-install-advanced')&&html.includes('relay-install-help'),'Mantener la información técnica bajo detalle accesible');
  assert(html.includes('relayInstallerSaved'),'Separar listado de relés guardados');
- assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!anyInstalled"),'Ocultar carpetas vacías');
+ assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!allCount"),'Ocultar carpetas sin relés originales ni gestionados');
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
  assert(html.includes('/relay-installer.js?v=20261008-compact160'));

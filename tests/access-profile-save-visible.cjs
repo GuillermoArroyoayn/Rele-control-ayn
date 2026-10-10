@@ -16,5 +16,6 @@ assert(app.includes("profile.kind==='original'&&/^original-[1-3]$/.test(profile.
 assert(app.includes("itemsById.has(id)"),'No repetir actuadores en pantalla');
 assert(css.includes('.access-settings-feedback:not([hidden])'));
 assert(sw.match(/reles-ayn-v\d+-[a-z0-9-]+/));
-assert(sw.match(/\/app\.js\?v=20261008-[a-z0-9]+/));
+const appAsset=fs.readFileSync('index.html','utf8').match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(appAsset&&sw.includes(appAsset),'La caché conserva la versión real del script de Accesos');
 console.log('V169: guardado con confirmación persistente y catálogo autorizado de actuadores como alternativa segura.');

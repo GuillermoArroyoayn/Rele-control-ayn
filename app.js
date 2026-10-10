@@ -225,14 +225,21 @@ function accessButton(profile,fallbackName,initialState,command,read) {
       }
       previous=state;
       const target=isManual()?!state:true;
-      // La API espera el ciclo temporizado antes de responder.
+      // La respuesta visual ON/OFF es PROVISIONAL hasta confirmar el resultado físico.
       card.classList.add('activation-pending');
-      // No encender el indicador visual hasta que la API confirme el estado.
-      // El temporizador solicitado tampoco prueba que el relé físico haya cambiado.
+      card.dataset.confirmation='pending';
+      paintState(target);
       status.textContent=target?'Verificando activación con Tuya…':'Verificando apagado con Tuya…';
       button.setAttribute('aria-label',title.textContent+' · '+status.textContent);
+      button.setAttribute('aria-pressed','mixed');
       const result=await command(target);
-      if(result?.ok!==true)throw new Error('La orden no fue confirmada por A&N Control.');
+      // La API actual devuelve ok:true. Para compatibilidad con otras respuestas
+      // solo aceptamos un estado físico explícito o un resultado de autoapagado.
+      const hasVerifiedOutcome=result&&(
+        typeof result.state==='boolean'||result.autoOffConfirmed===true||
+        result.autoOffPending===true);
+      if(result?.ok===false||!hasVerifiedOutcome)
+        throw new Error('La orden no fue confirmada por A&N Control.');
       if(result.autoOffConfirmed){
         paintState(false);
       }else if(result.autoOffPending){
@@ -252,6 +259,8 @@ function accessButton(profile,fallbackName,initialState,command,read) {
       show(error.message||'Sin conexión',true);
     }finally{
       card.classList.remove('activation-pending');
+      delete card.dataset.confirmation;
+      button.setAttribute('aria-pressed',String(state===true));
       busy=false;button.disabled=false;
     }
   };

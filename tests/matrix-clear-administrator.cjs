@@ -41,7 +41,9 @@ const sandboxModule={exports:{}};
 vm.runInNewContext(source,{module:sandboxModule,Date,process:{env:{TUYA_DEVICE_1:'one',TUYA_DEVICE_2:'two',TUYA_DEVICE_3:'three'}},
  require:n=>n==='../lib/administrations'?A:n==='../lib/app-matrix'?M:
  n==='../lib/tuya'?{checkPin:req=>req.headers['x-app-pin']==='correct-master-pin'}:
- n==='../lib/history'?{addHistory:async event=>audits.push(event)}:(()=>{throw Error(n)})()});
+ n==='../lib/history'?{addHistory:async event=>audits.push(event)}:
+ n==='../lib/original-device-binding'?{resolve:async relay=>({id:'mock-'+relay,code:'switch_1'})}:
+ (()=>{throw Error(n)})()});
 async function request(body){
  let code=200,value;
  await sandboxModule.exports({method:body?'POST':'GET',body},

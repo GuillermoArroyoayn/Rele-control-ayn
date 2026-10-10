@@ -14,5 +14,6 @@ assert(app.includes('title.textContent=profile?.voiceName?.trim()||profile?.name
 assert(app.includes('for(const profile of profileResult.profiles||[])'),'Perfiles autorizados para generar botón sin duplicar');
 assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(html.includes('/styles.css?v=20261008-adminroutes185'));
-assert(/\/app\.js\?v=20261008-[\w-]+/.test(html));
+const appAsset=html.match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(appAsset&&sw.includes(appAsset));
 console.log('Accesos v171: raíz visual compartida con configuración, botón Puerta y rutas separadas OK.');

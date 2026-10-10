@@ -26,10 +26,11 @@ assert(app.includes('voiceCommand.click()'),'El botón inicia y detiene la voz')
 assert(app.includes('homeVoiceText.textContent'),'Los avisos siguen actualizándose en lectores de pantalla');
 assert(admHtml.includes('id="homeVoiceText" role="status" aria-live="polite"'),'Confirmación accesible conservada');
 assert(index.includes('/styles.css?v=20261008-adminroutes185'));
-assert(admHtml.includes('/administracion.css?v=20261008-mic182'));
+const adminCss=admHtml.match(/\/administracion\.css\?v=[\w-]+/)?.[0];
+assert(adminCss,'Administración debe cargar hoja de estilos versionada');
 assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(sw.includes('/styles.css?v=20261008-adminroutes185'));
-assert(sw.includes('/administracion.css?v=20261008-mic182'));
+assert(sw.includes(adminCss),'Caché PWA debe usar la misma versión CSS que administración');
 // Aun en pantallas cortas la altura flexible permite desplazamiento en vez de superposición.
 for(const height of [560,640,720,800,900]){
  const title=Math.max(90,Math.min(height*.15,132));

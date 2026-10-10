@@ -12,7 +12,7 @@ assert(app.includes('access:accessSettingsPanel'),'Accesos utiliza la ventana qu
 assert(app.includes('accessSettingsPanel.prepend(managedAccessPanel)'),'Controles montados en ventana compartida');
 assert(app.includes("Promise.allSettled("),'No ocultar originales por fallo de otro catálogo');
 assert(app.includes("lastKnownAccessStatus=data"),'Conservar permisos autenticados de la sesión');
-assert(app.includes("if(currentRole==='admin'&&directViews[masterRoute])"),'Abrir ajustes y herramientas desde administración');
+assert(app.includes("if(['admin','super_master'].includes(currentRole)&&directViews[masterRoute])"),'Abrir ajustes y herramientas desde administración');
 assert(app.includes("access:'access','access-settings':'access-settings'"),'Conservar rutas de acceso y configuración');
 assert(app.includes("currentRole!=='admin'"),'El administrador debe ser quien configure');
 assert(app.includes('syncAccessBrand(view)'),'Usar el logo original en pantalla de acceso');
@@ -25,5 +25,6 @@ assert(!app.includes('if(profile)profileEditor(card,profile);'),'Configuración 
 assert(styles.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'Distribución equilibrada');
 assert(styles.includes('.access-brand-slot .home-logo'),'Logo A&N en accesos');
 assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
-assert(html.includes('/styles.css?v=20261008-adminroutes185')&&/\/app\.js\?v=20261008-[\w-]+/.test(html));
+const appAsset=html.match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(html.includes('/styles.css?v=20261008-adminroutes185')&&appAsset&&sw.includes(appAsset));
 console.log('Accesos v166: logo original, botón único, menú independiente, permisos, modo manual/temporizador y diseño adaptable.');

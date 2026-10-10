@@ -74,6 +74,6 @@ const auth=(actor)=>({role:devices[actor].role,device:devices[actor],groupId:dev
   for(const page of [index,adminPage]){
     assert(page.includes('/panic.js?v=20261008-sos194')&&page.includes('/sos-siren.js?v=20261008-sos194'),'Activar nueva alarma SOS en todas las pantallas');
   }
-  assert(sw.includes('reles-ayn-v194-sos-user-choice')&&sw.includes('/sos-siren.js?v=20261008-sos194'),'Renovar cache y sirena');
+  assert(/reles-ayn-v\d+-[\w-]+/.test(sw)&&sw.includes('/sos-siren.js?v=20261008-sos194'),'La caché PWA tiene versión y sirena actual');
   console.log('OK: SOS y cancelación a la comunidad local y administrador; sin Máster ni otros grupos; informes privados preservados.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

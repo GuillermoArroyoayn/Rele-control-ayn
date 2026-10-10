@@ -13,8 +13,13 @@
         const savedPin = localStorage.getItem("relayPin");
         const savedRole = localStorage.getItem("aynLastRole");
         if (savedPin) {
-          document.documentElement.dataset.bootLayout = savedRole === "user" ? "user" : "validating";
-          if (savedRole === "super_master" && !location.hash) location.replace("/administracion.html");
+          // Una sesión ya identificada como Máster/Administrador abre directamente Inicio.
+          // El servidor siempre valida rol y permisos antes de habilitar acciones.
+          if (["super_master", "admin"].includes(savedRole) && !location.hash && !location.search) {
+            location.replace("/administracion.html#home");
+          } else {
+            document.documentElement.dataset.bootLayout = savedRole === "user" ? "user" : "validating";
+          }
         }
       } catch {}
     </script>
@@ -345,6 +350,6 @@
     <script src="/sos-siren.js?v=20261008-sos194" defer></script>
     <script src="/ain-local-voice.js?v=20261008-voice181" defer></script>
     <script src="/ain-voice-phrases.js?v=20261004-release111" defer></script>
-    <script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/actuator-voice.js?v=20261009-alias199" defer></script><script src="/temporary-permissions.js?v=20261009-tmp01" defer></script><script src="/app.js?v=20261009-login208" defer></script>
+    <script src="/ayn-navigation.js?v=20261008-nav161" defer></script><script src="/actuator-voice.js?v=20261009-voice213" defer></script><script src="/temporary-permissions.js?v=20261009-tmp01" defer></script><script src="/app.js?v=20261009-startup212" defer></script>
   <script src="/panic.js?v=20261008-sos194" defer></script><script src="/reports.js?v=20261008-labels190" defer></script><script src="/ui-feedback.js?v=20261004-release111" defer></script><script src="/community-indicators.js?v=20261008-audience189" defer></script><script src="/community.js?v=20261008-labels190" defer></script><script src="/information.js?v=20261008-sos194" defer></script></body>
 </html>

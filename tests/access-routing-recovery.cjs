@@ -10,7 +10,7 @@ assert(!app.includes('userSettingsPanel,managedAccessPanel,accessSettingsPanel')
 assert(app.includes('const [managedResponse,originalResponse,profilesResponse]=await Promise.allSettled'));
 assert(app.includes("if(originalResponse.status==='rejected')"));
 assert(app.includes("if(managedResponse.status==='rejected')"));
-assert(app.includes("if(currentRole==='admin'&&directViews[masterRoute])"));
+assert(app.includes("if(['admin','super_master'].includes(currentRole)&&directViews[masterRoute])"));
 assert(app.includes("access:'access','access-settings':'access-settings'"));
 assert(app.includes('syncAccessBrand(view)'));
 assert(app.includes('profileEditor(card,profile)'));
@@ -20,7 +20,8 @@ assert(admin.includes("location.replace('/#access-settings');return;"));
 assert(admin.includes("b.dataset.tab==='equipment'"));
 assert(css.includes('section.access-settings-panel.function-screen > section.access-controls-page:not([hidden])'));
 assert(css.includes('.access-settings-panel.function-screen'));
-assert(/\/administracion\.js\?v=20261008-[\w-]+/.test(html));
+const adminJsAsset=html.match(/\/administracion\.js\?v=[\w-]+/)?.[0];
+assert(adminJsAsset&&sw.includes(adminJsAsset),'El JS administrador debe estar versionado y coincidir en caché');
 assert(sw.match(/reles-ayn-v\d+-[a-z0-9-]+/));
 assert(!app.includes('if(profile)profileEditor(card,profile);'),'No reintroducir formulario dentro del botón');
 console.log('V167: recuperación de Accesos, pantalla completa y Configurar accesos en una ruta única verificadas.');

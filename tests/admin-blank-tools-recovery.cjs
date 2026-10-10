@@ -60,7 +60,8 @@ assert(html.includes('href="/#temporary"')&&html.includes('href="/#bookings"')&&
 assert(!html.includes('href="/#voice"'),'Control de voz no debe duplicarse en el menú');
 assert(app.includes("masterRoute==='settings'&&['super_master','admin'].includes(currentRole)"),
   'Configuración debe abrirse en el administrador y el Máster');
-assert(/\/app\.js\?v=20261008-[\w-]+/.test(index));
+const appAsset=index.match(/\/app\.js\?v=[\w-]+/)?.[0];
+assert(appAsset,'La aplicación debe tener un archivo JS versionado');
 assert(index.includes('/styles.css?v=20261008-adminroutes185'));
 assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw));
 assert(css.includes('/* v185 — herramientas del administrador'));

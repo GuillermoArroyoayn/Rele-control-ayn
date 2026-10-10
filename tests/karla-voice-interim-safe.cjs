@@ -14,7 +14,7 @@ assert.match(adminCode,/now-lastCommandAt<6000/,'Evitar repetir orden parcial y 
 assert.match(adminCode,/if\(activationBusy\)return/,'Una única apertura en curso');
 assert.match(adminCode,/allowedRelays\.includes\(Number\(profile\.relay\)\)/,'Respetar relé autorizado');
 
-async function scenario({community='Karla Hogar',role='admin',allowed=[2],profiles,silent=false}={}){
+async function scenario({community='Karla Hogar',role='admin',allowed=[2],profiles,silent=false,failControl=false}={}){
   let instance,click,current=100000,reads=0;
   const calls=[],timers=[],spoken=[];
   const storage=new Map([['aynVoiceSelected','false'],['aynVoiceResponsesSilentV2',String(silent)]]);
@@ -41,7 +41,11 @@ async function scenario({community='Karla Hogar',role='admin',allowed=[2],profil
   const fetch=async(path,opts)=>{
     if(path==='/api/status'){reads++;return reply({role,groupId:'group-karla',communityName:community,allowedRelays:allowed});}
     if(path==='/api/actuator-profiles')return reply({profiles:fakeProfiles});
-    if(path==='/api/control'||path==='/api/administrations'){calls.push({path,body:JSON.parse(opts.body)});return reply({ok:true,state:false,autoOffConfirmed:true});}
+    if(path==='/api/control'||path==='/api/administrations'){
+      calls.push({path,body:JSON.parse(opts.body)});
+      if(failControl)return {ok:false,status:502,json:async()=>({error:'Tuya no confirmó ON'})};
+      return reply({ok:true,state:false,autoOffConfirmed:true});
+    }
     throw new Error('Unexpected request: '+path);
   };
   const Clock=class extends Date {static now(){return current;}};
@@ -83,6 +87,13 @@ async function scenario({community='Karla Hogar',role='admin',allowed=[2],profil
   assert(wakeOnly.spoken.some(t=>/^OK, Puerta activada correctamente\./.test(t)),
     'La respuesta de ON confirmado es una única locución OK, Puerta activada correctamente');
   assert(wakeOnly.spoken.some(text=>/Puerta activada correctamente/i.test(text)),'Se confirma el resultado recibido del servidor');
+  const failed=await scenario({failControl:true});
+  failed.speech('ain abre puerta');await failed.flush();
+  assert.equal(failed.calls.length,1,'La orden autorizada puede llegar al servidor');
+  assert(failed.spoken.some(t=>/No pude confirmar la activación de Puerta/i.test(t)),
+    'Si Tuya no confirma, se anuncia fallo por voz');
+  assert(!failed.spoken.some(t=>/activada correctamente/i.test(t)),
+    'Nunca anunciar apertura exitosa si Tuya no confirmó ON');
   const karla=await scenario();
   karla.speech('ain abre puerta');
   await karla.flush();

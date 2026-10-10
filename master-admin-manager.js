@@ -189,6 +189,45 @@
       actions.prepend(b);row.classList.add('has-admin-config');
     }
   }
+
+  const recoveryArea=el('section','master-admin-recovery');
+  const recoveryToggle=el('button','master-admin-action','Recuperar administrador eliminado');
+  recoveryToggle.type='button';
+  const recoveryList=el('div','master-admin-recovery-list');
+  recoveryArea.append(recoveryToggle,recoveryList);
+  list.parentNode.insertBefore(recoveryArea,list);
+  recoveryToggle.onclick=async()=>{
+    recoveryToggle.disabled=true;
+    recoveryList.replaceChildren(el('p','','Buscando cuentas eliminadas…'));
+    try{
+      const data=await request();
+      const removed=data.deletedAdmins||[];
+      recoveryList.replaceChildren();
+      if(!removed.length){
+        recoveryList.append(el('p','','No hay cuentas de administrador eliminadas en este registro.'));
+      }
+      for(const item of removed){
+        const row=el('div','master-admin-recovery-row');
+        row.append(el('strong','',item.name));
+        const recover=el('button','master-admin-action primary','Recuperar esta cuenta');
+        recover.type='button';
+        recover.onclick=async()=>{
+          if(!confirm('¿Recuperar la identidad original de '+item.name+'? Los relés y usuarios NO se habilitarán automáticamente.'))return;
+          recover.disabled=true;
+          try{
+            await request({action:'restoreDeletedAdmin',adminId:item.id,expectedName:item.name});
+            recoveryList.replaceChildren(el('p','','Cuenta recuperada: '+item.name+'. Revisa y asigna únicamente Puerta; los usuarios siguen sin acceso hasta su revisión.'));
+            await reload();
+          }catch(e){
+            recoveryList.append(el('p','','No se completó: '+(e.message||'error')));
+            recover.disabled=false;
+          }
+        };
+        row.append(recover);recoveryList.append(row);
+      }
+    }catch(e){recoveryList.replaceChildren(el('p','','No se pudo consultar la recuperación: '+(e.message||'error')));}
+    finally{recoveryToggle.disabled=false;}
+  };
   new MutationObserver(enhance).observe(list,{childList:true});
   enhance();
 })();

@@ -32,7 +32,8 @@ const tuya={getToken:async()=>'token',tuyaFetch:async(method,path)=>{
  if(path.endsWith('/status'))return {result:[{code:'switch_1',value:false}]};
  return {result:{id:'sampledevice123',online}};
 }};
-const m={exports:{}};vm.runInNewContext(source,{module:m,process:{env:{}},require:n=>n.includes('administrations')?A:tuya,Date,console});
+const m={exports:{}};vm.runInNewContext(source,{module:m,process:{env:{}},require:n=>n.includes('administrations')?A:n.includes('original-device-binding')?
+ {resolve:async()=>{throw Object.assign(new Error('Original no configurado'),{status:410});}}:tuya,Date,console});
 async function run(action,payload={},method='POST'){
  let status=200,body;const res={setHeader(){},status(n){status=n;return this;},json(v){body=v;return this;}};
  await m.exports({method,body:{action,...payload}},res);return {status,body};

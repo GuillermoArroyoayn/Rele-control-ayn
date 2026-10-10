@@ -15,6 +15,7 @@
   let lastCommandAt=0;
   let allowedRelays=[];
   let voiceRole='';
+  let voiceCarla=false;
   let statusReady=false;
   let phraseBuffer='';
   let phraseTimer=0;
@@ -114,11 +115,14 @@
     statusReady=false;
     allowedRelays=[];
     voiceRole='';
+    voiceCarla=false;
     window.AynActuatorVoice?.setProfiles([]);
     const response=await fetch('/api/status',{headers:headers(),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
     voiceRole=data.role||'';
+    const community=String(data.communityName||data.appMatrix?.branding?.communityName||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+    voiceCarla=['admin','user'].includes(voiceRole)&&/\\b(?:carla|karla)\\b/.test(community);
     allowedRelays=(data.allowedRelays||[]).map(Number).filter(n=>[1,2,3].includes(n));
     if(voiceRole==='admin'||voiceRole==='user'){
       // El catálogo de esta comunidad es la única fuente de nombres reconocibles.
@@ -243,7 +247,7 @@
         return;
       }
     }
-    const personalized=window.AynActuatorVoice?.match(command);
+    const personalized=window.AynActuatorVoice?.match(command)||window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);

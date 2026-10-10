@@ -22,6 +22,7 @@
   let voiceSpeaking=false;
   let fastDispatchKey='';
   let fastDispatchAt=0;
+  let activationBusy=false;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -253,6 +254,7 @@
         return;
       }
     }
+    if(activationBusy)return;
     const personalized=window.AynActuatorVoice?.match(command)||
       window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
     if(voiceCarla&&personalized&&!hasExplicitOpenIntent(command)){
@@ -260,6 +262,7 @@
     }
     if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       const activation=(async()=>{
@@ -275,6 +278,7 @@
         paint(message,'listening');
         await speak(message);
       }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
+      finally{activationBusy=false;}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -284,6 +288,7 @@
       return;
     }
     if(relay&&(personalized||isOpenIntent(command))){
+      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       paint('Orden recibida: '+name,'listening');
@@ -298,7 +303,7 @@
         paint(error.message,'error');
         await speak('No fue posible activar '+name);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
-      }
+      }finally{activationBusy=false;}
       return;
     }
     if(voiceRole==='admin'&&!personalized&&
@@ -428,7 +433,7 @@
           const key=permitted&&hasExplicitOpenIntent(interimCommand)&&statusReady?
             'profile:'+profile.id+':'+interimCommand:
             (relay>0&&specificTarget&&isOpenIntent(interimCommand)?relay+':'+interimCommand:'');
-          if(key&&key!==fastDispatchKey&&Date.now()-fastDispatchAt>900){
+          if(key&&!activationBusy&&key!==fastDispatchKey&&Date.now()-fastDispatchAt>900){
             fastDispatchKey=key;fastDispatchAt=Date.now();
             phraseBuffer='';clearTimeout(phraseTimer);
             executeCommand(transcript).catch(()=>{});

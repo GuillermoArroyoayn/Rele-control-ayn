@@ -43,7 +43,7 @@ for(const [source,pattern,message] of [
   [admin,/allowedRelays\.includes\(relay\)/,'Administradora valida permisos'],
   [status,/communityName=String\(owner\?\.adminName/,'Nombre verificado desde el propietario de comunidad'],
   [index,/\/app\.js\?v=20261010-karla216/,'Nueva app versionada'],
-  [adminHtml,/\/administracion-voice\.js\?v=20261010-audio220/,'Nueva voz administracion versionada'],
-  [sw,/reles-ayn-v220-karla-audio/,'Nueva caché para Android']
+  [adminHtml,/\/administracion-voice\.js\?v=20261010-confirm221/,'Nueva voz administracion versionada'],
+  [sw,/reles-ayn-v221-karla-confirm/,'Nueva caché para Android']
 ])assert.match(source,pattern,message);
 console.log('Karla voz y pulsador: una Puerta, permisos, comunidad, rechazo de ambigüedad y PWA OK.');

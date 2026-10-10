@@ -54,7 +54,13 @@ const control=mounts('api/control.js',{
  '../lib/administrations':{seconds:x=>x}
 });
 const devices=mounts('api/devices.js',{
- '../lib/devices':D,'../lib/history':{addHistory:async()=>{}}
+ '../lib/devices':D,'../lib/history':{addHistory:async()=>{}},
+ '../lib/administrations':{records:async()=>[]},
+ // Solo está configurado el relé 1; simular que 2 y 3 no se han habilitado.
+ '../lib/original-device-binding':{resolve:async relay=>{
+   if(relay===1)return {id:'test-original-1',code:'switch_1'};
+   throw Object.assign(new Error('No configurado'),{status:410});
+ }}
 });
 (async()=>{
  const resident=await D.authorize(req(userId));

@@ -1,5 +1,7 @@
 # AYN CONTROL — CENTRO DE SOPORTE DE INSTALACIONES
 
+**ACTUALIZACIÓN 2026-10-09 — Vercel:** hay una solución de trabajo verificada: consultar proyecto, despliegues, dominios y nombres de variables sin incluir el campo `teamId` ni `slug`. El acceso de ámbito de equipo y logs continúa con 403 y exige reautorización del titular. Abrir [DIAGNÓSTICO Y SOLUCIÓN VERCEL](./VERCEL-DIAGNOSTICO-ACCESO.md).
+
 **Guarda este enlace en los favoritos del teléfono Máster.** Esta es la entrada única para la próxima instalación, sin volver a buscar páginas ni repetir altas. Instrucciones operativas, NO secretos ni acceso automático al cliente.
 
 **Caso de referencia:** se instala un relé en otra Wi-Fi; debe quedar como **Puerta** de una administración concreta; se vincula el celular de la administradora (caso Carla/Karla). El objetivo es dejar **un relé** visible y operable en **una sola comunidad**, sin tocar otros relés.

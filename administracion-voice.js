@@ -121,8 +121,8 @@
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
     voiceRole=data.role||'';
-    const community=String(data.communityName||data.appMatrix?.branding?.communityName||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
-    voiceCarla=['admin','user'].includes(voiceRole)&&/\\b(?:carla|karla)\\b/.test(community);
+    const community=String(data.communityName||data.appMatrix?.branding?.communityName||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    voiceCarla=['admin','user'].includes(voiceRole)&&/\b(?:carla|karla)\b/.test(community);
     allowedRelays=(data.allowedRelays||[]).map(Number).filter(n=>[1,2,3].includes(n));
     if(voiceRole==='admin'||voiceRole==='user'){
       // El catálogo de esta comunidad es la única fuente de nombres reconocibles.

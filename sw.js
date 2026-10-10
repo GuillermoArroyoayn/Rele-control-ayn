@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v212-verified-on";
+const CACHE = "reles-ayn-v213-voice-safety";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -40,7 +40,7 @@ const ASSETS = [
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
-  "/actuator-voice.js?v=20261009-alias199",
+  "/actuator-voice.js?v=20261009-voice213",
   "/administracion-voice.js?v=20261009-alias199"
 ];
 // Una imagen o archivo opcional que falle no debe bloquear la actualización en iOS.

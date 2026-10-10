@@ -4,10 +4,12 @@
   let profiles=[];
   const setProfiles=values=>{
     profiles=(Array.isArray(values)?values:[])
-      .filter(x=>x&&typeof x.id==='string'&&typeof x.voiceName==='string'&&x.voiceName.trim())
+      .filter(x=>x&&typeof x.id==='string'&&(
+        (x.kind==='original'&&/^original-[1-3]$/.test(x.id)&&Number(x.relay)===Number(x.id.slice(9)))||
+        (x.kind==='managed'&&/^managed-[a-f0-9-]{36}$/i.test(x.id))))
       .map(x=>({
-        id:x.id,kind:x.kind,relay:x.relay,name:x.name,
-        voiceName:x.voiceName.trim(),alias:normalize(x.voiceName)
+        id:x.id,kind:x.kind,relay:x.relay,name:x.name,mode:x.mode,seconds:x.seconds,
+        voiceName:String(x.voiceName||'').trim(),alias:normalize(x.voiceName)
       }));
   };
   function match(command){
@@ -19,6 +21,16 @@
     const target=parsed?parsed[1]:text.replace(/^(?:el |la |los |las )/,'');
     const found=profiles.filter(x=>x.alias===target);
     return found.length===1?found[0]:found.length>1?{ambiguous:true}:null;
+  }
+  // Respaldo limitado: UNA Puerta con temporizador del catálogo autenticado.
+  // El cliente no asigna permisos: las API vuelven a autorizarlos al ejecutar.
+  function matchSingleDoor(command,enabled=false){
+    if(!enabled||profiles.length!==1)return null;
+    const profile=profiles[0];
+    if(profile.mode!=='timer'||!(Number(profile.seconds)>0))return null;
+    const text=normalize(command);
+    if(/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
+    return /^(?:(?:me abres|abrir|abre|abreme|abrime|activar|activa|enciende|encender|accionar|acciona) (?:el |la )?)?puerta(?: por favor)?$/.test(text)?profile:null;
   }
   function confirmationName(profile,relay,command){
     // El nombre usado para hablar manda sobre el nombre visible y sobre el número.
@@ -39,5 +51,5 @@
     const feminine=feminineWords.has(first)||(first.endsWith('a')&&!masculineExceptions.has(first));
     return clean+' activad'+(feminine?'a':'o')+' correctamente';
   }
-  window.AynActuatorVoice=Object.freeze({setProfiles,match,normalize,confirmationName,activationText});
+  window.AynActuatorVoice=Object.freeze({setProfiles,match,matchSingleDoor,normalize,confirmationName,activationText});
 })();

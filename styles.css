@@ -1690,3 +1690,12 @@ body.app-screen-mode[data-user-view="temporary"] .device-list > .temporary-help{
 body.app-screen-mode[data-user-view="temporary"] .device-list > .history-empty{
   padding:18px;line-height:1.55;min-height:64px;
 }
+
+
+/* Puerta directa para residentes autorizados de la administración Karla. */
+.home-quick-card[data-carla-pulse="ready"]{
+  border:2px solid var(--theme-accent,#5ee7ff);
+}
+.home-quick-card[data-carla-pulse="sending"]{opacity:.75;cursor:progress;}
+.home-carla-user-pulse-status{display:block;font-size:.73rem;line-height:1.2;margin-top:4px;}
+.home-carla-user-pulse-status[hidden]{display:none!important;}

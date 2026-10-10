@@ -235,7 +235,7 @@
     }
     wakeUntil=0;
     const now=Date.now();
-    if(command===lastCommand&&now-lastCommandAt<2500)return;
+    if(command===lastCommand&&now-lastCommandAt<6000)return;
     lastCommand=command;lastCommandAt=now;
 
     if(/\b(?:detener voz|desactivar voz|apagar voz)\b/.test(command)){

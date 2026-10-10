@@ -8,6 +8,8 @@ const sw=fs.readFileSync('sw.js','utf8');
 assert.match(script, /data\?\.role !== 'admin'/, 'No afectar a usuarios o Máster');
 assert.match(script, /\(\?:carla\|karla\)/, 'Limitar a Carla\/Karla');
 assert.match(script, /profiles\.length !== 1/, 'No elegir un relé cuando hay varios');
+assert.match(script, /const original = profile.kind === 'original'/, 'Soportar relé original autorizado');
+assert.match(script, /const managed = profile.kind === 'managed'/, 'Soportar relé administrado autorizado');
 assert.match(script, /profile\.mode !== 'timer'/, 'No pulsar relé sin apagado automático');
 assert.match(script, /Number\(profile\.seconds\) > 0/, 'Temporizador real obligatorio');
 assert.match(script, /'\/api\/actuator-profiles'/, 'Catálogo autenticado: relé permitido');

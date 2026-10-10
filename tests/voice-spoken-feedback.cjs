@@ -10,7 +10,8 @@ const actuatorVoice=fs.readFileSync('actuator-voice.js','utf8');
 assert(admin.includes("await speak('OK')")&&admin.includes('AynActuatorVoice.activationText'),
   'El administrador confirma OK y usa la frase común de activación');
 assert(actuatorVoice.includes("+' correctamente'"),'La frase común confirma correctamente la activación');
-assert(user.includes('acknowledgeVoiceCommand()')&&user.includes('activado correctamente.'));
+assert(user.includes('acknowledgeVoiceCommand()')&&user.includes('AynActuatorVoice.activationText'),
+  'El usuario recibe OK y confirmación verbal mediante el nombre del actuador autorizado');
 assert(policy.includes("isPhoneCallActive:()=>reportedCall"));
 function speechProbe(file,starting,ending){
  const start=file.indexOf(starting),end=file.indexOf(ending,start);

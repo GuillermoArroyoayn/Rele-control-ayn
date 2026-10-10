@@ -114,7 +114,7 @@ function profileEditor(card,profile){
   const voice=field('Nombre para comando de voz',input('text',profile.voiceName||'',50));
   voice.placeholder='Ej: Puerta norte, Puerta sur';
   const voiceHelp=document.createElement('small');
-  voiceHelp.textContent='Di «AYN, abre Puerta norte». Si dejas el nombre de voz vacío, ese actuador no responderá a órdenes de voz en esta administración.';
+  voiceHelp.textContent='Di «AIN, Puerta norte» o «AIN, abre Puerta norte». Si dejas el nombre de voz vacío, ese actuador no responderá a órdenes de voz en esta administración.';
   form.append(voiceHelp);
   const mode=document.createElement('select');
   for(const [key,label] of [['timer','Con temporizador'],['manual','ON/OFF manual']]){

@@ -1,6 +1,22 @@
 # AYN Control — Diagnóstico comprobado de acceso ChatGPT ↔ Vercel
 
-**Fecha de análisis:** 2026-10-09 (Chile). **Afecta al conector de Vercel, no demuestra fallo de relés ni de la aplicación.**
+> ## ACTUALIZACIÓN CONFIRMADA — 9 octubre 2026, Chile
+> **RESUELTO: bloqueo OAuth 403 de ChatGPT hacia el equipo `rele-ayn`.**
+> El titular abrió ChatGPT → Vercel → ⋮ → Reconectar → **Relé ayn → Configurar** (autorizar equipo/proyectos) → **Autorizar**, regresó y pulsó **Permitir acceso**. La autorización quedó registrada.
+> Comprobación posterior ejecutada con el **mismo teamId real**:
+> - `list_teams` devuelve `rele-ayn`.
+> - `get_team` y `get_project` con `teamId`: responden sin 403.
+> - `list_deployments` con `teamId`: responde sin 403.
+> - `get_runtime_errors` y `get_runtime_logs` con `teamId`: responden correctamente.
+> - `list_deployment_events` con `teamId`: responde correctamente.
+> - Producción `main`: `READY`, dominio verificado; no se cambió código, equipos ni configuración.
+>
+> **PREVENCIÓN:** no reconectar en bucle por un error ajeno. Ante un **nuevo** 403, revisar primero esta autorización por equipo. No confundir con errores del runtime. La carpeta de documentación está en rama/PR, pendiente del Safety Gate.
+>
+> **Runtime (independiente del OAuth):** el informe de las últimas 24 h muestra cuatro grupos: advertencia Node `DEP0169 url.parse()` (85), confirmación ON de Tuya (8), vínculo original duplicado (2) y parámetro Tuya vacío (1). Son incidentes históricos en los registros, **no** prueba de fallo actual de la conexión ChatGPT↔Vercel. No corregidos por esta reautorización.
+
+
+**Fecha original del análisis:** 2026-10-09 (Chile). **El bloqueo de autorización descrito abajo es HISTÓRICO: quedó resuelto al autorizar el equipo y confirmar el consentimiento.**
 
 ## Diagnóstico comprobado
 

@@ -14,6 +14,21 @@ for(const phrase of ['puerta','abre puerta','abrir la puerta','activar puerta','
 for(const phrase of ['no abrir puerta','cierra puerta','apaga puerta','abrir puerta y porton','abre porton']){
   assert.equal(voice.matchSingleDoor(phrase,true),null,'Nunca ejecutar '+phrase);
 }
+// Variantes de habla natural que antes el reconocimiento estricto rechazaba.
+for(const phrase of [
+  'me puedes abrir la puerta','puedes abrir la puerta','podrias abrir la puerta',
+  'quiero abrir la puerta','necesito abrir puerta','me abres puerta',
+  'por favor abrir la puerta','abre por favor la puerta','abri la puerta',
+  'avre la puelta','abre la pueta','desbloquea la puerta',
+  'activa la puerta por favor','abre puerta principal','abrir puerta de entrada',
+  'me podis abrir la puerta'
+])assert.equal(voice.matchSingleDoor(phrase,true)?.id,door.id,'Ampliación segura: '+phrase);
+for(const phrase of [
+  'no quiero abrir puerta','por favor no abrir la puerta','no abras puerta',
+  'puedes cerrar la puerta','apaga puerta','abre la puerta y el porton',
+  'abrir puerta 2','abrir puerta de otro edificio','puerta abierta',
+  'quiero abrir porton','abre puerta sin permiso','desactiva puerta'
+])assert.equal(voice.matchSingleDoor(phrase,true),null,'Nunca inferir apertura: '+phrase);
 assert.equal(voice.matchSingleDoor('abre puerta',false),null,'Sin comunidad validada no hay alias');
 voice.setProfiles([door,{...door,id:'original-1',relay:1}]);
 assert.equal(voice.matchSingleDoor('abre puerta',true),null,'Dos relés: no adivinar');

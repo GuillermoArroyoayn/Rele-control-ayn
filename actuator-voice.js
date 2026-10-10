@@ -1,6 +1,25 @@
 /* Los comandos y confirmaciones usan el nombre de voz de la administración autorizada. */
 (()=>{
-  const normalize=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  // Correcciones fonéticas limitadas a palabras habituales, sin aproximación
+  // libre entre nombres de accesos (evita accionar otro relé por similitud).
+  const normalize=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().split(' ').map(word=>({
+      puelta:'puerta',pueta:'puerta',avre:'abre',habre:'abre',habrir:'abrir',
+      abri:'abrir',porfa:'por favor'
+    })[word]||word).join(' ').replace(/\s+/g,' ').trim();
+  const blocked=/\b(?:no|nunca|jamas|cancelar|cancela|cerrar|cierra|cerrado|cerrada|apagar|apaga|desactivar|detener|sin|tampoco)\b/;
+  // Sólo prefijos completos, siempre seguidos del nombre exacto del destino.
+  // "puedes abrir", "me abres", "por favor abre", etc. no abren solos.
+  const openRequest=/^(?:(?:(?:me )?(?:puedes|podrias|podes|podis|quiero|necesito) |me ))?(?:abre|abrir|abres|abris|abreme|abrime|activa|activar|activas|acciona|accionar|enciende|encender|prende|prender|desbloquea|desbloquear|pulsa|pulsar) (?:por favor )?(?:el |la |los |las )?(.+)$/;
+  function destination(command){
+    let text=normalize(command);
+    if(!text||blocked.test(text))return null;
+    text=text.replace(/^por favor /,'').replace(/ por favor$/,'');
+    const request=openRequest.exec(text);
+    // Un nombre de voz solo también es posible para flujos existentes;
+    // el controlador de Karla exige además intención de apertura explícita.
+    return {target:request?request[1]:text.replace(/^(?:el |la |los |las )/,''),explicit:Boolean(request)};
+  }
   let profiles=[];
   const setProfiles=values=>{
     profiles=(Array.isArray(values)?values:[])
@@ -13,12 +32,9 @@
       }));
   };
   function match(command){
-    const text=normalize(command);
-    if(!text||/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
-    // El llamador comprueba AIN y permisos antes de entregar el nombre autorizado.
-    // La frase puede ser solamente el nombre, o incluir un verbo compatible.
-    const parsed=/^(?:me (?:abres|abris|activas) |(?:abrir|abre|abreme|activar|activa|enciende|encender|prender|prende|acciona|accionar) )(?:el |la |los |las )?(.+)$/.exec(text);
-    const target=parsed?parsed[1]:text.replace(/^(?:el |la |los |las )/,'');
+    const parsed=destination(command);
+    if(!parsed)return null;
+    const target=parsed.target;
     const found=profiles.filter(x=>x.alias===target);
     return found.length===1?found[0]:found.length>1?{ambiguous:true}:null;
   }
@@ -28,11 +44,11 @@
     if(!enabled||profiles.length!==1)return null;
     const profile=profiles[0];
     if(profile.mode!=='timer'||!(Number(profile.seconds)>0))return null;
-    const text=normalize(command);
-    if(/\b(no|nunca|cancelar|cierra|cerrar|apagar|apaga|desactivar|detener)\b/.test(text))return null;
-    // Variantes comunes del español sin coincidencias difusas con otro actuador.
-    // El verbo explícito se sigue exigiendo en administracion-voice.js.
-    return /^(?:(?:por favor )?(?:me (?:abres|abris|activas) |(?:abrir|abre|abreme|abrime|activar|activa|enciende|encender|accionar|acciona) )(?:el |la )?)?puerta(?: por favor)?$/.test(text)?profile:null;
+    const parsed=destination(command);
+    if(!parsed)return null;
+    // Una única puerta verificada: variantes delimitadas del nombre, nunca
+    // palabras parecidas sin un destino claro ni puertas en otra comunidad.
+    return /^(?:puerta|puerta principal|puerta peatonal|puerta de entrada|puerta de la entrada|puerta de casa|puerta de la casa)$/.test(parsed.target)?profile:null;
   }
   function confirmationName(profile,relay,command){
     // El nombre usado para hablar manda sobre el nombre visible y sobre el número.

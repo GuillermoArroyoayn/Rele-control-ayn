@@ -22,9 +22,6 @@
   let voiceSpeaking=false;
   let fastDispatchKey='';
   let fastDispatchAt=0;
-  let activationBusy=false;
-  let voiceEngine='pendiente';
-  let lastSpeechFeedbackAt=0;
 
   const normalizeBase=text=>String(text||'')
     .toLowerCase()
@@ -124,12 +121,9 @@
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Object.assign(new Error(data.error||'No se pudo validar el acceso.'),{status:response.status});
     voiceRole=data.role||'';
-    // El nombre del propietario y la marca publicada pueden ser distintos.
-    // Admitir ambos identificadores, sin depender de un nombre de relé global.
     const communityNames=[data.communityName,data.appMatrix?.branding?.communityName];
     voiceCarla=['admin','user'].includes(voiceRole)&&communityNames.some(name=>
-      /\b(?:carla|karla)\b/.test(String(name||'').normalize('NFD')
-        .replace(/[\u0300-\u036f]/g,'').toLowerCase()));
+      /\b(?:carla|karla)\b/.test(String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()));
     allowedRelays=(data.allowedRelays||[]).map(Number).filter(n=>[1,2,3].includes(n));
     if(voiceRole==='admin'||voiceRole==='user'){
       // El catálogo de esta comunidad es la única fuente de nombres reconocibles.
@@ -241,8 +235,7 @@
     }
     wakeUntil=0;
     const now=Date.now();
-    // Una transcripción parcial y su final nunca deben causar dos pulsos.
-    if(command===lastCommand&&now-lastCommandAt<6000)return;
+    if(command===lastCommand&&now-lastCommandAt<2500)return;
     lastCommand=command;lastCommandAt=now;
 
     if(/\b(?:detener voz|desactivar voz|apagar voz)\b/.test(command)){
@@ -260,17 +253,13 @@
         return;
       }
     }
-    const personalized=window.AynActuatorVoice?.match(command)||window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
-    if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
-    // Para Karla jamás basta decir un nombre suelto (p.ej. "Puerta").
-    // Se necesita una orden expresa y se conserva la autorización del servidor.
+    const personalized=window.AynActuatorVoice?.match(command)||
+      window.AynActuatorVoice?.matchSingleDoor(command,voiceCarla);
     if(voiceCarla&&personalized&&!hasExplicitOpenIntent(command)){
-      paint('Di AIN abre puerta para activar el acceso','listening');
-      return;
+      paint('Di AIN, abre puerta para activar el acceso','listening');return;
     }
-    if(activationBusy)return;
+    if(personalized?.ambiguous){paint('Nombre de acceso ambiguo','error');return;}
     if(personalized?.kind==='managed'){
-      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,0,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       const activation=(async()=>{
@@ -286,7 +275,6 @@
         paint(message,'listening');
         await speak(message);
       }catch(error){paint(error.message,'error');await speak('No fue posible activar '+name);}
-      finally{activationBusy=false;}
       return;
     }
     const relay=personalized?.kind==='original'?personalized.relay:resolveRelay(command);
@@ -296,7 +284,6 @@
       return;
     }
     if(relay&&(personalized||isOpenIntent(command))){
-      activationBusy=true;
       const name=window.AynActuatorVoice.confirmationName(personalized,relay,command);
       const confirmation=window.AynActuatorVoice.activationText(name);
       paint('Orden recibida: '+name,'listening');
@@ -311,7 +298,7 @@
         paint(error.message,'error');
         await speak('No fue posible activar '+name);
         setTimeout(()=>{if(enabled)paint('AYN está escuchando','listening');},1400);
-      }finally{activationBusy=false;}
+      }
       return;
     }
     if(voiceRole==='admin'&&!personalized&&
@@ -401,12 +388,11 @@
     enabled=true;
     button.setAttribute('aria-pressed','true');
     try{await refreshAccess();}catch(error){
-      // Nunca indicar que AYN puede abrir la puerta si faltan autorizaciones.
-      stop(false);
-      paint([401,403].includes(error.status)?
-        'No pude validar tu sesión. Revisa la clave de acceso y toca el micrófono.':
-        'No pude cargar los accesos autorizados. Revisa Internet y toca el micrófono para reintentar.','error');
-      return;
+      if([401,403].includes(error.status)){
+        stop(false);
+        paint('La sesión necesita nuevamente tu clave','error');
+        return;
+      }
     }
     start();
   }
@@ -414,25 +400,10 @@
   recognition=Recognition?new Recognition():null;
   if(recognition){
     recognition.onloading=text=>{if(enabled)paint(text||'Activando AYN…','starting');};
-    recognition.onprovider=(provider,reason)=>{
-      voiceEngine=provider==='deepgram'?'en línea':provider==='local'?'local':'pendiente';
-      if(enabled)paint(provider==='local'?
-        'Preparando voz local (puede requerir descargar el idioma español)…':
-        'Motor de voz en línea conectado. Preparando micrófono…','starting');
-    };
-    recognition.onspeechactivity=()=>{
-      // Indicador local: no enviar grabaciones, texto ni datos de voz al servidor.
-      if(!enabled||!listening||voiceSpeaking)return;
-      const now=Date.now();
-      if(now-lastSpeechFeedbackAt>3000){
-        lastSpeechFeedbackAt=now;
-        paint('Micrófono detectó sonido. Di AIN, abre puerta.','listening');
-      }
-    };
     recognition.onstart=()=>{
       if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){recognition.abort();listening=starting=false;return;}
       starting=false;listening=true;retryCount=0;
-      paint('AYN está escuchando ('+voiceEngine+'). Di AIN, abre puerta.','listening');
+      paint('AYN está escuchando','listening');
     };
     recognition.onresult=event=>{
       if(!enabled||voiceSpeaking||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
@@ -442,36 +413,26 @@
         const transcript=alternatives.find(x=>hasWake(normalize(x)))||alternatives[0];
         if(!transcript)continue;
         const normalized=normalize(transcript);
-        if(hasWake(normalized)){
-          wakeUntil=Date.now()+7000;
-          paint('AIN reconocido. Recibiendo orden…','listening');
-        }else if(result.isFinal&&Date.now()>wakeUntil){
-          paint('Se escuchó voz, pero no se reconoció AIN. Di AIN, abre puerta.','listening');
-        }
+        if(hasWake(normalized))wakeUntil=Date.now()+7000;
+        if(!result.isFinal&&hasWake(normalized))paint('AYN escuchó la activación. Recibiendo orden…','listening');
         if(!result.isFinal){
           const interimCommand=hasWake(normalized)?removeWake(normalized):normalized;
           const relay=resolveRelay(interimCommand);
           const specificTarget=/\b(?:1|2|3|uno|un|dos|tres|primero|segundo|tercero|qr|vehicular|peatonal)\b/.test(interimCommand);
-          // La voz de administraciones usa nombres propios, no los números del Máster.
-          // Despachar una frase COMPLETA reconocida como parcial, sin esperar
-          // a que el proveedor marque isFinal (puede tardar o nunca llegar).
+          // Conservamos el motor estable; no reactivar la vía rápida de relés genéricos.
+          // Para Karla aceptar solo una puerta configurada, una orden completa y permisos.
           const profile=window.AynActuatorVoice?.match(interimCommand)||
             window.AynActuatorVoice?.matchSingleDoor(interimCommand,voiceCarla);
-          const profileAllowed=profile&&!profile.ambiguous&&
+          const permitted=profile&&!profile.ambiguous&&
             (profile.kind==='managed'||(profile.kind==='original'&&allowedRelays.includes(Number(profile.relay))));
-          const authorized=Date.now()<wakeUntil&&statusReady&&isOpenIntent(interimCommand)&&
-            (!voiceCarla||hasExplicitOpenIntent(interimCommand));
-          const key=authorized&&profileAllowed?'profile:'+profile.id+':'+interimCommand:
-            authorized&&relay>0&&specificTarget?relay+':'+interimCommand:'';
-          if(key&&!activationBusy&&Date.now()-fastDispatchAt>900&&
-             (key!==fastDispatchKey||Date.now()-fastDispatchAt>3000)){
+          const key=permitted&&hasExplicitOpenIntent(interimCommand)&&statusReady?
+            'profile:'+profile.id+':'+interimCommand:
+            (relay>0&&specificTarget&&isOpenIntent(interimCommand)?relay+':'+interimCommand:'');
+          if(key&&key!==fastDispatchKey&&Date.now()-fastDispatchAt>900){
             fastDispatchKey=key;fastDispatchAt=Date.now();
             phraseBuffer='';clearTimeout(phraseTimer);
-            paint('AIN reconoció la orden. Activando acceso…','listening');
-            executeCommand(transcript).catch(error=>paint(error.message||'No fue posible activar el acceso.','error'));
-            // Evitar que la misma frase se ejecute otra vez en el resultado final.
-            if(profileAllowed)recognition.consumeUtterance?.();
-            break;
+            executeCommand(transcript).catch(()=>{});
+            if(permitted)recognition.consumeUtterance?.();
           }
         }
         if(result.isFinal||result.utteranceEnded===true){
@@ -494,7 +455,7 @@
         return;
       }
       stop(false);
-      paint(event.message||'No se pudo iniciar el reconocimiento de voz. Toca el micrófono para reintentar.','error');
+      paint(event.message||'No se pudo iniciar el micrófono','error');
     };
   }
 

@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v214-direct-alias";
+const CACHE = "reles-ayn-v215-carla-puerta";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -35,8 +35,9 @@ const ASSETS = [
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261009-cloud205",
+  "/administracion.css?v=20261010-carla01",
   "/administracion.js?v=20261009-startup211",
+  "/carla-home-pulse.js?v=20261010-carla01",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",

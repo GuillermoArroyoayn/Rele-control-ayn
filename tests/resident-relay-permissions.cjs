@@ -103,3 +103,6 @@ require('./temporary-session-isolation.cjs');
 
 // Validación adicional: orden de voz y pulsador directo de Karla.
 require('./karla-voice-resident-pulse.cjs');
+
+// Contrato de seguridad: QR retirado y eliminación de originales no revivible.
+require('./retired-qr-safety.cjs');

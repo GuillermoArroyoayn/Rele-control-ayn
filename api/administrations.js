@@ -16,6 +16,11 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      if(invitation.groupId&&invitation.groupId!=='master'){
+        const restoredAt=await A.redis('HGET','ayn:matrix:restored-groups',invitation.groupId);
+        if(restoredAt&&(!invitation.createdAt||Date.parse(invitation.createdAt)<=Date.parse(restoredAt)))
+          throw A.error('Invitación anterior a la recuperación. Solicita una nueva.',410);
+      }
       let temporaryGrant=null;
       if(invitation.temporaryGrantId){
         if(invitation.role!=='user'||!invitation.groupId)throw A.error('Invitación temporal inválida.',403);

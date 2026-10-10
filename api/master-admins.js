@@ -2,6 +2,7 @@ const A=require('../lib/administrations');
 const Matrix=require('../lib/app-matrix');
 const WhatsApp=require('../lib/whatsapp');
 const {addHistory}=require('../lib/history');
+const Historic=require('../lib/admin-history-recovery');
 
 function adminIn(registry,id){
   const item=registry.devices[String(id||'')];
@@ -69,6 +70,65 @@ module.exports=async(req,res)=>{
       return res.json({admins,deletedAdmins});
     }
     const b=req.body||{},id=String(b.adminId||'');
+    if(b.action==='findHistoricalAdmins'){
+      const found=await Historic.discover(String(b.name||''),auth.registry);
+      return res.json({ok:true,candidates:found.map(({deviceIds,...item})=>item)});
+    }
+    if(b.action==='restoreHistoricalAdmin'){
+      const groupId=String(b.groupId||''),deviceId=String(b.deviceId||''),requested=String(b.name||'').trim();
+      if(!Historic.groupPattern.test(groupId)||!Historic.idPattern.test(deviceId)||!requested)
+        throw A.error('Faltan datos para recuperar el equipo original.',400);
+      if(deviceId===auth.registry.masterId||(auth.registry.masterIds||[]).includes(deviceId))
+        throw A.error('Este equipo pertenece al Máster general.',409);
+      const found=await Historic.discover(requested,auth.registry);
+      const record=found.find(c=>c.groupId===groupId);
+      if(!record)throw A.error('No existe evidencia histórica verificable para esta comunidad.',409);
+      if(record.deviceIds.length&&!record.deviceIds.includes(deviceId))
+        throw A.error('El código del teléfono no coincide con el historial de esta administración.',409);
+      const existing=auth.registry.devices[deviceId],revoked=auth.registry.revoked?.[deviceId];
+      if(existing?.role==='super_master'||existing?.status==='active'||
+         (existing?.groupId&&existing.groupId!==groupId)||
+         (revoked&&revoked.groupId&&revoked.groupId!==groupId))
+        throw A.error('Ese teléfono pertenece a otra cuenta activa. No se hicieron cambios.',409);
+      if(Object.values(auth.registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
+        throw A.error('Ya existe un administrador activo de esta comunidad.',409);
+      const managed=(await A.records()).filter(item=>item.groupId===groupId);
+      if(managed.length)throw A.error('La comunidad conserva relés asignados. Primero revisa los permisos para evitar activaciones accidentales.',409);
+      const tombstone=await A.redis('HGET','ayn:matrix:deleted-groups',groupId);
+      const published=await Matrix.getPublished(groupId);
+      const now=new Date().toISOString(),backupId=A.uuid();
+      await A.redis('SET','ayn:recovery:admin:'+backupId,
+        JSON.stringify({createdAt:now,groupId,deviceId,previous:existing||revoked||null,
+          archivedMarker:tombstone,published}), 'EX',604800);
+      // Tras esta marca, ninguna invitación anterior puede reautorizar equipos.
+      await A.redis('HSET','ayn:matrix:restored-groups',groupId,now);
+      await A.updateRegistry(registry=>{
+        const current=registry.devices[deviceId],removed=registry.revoked?.[deviceId];
+        if(current?.role==='super_master'||current?.status==='active'||
+           current?.groupId&&current.groupId!==groupId||
+           removed?.groupId&&removed.groupId!==groupId)
+          throw A.error('Cambió la identidad del teléfono. No se restauró.',409);
+        if(Object.values(registry.devices).some(d=>d.role==='admin'&&d.groupId===groupId&&d.status==='active'))
+          throw A.error('Otro administrador fue activado. No se restauró.',409);
+        registry.devices[deviceId]={...removed,...current,
+          name:current?.name||removed?.name||'Equipo '+requested,
+          adminName:requested,role:'admin',groupId,status:'active',relays:[],actuatorIds:[],
+          createdAt:current?.createdAt||removed?.createdAt||now,
+          restoredAt:now,restoredBy:auth.device.id,statusChangedAt:now};
+        if(registry.revoked)delete registry.revoked[deviceId];
+        for(const user of Object.values(registry.devices))
+          if(user.role==='user'&&user.groupId===groupId&&user.status==='active')user.status='paused';
+      });
+      const next={...(published||Matrix.defaultConfig(groupId,requested)),groupId,status:'active',
+        actuators:[],branding:{...(published?.branding||{}),communityName:requested,
+          appName:published?.branding?.appName||'A&N Control'}};
+      await Matrix.publish(next,auth.device.name);
+      if(tombstone)await A.redis('HDEL','ayn:matrix:deleted-groups',groupId);
+      await addHistory({kind:'permissions',groupId,userName:requested,actor:auth.device.name,
+        action:'Identidad original recuperada desde historial; sin relés, usuarios en pausa'}).catch(()=>{});
+      return res.json({ok:true,name:requested,groupId,restoredDevice:true,
+        accessPending:true,backupId});
+    }
     if(b.action==='restoreDeletedAdmin'){
       const deleted=auth.registry.devices[id],revoked=auth.registry.revoked?.[id];
       const target=deleted?.role==='admin'&&deleted.status==='deleted'?deleted:

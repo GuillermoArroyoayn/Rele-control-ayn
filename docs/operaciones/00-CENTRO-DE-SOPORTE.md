@@ -6,6 +6,13 @@
 
 **Caso de referencia:** se instala un relé en otra Wi-Fi; debe quedar como **Puerta** de una administración concreta; se vincula el celular de la administradora (caso Carla/Karla). El objetivo es dejar **un relé** visible y operable en **una sola comunidad**, sin tocar otros relés.
 
+## Respaldos de continuidad (9-10-2026)
+
+- **Código de producción inmovilizado para recuperación:** rama [`backup/produccion-estable-20261009`](https://github.com/GuillermoArroyoayn/Rele-control-ayn/tree/backup/produccion-estable-20261009), creada desde el commit que Vercel informó como desplegado en producción. Este respaldo está en el mismo repositorio, **no es un espejo externo**.
+- **Carpeta privada en la Biblioteca de ChatGPT:** `/AYN_CONTROL_RESPALDOS`, con ZIP de manifiesto, fecha de verificación, inventario de **nombres** de variables y protocolo probado de reconexión. No incorpora claves ni tokens, y no sustituye un gestor de secretos.
+- **Consentimiento OAuth:** ninguna carpeta o repositorio puede hacer permanente una concesión de Vercel; el titular conserva el control. Si se revoca/expira, repetir **Relé ayn → Configurar → Autorizar → Permitir acceso** y verificar acceso a proyecto/logs. La secuencia fue comprobada tras el error 403 del día.
+- **Pendientes para respaldo integral:** bóveda cifrada de credenciales del titular, exportación cifrada de Redis y espejo privado independiente del código. No afirmar que existen hasta verificarlos.
+
 ## Accesos de un toque
 
 | Recurso | Abrir |

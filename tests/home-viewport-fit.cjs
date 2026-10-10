@@ -92,3 +92,6 @@ require('./sos-no-general-admin-alerts.cjs');
 require('./sos-one-touch-community.cjs');
 
 require('./sos-reception-preferences.cjs');
+
+// El arranque sin pantalla intermedia también debe ejecutarse en el Safety Gate.
+require('./start-home-immediate.cjs');

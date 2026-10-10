@@ -231,16 +231,11 @@
   // Una sola locución tras validar la respuesta del equipo evita que Android
   // pierda la segunda voz al cancelar/reiniciar SpeechSynthesis.
   async function sayActivationResult(name,confirmation,result){
-    if(!result||result.ok===false||result.activationConfirmed===false||
-       result.remoteStateConfirmed===false||
-       (result.autoOffPending&&result.activationAccepted!==true&&result.autoOffConfirmed!==true)){
-      // Un 200 sin confirmación no es evidencia suficiente de apertura.
-      // runTimed en /api/control y /api/administrations ya rechaza ON no confirmado.
-      // En caso de apagado pendiente sí puede haber un ON confirmado;
-      // la respuesta nunca debe afirmar el apagado automático.
-      if(!result||result.ok===false||result.activationConfirmed===false||result.remoteStateConfirmed===false)
-        throw new Error('El servidor no confirmó la activación de '+name+'.');
-    }
+    // Los endpoints de control devuelven ok:true solo tras validar ON con Tuya.
+    // El flujo de respuesta progresiva exige remoteStateConfirmed:true.
+    if(!result||result.ok!==true||result.activationConfirmed===false||
+       result.remoteStateConfirmed===false)
+      throw new Error('El servidor no confirmó la activación de '+name+'.');
     const message=result.autoOffPending?
       confirmation+'. Apagado automático pendiente de confirmar.':confirmation+'.';
     paint('OK, '+message,'listening');

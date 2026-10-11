@@ -16,6 +16,8 @@ jobs:
           node-version: 22
       - name: Sintaxis de rutas nuevas
         run: |
+          node --check api/temporary-permissions.js
+          node --check temporary-permissions.js
           node --check api/guest-pass.js
           node --check api/concierge.js
           node --check pase.js

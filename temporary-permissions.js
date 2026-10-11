@@ -1,6 +1,6 @@
 // Pantalla aislada de permisos temporales: no altera el formulario permanente de usuarios.
 (function(){
-  let selectedGroup='',showHistory=false,lastInvitation=null;
+  let selectedGroup='',showHistory=false,lastInvitation=null,lastTabletLink=null;
   const element=(tag,className,text)=>{
     const item=document.createElement(tag);
     if(className)item.className=className;
@@ -51,9 +51,35 @@
       const select=element('select','temporary-group');
       for(const group of groups){const option=element('option','',group.name);option.value=group.id;select.append(option);}
       select.value=selectedGroup;
-      select.onchange=()=>{selectedGroup=select.value;lastInvitation=null;render(container,api);};
+      select.onchange=()=>{selectedGroup=select.value;lastInvitation=null;lastTabletLink=null;render(container,api);};
       label.append(select);shell.append(label);
     }
+    // La tablet obtiene un token limitado a esta comunidad: nunca el PIN principal.
+    const tabletPanel=element('section','temporary-invitation');
+    tabletPanel.append(element('strong','','AYN Conserjería · Tablet de sólo lectura'));
+    tabletPanel.append(element('p','','Genera el enlace en este teléfono y ábrelo en la tablet de la conserjería. Si generas otro enlace, el anterior deja de funcionar.'));
+    const tabletButton=element('button','small-button','Generar enlace para tablet');
+    tabletButton.type='button';
+    tabletButton.onclick=async()=>{
+      tabletButton.disabled=true;
+      try{
+        lastTabletLink=await api('/api/concierge',{method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({action:'issue',groupId:selectedGroup})});
+        await render(container,api);
+      }catch(error){message(notice,error.message,true);tabletButton.disabled=false;}
+    };
+    tabletPanel.append(tabletButton);
+    if(lastTabletLink&&lastTabletLink.url){
+      const copyTablet=element('button','small-button','Copiar enlace de conserjería');
+      copyTablet.type='button';
+      copyTablet.onclick=async()=>{
+        try{await navigator.clipboard.writeText(lastTabletLink.url);copyTablet.textContent='Enlace copiado';}
+        catch{window.prompt('Enlace de conserjería:',lastTabletLink.url);}
+      };
+      tabletPanel.append(copyTablet);
+      tabletPanel.append(element('small','','Reemplaza el enlace en 180 días. Compartir sólo con el conserje autorizado.'));
+    }
+    shell.append(tabletPanel);
     if(showHistory){
       shell.append(element('p','temporary-description','Se conservan aproximadamente seis meses de eventos. Solo los administradores autorizados pueden consultarlos.'));
       const list=element('div','temporary-history-list');

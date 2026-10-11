@@ -167,7 +167,7 @@
       row.append(title,element('small','',record.phone));
       row.append(element('p','',dateText(record.startsAt)+' → '+dateText(record.endsAt)));
       row.append(element('small','',record.mode==='web'?'Pase web sin instalación':'Invitación de aplicación'));
-      row.append(element('small','','Accesos: '+(record.relays||[]).map(n=>'Actuador '+n).join(', '));
+      row.append(element('small','','Accesos: '+(record.relays||[]).map(n=>'Actuador '+n).join(', ')));
       if(!record.expired){
         const toggle=element('button',record.active?'temporary-disable':'temporary-primary',record.active?'Desactivar':'Activar');
         toggle.type='button';

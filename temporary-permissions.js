@@ -71,7 +71,7 @@
     }
     const form=element('form','temporary-create-form');
     const formDescription=element('p','temporary-description',
-      'Registra al invitado, elige los accesos y define su duración. La persona deberá aceptar un enlace personal en su celular.');
+      'Registra al invitado, elige los accesos y define su duración. Puedes enviar un pase web sin instalar nada o una invitación a la aplicación.');
     form.append(formDescription);
     const nameLabel=element('label','temporary-form-field','Nombre de la persona');
     const name=element('input');name.type='text';name.required=true;name.maxLength=60;name.placeholder='Nombre y apellido';
@@ -93,29 +93,31 @@
     if(!eligible.length)relayBox.append(element('p','temporary-empty','No hay actuadores disponibles. Configúralos primero en tu administración.'));
     const submit=element('button','temporary-primary','Activar permiso');
     submit.type='submit';submit.disabled=!eligible.length;
+    const guestSubmit=element('button','temporary-primary','Crear pase sin instalar app');
+    guestSubmit.type='submit';guestSubmit.disabled=!eligible.length;
     const formStatus=element('p','temporary-status');formStatus.hidden=true;
-    form.append(nameLabel,phoneLabel,hoursLabel,relayBox,submit,formStatus);
+    form.append(nameLabel,phoneLabel,hoursLabel,relayBox,guestSubmit,submit,formStatus);
     form.onsubmit=async(event)=>{
       event.preventDefault();
       const allowed=[...relayBox.querySelectorAll('input:checked')].map(input=>Number(input.value));
       if(!allowed.length){message(formStatus,'Selecciona un actuador para el invitado.',true);return;}
       const duration=Number(hours.value);
       if(!Number.isInteger(duration)||duration<1||duration>168){message(formStatus,'Duración permitida: entre 1 y 168 horas.',true);return;}
-      submit.disabled=true;
+      submit.disabled=true;guestSubmit.disabled=true;
       try{
         const result=await api('/api/temporary-permissions',{
           method:'POST',headers:{'content-type':'application/json'},
-          body:JSON.stringify({action:'create',groupId:selectedGroup,name:name.value.trim(),
+          body:JSON.stringify({action:event.submitter===guestSubmit?'createGuest':'create',groupId:selectedGroup,name:name.value.trim(),
             phone:phone.value.trim(),hours:duration,relays:allowed})
         });
         lastInvitation={...result,groupId:selectedGroup,name:name.value.trim()};
         await render(container,api);
-      }catch(error){message(formStatus,error.message,true);submit.disabled=false;}
+      }catch(error){message(formStatus,error.message,true);submit.disabled=false;guestSubmit.disabled=false;}
     };
     shell.append(form);
     if(lastInvitation&&lastInvitation.groupId===selectedGroup){
       const invite=element('div','temporary-invitation');
-      invite.append(element('strong','','Permiso activado · Falta aceptar la invitación'));
+      invite.append(element('strong','',lastInvitation.mode==='web'?'Pase web listo · Envíalo al invitado':'Permiso activado · Falta aceptar la invitación'));
       invite.append(element('p','','Vence el '+dateText(lastInvitation.endsAt)+'. Comparte este enlace con la persona autorizada.'));
       const link=element('a','small-button','Enviar invitación por WhatsApp');
       link.href=lastInvitation.whatsappUrl;link.target='_blank';link.rel='noopener noreferrer';
@@ -138,7 +140,8 @@
       title.append(element('span','temporary-record-state state-'+record.status,statusText(record)));
       row.append(title,element('small','',record.phone));
       row.append(element('p','',dateText(record.startsAt)+' → '+dateText(record.endsAt)));
-      row.append(element('small','','Accesos: '+(record.relays||[]).map(n=>'Actuador '+n).join(', ')));
+      row.append(element('small','',record.mode==='web'?'Pase web sin instalación':'Invitación de aplicación'));
+      row.append(element('small','','Accesos: '+(record.relays||[]).map(n=>'Actuador '+n).join(', '));
       if(!record.expired){
         const toggle=element('button',record.active?'temporary-disable':'temporary-primary',record.active?'Desactivar':'Activar');
         toggle.type='button';

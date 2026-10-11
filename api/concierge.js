@@ -18,6 +18,8 @@ function origin(req){
 async function issue(req,body){
   const auth=await A.access(req);A.manager(auth);
   const groupId=auth.role==='super_master'?String(body.groupId||''):auth.groupId;
+  if(auth.role!=='super_master'&&body.groupId&&body.groupId!==auth.groupId)
+    throw bad('La tablet sólo puede vincularse a tu comunidad.',403);
   if(!/^[a-zA-Z0-9-]{1,80}$/.test(groupId||''))throw bad('Selecciona una comunidad.',400);
   const owner=community(auth.registry,groupId);
   if(!owner)throw bad('No hay administrador activo en esa comunidad.',403);

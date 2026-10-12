@@ -58,3 +58,12 @@
 
 /* v184 · acceso a eliminación completa, confirmada con clave en el Constructor */
 .master-admin-delete-community{color:#ffbec6!important;border:1px solid #aa586b;border-radius:10px;padding:12px;text-align:center;font-weight:800;background:#351b33}
+
+/* Historial aislado en la ficha del administrador (solo consultas). */
+.master-admin-history-tabs{grid-template-columns:repeat(3,minmax(0,1fr));}
+.master-admin-history-tabs .master-admin-action{padding:10px 5px!important;min-width:0;font-size:13px!important;}
+.master-admin-history-tabs [aria-pressed="true"]{background:#0865aa!important;border-color:#64d5ff!important;}
+.master-admin-history-list{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.master-admin-history-entry{display:flex;flex-direction:column;gap:5px;padding:12px!important;margin:0!important;background:#082a51!important;border:1px solid #3b749c!important;border-radius:12px;overflow-wrap:anywhere;}
+.master-admin-history-entry strong{color:#fff;font-size:15px;}
+.master-admin-history-entry small{color:#baddf7;font-size:13px;}

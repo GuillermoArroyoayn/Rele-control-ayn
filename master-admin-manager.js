@@ -70,6 +70,7 @@
     edit.className='master-admin-edit';edit.textContent='Configurar funciones y permisos';
     edit.href='/matrix.html?group='+encodeURIComponent(admin.groupId);
     content.append(edit);
+    content.append(btn('📜 Historial de actividad',()=>showHistory('access'),'primary'));
     const actions=el('div','master-admin-actions');
     if(admin.status==='active'){
       actions.append(btn('Pausar administrador',()=>changeStatus('paused')));
@@ -92,6 +93,60 @@
     }
     const hint=el('p','master-admin-hint','El Máster conserva el control. El reemplazo no elimina usuarios, reservas ni actuadores de la comunidad.');
     content.append(hint);
+  }
+  async function fetchAdminHistory(groupId,kind){
+    const params=new URLSearchParams({groupId,kind,limit:'500'});
+    const response=await fetch('/api/history?'+params.toString(),{
+      method:'GET',cache:'no-store',
+      headers:{'x-app-pin':pin.value.trim(),'x-device-id':deviceId(),
+        'x-device-name':localStorage.getItem('relayDeviceName')||'Celular Android'}
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||'No se pudo consultar el historial.');
+    return Array.isArray(data.history)?data.history:[];
+  }
+  async function showHistory(kind='access'){
+    const admin=admins.find(a=>a.id===selectedId);
+    if(!admin||!admin.groupId){message('No se encontró la administración.',true);return;}
+    mode='history';
+    const requestedId=admin.id;
+    content.replaceChildren();
+    content.append(el('h2','','Historial de actividad'),el('p','master-admin-subtitle',admin.name+' · '+admin.community));
+    content.append(btn('← Volver a configuración',()=>showPerson()));
+    content.append(el('p','master-admin-hint',
+      'Estos son movimientos registrados para esta comunidad; abrir la aplicación sin realizar operaciones no genera una entrada de historial.'));
+    const choices=el('div','master-admin-actions master-admin-history-tabs');
+    for(const [key,label] of [['access','Aperturas'],['permissions','Permisos'],['agenda','Agenda']]){
+      const tab=btn(label,()=>showHistory(key),key===kind?'primary':'');
+      tab.setAttribute('aria-pressed',String(key===kind));
+      choices.append(tab);
+    }
+    content.append(choices);
+    const rows=el('section','master-admin-history-list');
+    rows.setAttribute('aria-live','polite');
+    rows.append(el('p','','Consultando historial…'));content.append(rows);
+    try{
+      const history=await fetchAdminHistory(admin.groupId,kind);
+      if(selectedId!==requestedId||mode!=='history'||!rows.isConnected)return;
+      rows.replaceChildren();
+      if(!history.length){rows.append(el('p','','No hay movimientos registrados en esta categoría para esta administración.'));return;}
+      for(const item of history){
+        const row=el('article','master-admin-history-entry');
+        const heading=kind==='access'?
+          (item.userName||'Usuario')+' · Actuador '+String(item.relay||'sin especificar'):
+          (item.userName||'Usuario')+' · '+(item.action|| (kind==='agenda'?'Reserva':'Cambio de permisos'));
+        row.append(el('strong','',heading));
+        const date=new Date(item.createdAt);
+        row.append(el('small','',Number.isNaN(date.getTime())?'Fecha no disponible':
+          date.toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'})));
+        if(item.actor&&kind!=='access')row.append(el('small','','Realizado por: '+item.actor));
+        rows.append(row);
+      }
+    }catch(e){
+      if(selectedId===requestedId&&mode==='history'&&rows.isConnected){
+        rows.replaceChildren(el('p','','No se pudo consultar el historial: '+(e.message||'error')));
+      }
+    }
   }
   async function changeStatus(status){
     const a=admins.find(a=>a.id===selectedId);

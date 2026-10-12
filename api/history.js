@@ -9,9 +9,21 @@ module.exports=async function handler(req,res){
     if(!["super_master","admin"].includes(auth.role)) return res.status(403).json({error:"No tienes permisos para consultar el historial."});
     const kind=String(req.query?.kind||'');
     if(kind==='temporary')return res.status(400).json({error:'El historial temporal se consulta únicamente en Permisos temporales.'});
-    const records=await readHistory(req.query?.limit||100,kind,req.query?.groupId||auth.groupId||"master");
-    const visible=auth.role==="super_master"?records:records.filter(item=>item.groupId===auth.groupId);
-    const group=String(req.query?.groupId||'');
+    // Aislamiento del historial: un administrador solo ve su comunidad.
+    // El Máster puede consultar un grupo concreto o su historial general habitual.
+    const requestedGroup=String(req.query?.groupId||'').trim();
+    if(requestedGroup&&!/^(?:master|[a-zA-Z0-9-]{1,80})$/.test(requestedGroup))
+      return res.status(400).json({error:"Administración no válida."});
+    if(auth.role!=="super_master"&&requestedGroup&&requestedGroup!==auth.groupId)
+      return res.status(403).json({error:"No tienes permisos para consultar otra administración."});
+    if(auth.role==="super_master"&&requestedGroup&&requestedGroup!=="master"&&
+      !Object.values(auth.registry?.devices||{}).some(item=>item.role==="admin"&&item.groupId===requestedGroup))
+      return res.status(404).json({error:"Administración no encontrada."});
+    const group=auth.role==="super_master"?requestedGroup:auth.groupId;
+    const records=await readHistory(req.query?.limit||100,kind,group||"master");
+    const visible=records.filter(item=>
+      (auth.role==="super_master"||item.groupId===auth.groupId)&&
+      (!group||item.groupId===group));
     if(['permissions','agenda'].includes(kind)){const history=visible.filter(item=>item.kind===kind&&(!group||(item.groupId||'master')===group)).map(({deviceId,...item})=>item);return res.status(200).json({history});}
     const history=visible.filter(item=>item.result==="success"&&item.state===true&&!item.temporaryPermissionId&&
       !auth.registry?.devices?.[item.deviceId]?.temporaryPermissionId&&

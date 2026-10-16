@@ -77,10 +77,13 @@
 
   function paint(text,state='idle'){
     label.textContent=text;
+    const selected=localStorage.getItem('aynVoiceSelected')==='true';
+    button.setAttribute('data-voice-state',state==='listening'?'listening':state==='starting'?'starting':
+      selected?(state==='error'?'attention':'selected'):'off');
     button.classList.toggle('listening',state==='listening');
     button.classList.toggle('voice-starting',state==='starting');
     button.classList.toggle('voice-error',state==='error');
-    button.setAttribute('aria-pressed',String(enabled));
+    button.setAttribute('aria-pressed',String(selected));
   }
 
   function speak(text){
@@ -551,8 +554,9 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)restore();});
   if(localStorage.getItem('aynVoiceSelected')==='true'){
     if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
-      enabled=true;
-      paint('☎ Micrófono protegido. La voz seleccionada se reanudará al quedar disponible.','idle');
+      // No marcar enabled=true sin cargar el catálogo autorizado.
+      // El aviso de permisos disparará restore() y enable(false) cuando sea seguro.
+      paint('Preferencia de voz activada. Esperando autorización segura del micrófono.','idle');
     }else enable(false);
   }else paint('Toca el micrófono para activar AYN','idle');
 })();

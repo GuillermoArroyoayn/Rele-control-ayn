@@ -37,47 +37,49 @@ function scenario(selection='true',permission='granted',options={}){
 }
 
 (async()=>{
+  // Las Promises cruzan el contexto vm; terminar sus microtareas antes de verificar.
+  const settled=()=>new Promise(resolve=>setImmediate(resolve));
   const fresh=scenario(null);
-  await Promise.resolve();
+  await settled();
   assert.equal(fresh.policy.shouldListen(),false,'New installation must not auto-capture');
   assert.equal(fresh.permissionChecks(),0,'No permission query before opt-in');
 
   const disabled=scenario('false');
-  await Promise.resolve();
+  await settled();
   assert.equal(disabled.policy.shouldListen(),false,'Explicit OFF persists');
   assert.equal(disabled.permissionChecks(),0);
 
   for(const state of ['prompt','denied']){
     const denied=scenario('true',state);
-    await Promise.resolve();
+    await settled();
     assert.equal(denied.policy.shouldListen(),false,'No auto capture without granted browser permission');
   }
   const deniedWhileSaved=scenario('true','denied');
-  await Promise.resolve();
+  await settled();
   assert.equal(deniedWhileSaved.localStorage.getItem('aynVoiceSelected'),'true',
     'Permission denial does not erase the explicit ON preference');
 
   const unknown=scenario('true','granted',{withoutPermissions:true});
-  await Promise.resolve();
+  await settled();
   assert.equal(unknown.policy.shouldListen(),false,'Without permission verification require a tap');
 
   const active=scenario('true','granted');
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   assert.equal(active.policy.shouldListen(),true,'Stored opt-in + granted permission resumes Android voice');
   assert(active.notified()>0,'Tell the voice module to restart its capture');
 
   active.window.dispatchEvent({type:'ayn:phone-call',detail:{active:true}});
   assert.equal(active.policy.shouldListen(),false,'Never capture an active reported call');
   active.hide();active.show();
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   assert.equal(active.policy.shouldListen(),false,'A call cannot be overruled by visibility');
   active.window.dispatchEvent({type:'ayn:phone-call',detail:{active:false}});
   assert.equal(active.policy.shouldListen(),true,'Resume only after native call-end event');
 
   const interrupted=scenario('true','granted');
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   interrupted.policy.interrupt();interrupted.hide();interrupted.show();
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   assert.equal(interrupted.policy.shouldListen(),false,'Do not rearm after an ambiguous phone/audio interruption');
   assert.equal(interrupted.policy.armFromGesture(),true,'Explicit button can safely rearm after interruption');
 
@@ -85,13 +87,13 @@ function scenario(selection='true',permission='granted',options={}){
   assert.equal(race.policy.shouldListen(),false);
   race.hide();
   race.resolvePermission();
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   assert.equal(race.policy.shouldListen(),false,'Stale permission request cannot rearm in background');
 
   const changed=scenario('true','granted',{delayPermission:true});
   changed.localStorage.setItem('aynVoiceSelected','false');
   changed.resolvePermission();
-  await Promise.resolve();await Promise.resolve();
+  await settled();
   assert.equal(changed.policy.shouldListen(),false,'Turning OFF while permission check is pending cancels resume');
 
   assert(adminCode.includes("if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){\n      // No marcar enabled=true"),

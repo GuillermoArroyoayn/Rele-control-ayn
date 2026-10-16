@@ -1,7 +1,9 @@
-const CACHE = "reles-ayn-v221-karla-confirm-wide222";
+const CACHE = "reles-ayn-v223-expenses-board";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
+  "/expenses-board.css?v=20261015-01",
+  "/expenses-board.js?v=20261015-01",
   "/community-indicators.js?v=20261008-audience189",
   "/information.js?v=20261008-sos194",
   "/sos-siren.js?v=20261008-sos194",

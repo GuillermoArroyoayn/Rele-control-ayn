@@ -46,4 +46,12 @@ assert(admin.includes("deviceId(){let id=localStorage.getItem('relayDeviceId')")
  'Conservar un identificador independiente por navegador autorizado');
 assert(admin.includes("function adminModuleAllowed(id)"),
  'Conservar visibilidad de módulos según permisos');
+
+assert(html.includes('/admin-workstation.js?v=20261015-01'),
+ 'El administrador debe cargar el flujo de vinculación en PC y celular');
+assert(html.includes('id="adminWorkstationInvite"'),
+ 'El menú del administrador debe ofrecer vincular PC');
+assert(sw.includes('/admin-workstation.js?v=20261015-01'),
+ 'La PWA debe almacenar el módulo de vinculación');
+
 console.log('AYN PC+móvil: accesos directos, diseño adaptable, backend común, identidad por equipo y PWA correctos.');

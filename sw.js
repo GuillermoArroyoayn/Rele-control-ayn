@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v223-expenses-board";
+const CACHE = "reles-ayn-v221-karla-confirm-wide222-expenses20261015";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",

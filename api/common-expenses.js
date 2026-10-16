@@ -55,7 +55,7 @@ module.exports=async(req,res)=>{
       const items=(raw||[]).map(parse).filter(v=>v&&v.groupId===groupId);
       const groups=auth.role==='super_master'?
         [{id:'master',name:'Máster general'},...Object.values(auth.registry.devices)
-          .filter(x=>x.role==='admin'&&x.groupId).map(x=>({id:x.groupId,name:x.adminName||x.name||'Administración'}))]
+          .filter(x=>x.role==='admin'&&!x.workstationOf&&x.groupId).map(x=>({id:x.groupId,name:x.adminName||x.name||'Administración'}))]
         :[];
       return res.json({items,role:auth.role,groupId,groups,retentionDays:730});
     }

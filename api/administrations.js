@@ -132,7 +132,7 @@ module.exports=async(req,res)=>{
       return res.json({ok:true,inviteUrl:base+'/administracion.html#invite='+token,expiresIn:3600});
     }
     if(req.method==='GET'){
-      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
+      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&!d.workstationOf&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
       const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&!d.temporaryPermissionId&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       const matrix=auth.role==='admin'?Matrix.publicConfig(await Matrix.ensure(auth.groupId,auth.device.adminName||auth.device.name||'Administración'),'admin'):null;
       const originals=auth.role==='super_master'?(await T.originalList()).map(item=>({...item,

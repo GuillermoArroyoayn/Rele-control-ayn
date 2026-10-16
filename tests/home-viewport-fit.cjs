@@ -95,3 +95,6 @@ require('./sos-reception-preferences.cjs');
 
 // El arranque sin pantalla intermedia también debe ejecutarse en el Safety Gate.
 require('./start-home-immediate.cjs');
+
+// Compatibilidad de administración completa en PC, tablet y celular.
+require('./admin-desktop-expenses.cjs');

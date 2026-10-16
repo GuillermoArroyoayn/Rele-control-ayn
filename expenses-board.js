@@ -1,11 +1,13 @@
 /* AYN Control · Muro de gastos comunes. No altera el control de relés. */
 (() => {
   const hub=document.querySelector('#communityHub .community-hub-grid');
-  if(!hub)return;
+  // En escritorio y móvil el administrador abre este mismo módulo desde su panel.
+  const adminLaunchers=[...document.querySelectorAll('[data-expenses-open]')];
+  if(!hub&&!adminLaunchers.length)return;
   const button=document.createElement('button');
   button.type='button';button.className='community-hub-option';
   button.innerHTML='<span class="community-hub-icon" aria-hidden="true">🧾</span><strong>Gastos comunes</strong><small>Detalle, facturas y presupuestos</small>';
-  hub.append(button);
+  if(hub)hub.append(button);
   const overlay=document.createElement('div');overlay.className='ayn-expense-overlay';overlay.hidden=true;
   overlay.innerHTML="<section class=\"ayn-expense-dialog\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"aynExpenseTitle\">\n<header><h2 id=\"aynExpenseTitle\">🧾 Muro de gastos comunes</h2><button type=\"button\" id=\"expenseClose\" aria-label=\"Cerrar\">✕</button></header>\n<p>Gastos publicados por tu administración. Los respaldos requieren acceso autorizado.</p>\n<label id=\"expenseGroupLabel\" hidden>Administración <select id=\"expenseGroup\"></select></label>\n<p id=\"expenseStatus\" role=\"status\" aria-live=\"polite\"></p>\n<button type=\"button\" id=\"expenseRefresh\">Actualizar publicaciones</button>\n<form id=\"expenseForm\" hidden>\n<h3>Publicar gastos comunes</h3>\n<label>Mes de gastos <input id=\"expenseMonth\" type=\"month\" required></label>\n<label>Título <input id=\"expenseTitle\" maxlength=\"120\" value=\"Resumen mensual de gastos comunes\" required></label>\n<p><strong>Detalle de gastos en pesos chilenos (CLP)</strong></p>\n<div id=\"expenseRows\"></div>\n<button id=\"expenseAddRow\" type=\"button\">+ Añadir concepto</button>\n<label>Presupuesto total del mes (CLP) <input id=\"expenseBudget\" type=\"number\" min=\"0\" max=\"500000000\" step=\"1\" required></label>\n<label>Observaciones <textarea id=\"expenseNotes\" maxlength=\"2500\" rows=\"3\" placeholder=\"Aclaraciones y comparación con el presupuesto\"></textarea></label>\n<label>Facturas (hasta 2 archivos) <input id=\"expenseInvoices\" type=\"file\" multiple accept=\"application/pdf,image/jpeg,image/png,image/webp\"></label>\n<label>Presupuestos y cotizaciones (hasta 2 archivos) <input id=\"expenseBudgets\" type=\"file\" multiple accept=\"application/pdf,image/jpeg,image/png,image/webp\"></label>\n<small>PDF o fotografías. Máximo 160 KB por archivo. Oculta datos personales y bancarios antes de publicar.</small>\n<button type=\"submit\" id=\"expensePublish\">Publicar en esta comunidad</button>\n</form>\n<h3>Publicaciones</h3><div id=\"expenseList\"></div>\n<p class=\"ayn-expense-retention\">Conservación provisional: 24 meses. Esta sección es informativa y no cobra gastos comunes ni calcula deudas por departamento.</p>\n</section>";
 
@@ -99,12 +101,14 @@
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   document.addEventListener('keydown',e=>{if(opened&&e.key==='Escape')close();});
   document.addEventListener('ayn-access-restricted',close);
-  button.onclick=()=>{
+  const openBoard=()=>{
     opened=true;lastFocus=document.activeElement;overlay.hidden=false;
     current.groupId='';
     const now=new Date();$('expenseMonth').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
     $('expenseClose').focus();load();
   };
+  button.onclick=openBoard;
+  adminLaunchers.forEach(entry=>entry.addEventListener('click',openBoard));
   $('expenseRefresh').onclick=load;
   $('expenseGroup').onchange=()=>{current.groupId=$('expenseGroup').value;
     sessionStorage.setItem('aynCommunityActiveGroup',current.groupId);load();};

@@ -109,3 +109,6 @@ require('./retired-qr-safety.cjs');
 
 // Validación de voz completa/parcial de Karla sin hardware ni permisos del QR.
 require('./karla-voice-interim-safe.cjs');
+
+// Validación de gastos comunes sin uso de hardware ni bases de datos reales.
+require('./common-expenses.cjs');

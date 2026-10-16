@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
     if (!['GET','POST'].includes(req.method)) throw A.error('Método no permitido.',405);
     const auth = await A.access(req), b = req.body || {};
     const groupId = A.group(auth, req.method === 'GET' ? req.query?.groupId || (auth.role==='super_master'?'master':undefined) : b.groupId || (auth.role==='super_master'?'master':undefined));
-    const groups = auth.role==='super_master' ? [{id:'master',name:'Máster general'}, ...Object.values(auth.registry.devices).filter(d=>d.role==='admin').map(d=>({id:d.groupId,name:d.adminName||d.name}))] : [];
+    const groups = auth.role==='super_master' ? [{id:'master',name:'Máster general'}, ...Object.values(auth.registry.devices).filter(d=>d.role==='admin'&&!d.workstationOf).map(d=>({id:d.groupId,name:d.adminName||d.name}))] : [];
     const key = P+'group:'+groupId;
     async function item(id) {
       if (!valid(id)) throw A.error('Publicación inválida.');

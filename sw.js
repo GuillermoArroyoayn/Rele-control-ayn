@@ -39,6 +39,7 @@ const ASSETS = [
   "/expenses-board.css?v=20261015-02",
   "/expenses-board.js?v=20261015-02",
   "/admin-desktop.css?v=20261015-01",
+  "/admin-workstation.js?v=20261015-01",
   "/administracion.js?v=20261009-startup211",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",

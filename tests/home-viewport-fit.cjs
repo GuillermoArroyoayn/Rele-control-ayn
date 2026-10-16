@@ -98,3 +98,6 @@ require('./start-home-immediate.cjs');
 
 // Compatibilidad de administración completa en PC, tablet y celular.
 require('./admin-desktop-expenses.cjs');
+
+// Vinculación segura del computador al administrador original.
+require('./admin-workstation.cjs');

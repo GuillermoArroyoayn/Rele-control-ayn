@@ -24,3 +24,34 @@ html body .ayn-expense-dialog button:disabled{opacity:.55}
 .ayn-expense-documents button{max-width:100%;overflow-wrap:anywhere;text-align:left}
 .ayn-expense-retention{font-size:12px}
 @media(max-width:480px){.ayn-expense-dialog{padding:12px}.ayn-expense-row{grid-template-columns:minmax(0,1fr) minmax(0,.8fr)}.ayn-expense-row button{grid-column:1/-1}}
+
+
+/* Escritorio: preparar la publicación cómodamente con teclado y mouse. */
+@media(min-width:980px){
+  .ayn-expense-dialog{
+    width:min(1080px,calc(100vw - 48px));
+    max-height:calc(100dvh - 52px);
+    padding:24px 28px;
+  }
+  .ayn-expense-dialog #expenseForm{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px 22px;align-items:start;
+  }
+  .ayn-expense-dialog #expenseForm :is(h3,p,#expenseRows,#expenseAddRow,small,#expensePublish){
+    grid-column:1/-1;
+  }
+  .ayn-expense-dialog #expenseRows{
+    display:grid;gap:8px;
+  }
+  .ayn-expense-dialog .ayn-expense-row{
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;
+  }
+  .ayn-expense-dialog .ayn-expense-row :is(input,button){margin:0;min-height:44px}
+  .ayn-expense-dialog .ayn-expense-card{
+    padding:18px 24px;
+  }
+  .ayn-expense-dialog .ayn-expense-totals{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+  }
+}

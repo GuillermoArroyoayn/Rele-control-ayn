@@ -93,3 +93,71 @@
   #adminWorkstationOverlay .admin-pc-panel{padding:14px}
   #adminWorkstationOverlay input{font-size:14px}
 }
+
+/* 20261016 · Menú Máster PC: tarjetas adaptables, alineadas y sin títulos cortados.
+   Presentación únicamente; no modifica permisos, relés ni lógica de acceso. */
+@media (min-width:720px) {
+  body[data-admin-view="menu"] #tabs {
+    display:grid!important;
+    width:100%!important;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,275px),1fr))!important;
+    gap:14px!important;
+    align-items:stretch!important;
+    justify-items:stretch!important;
+    margin-inline:auto!important;
+  }
+  body[data-admin-view="menu"] #tabs > :is(button,a) {
+    display:flex!important;
+    flex-direction:row!important;
+    justify-content:flex-start!important;
+    align-items:center!important;
+    box-sizing:border-box!important;
+    min-width:0!important;
+    width:100%!important;
+    min-height:90px!important;
+    height:100%!important;
+    padding:14px!important;
+    gap:12px!important;
+    text-align:left!important;
+    overflow:visible!important;
+  }
+  body[data-admin-view="menu"] #tabs .menu-icon {
+    flex:0 0 52px!important;
+    width:52px!important;
+    height:52px!important;
+    margin:0!important;
+    font-size:24px!important;
+    border-radius:14px!important;
+  }
+  body[data-admin-view="menu"] #tabs .menu-label {
+    display:block!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    max-width:100%!important;
+    margin:0!important;
+    font-size:clamp(15px,1.4vw,18px)!important;
+    font-weight:700!important;
+    line-height:1.28!important;
+    text-align:left!important;
+    white-space:normal!important;
+    word-break:normal!important;
+    overflow-wrap:anywhere!important;
+    hyphens:auto!important;
+  }
+}
+/* Con el navegador ampliado, evita cuatro columnas estrechas en tablet/PC. */
+@media (min-width:480px) and (max-width:719px) {
+  body[data-admin-view="menu"] #tabs {
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+  }
+  body[data-admin-view="menu"] #tabs > :is(button,a) {
+    min-width:0!important;
+    padding:12px 8px!important;
+  }
+  body[data-admin-view="menu"] #tabs .menu-label {
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
+}

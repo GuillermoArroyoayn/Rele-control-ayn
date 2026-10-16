@@ -1,1 +1,17 @@
 node_modules/
+
+# AYN: secretos y respaldos privados nunca van al repositorio publico.
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.secrets
+.secrets/
+secrets/
+backups-private/
+docs/operaciones/privado/
+*.redis-dump
+*.rdb

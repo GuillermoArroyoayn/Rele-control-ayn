@@ -52,6 +52,11 @@ function scenario(selection='true',permission='granted',options={}){
     await Promise.resolve();
     assert.equal(denied.policy.shouldListen(),false,'No auto capture without granted browser permission');
   }
+  const deniedWhileSaved=scenario('true','denied');
+  await Promise.resolve();
+  assert.equal(deniedWhileSaved.localStorage.getItem('aynVoiceSelected'),'true',
+    'Permission denial does not erase the explicit ON preference');
+
   const unknown=scenario('true','granted',{withoutPermissions:true});
   await Promise.resolve();
   assert.equal(unknown.policy.shouldListen(),false,'Without permission verification require a tap');

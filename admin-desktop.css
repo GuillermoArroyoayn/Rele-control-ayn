@@ -1,0 +1,95 @@
+/* AYN Control · Administración adaptable a pantalla de celular, tablet y PC.
+   Solo afecta presentación. Autorización y datos siguen centralizados en el servidor. */
+.admin-access-multihelp{font-size:13px;line-height:1.45;color:#bcd6ef;margin:14px 0 0}
+#homeExpensesCard .home-quick-icon{font-size:49px!important;line-height:1!important}
+#expensesMenuShortcut .menu-icon{font-size:27px!important}
+@media(min-width:720px) and (max-width:1023px){
+  body[data-admin-view="home"] main{max-width:800px!important;width:min(800px,100%)!important}
+  body[data-admin-view="home"] .home-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  body[data-admin-view="home"] .home-quick-card{min-height:126px!important}
+  body[data-admin-view="menu"] #tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  body[data-admin-view="menu"] #tabs>:is(button,a){min-width:0!important}
+}
+/* La portada de PC aprovecha el ancho y mantiene el panel de tareas en una grilla. */
+@media(min-width:1024px){
+  body[data-admin-view] main{width:min(1160px,100%)!important;max-width:1160px!important;margin-inline:auto}
+  body[data-admin-view="home"] main{
+    width:min(1140px,100%)!important;max-width:1140px!important;
+    padding:14px 28px 45px!important;
+  }
+  body[data-admin-view="home"] .home-dashboard{max-width:1100px;margin-inline:auto}
+  body[data-admin-view="home"] .home-dashboard-top{
+    min-height:136px!important;padding-block:0!important;
+  }
+  body[data-admin-view="home"] .home-dashboard-brand{min-height:136px!important}
+  body[data-admin-view="home"] .home-logo{width:275px!important;max-width:100%!important}
+  body[data-admin-view="home"] .home-quick-grid{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:16px!important;align-items:stretch;
+  }
+  body[data-admin-view="home"] #homeDashboard .home-quick-card{
+    min-width:0!important;min-height:156px!important;max-height:none!important;
+    height:auto!important;border-radius:20px!important;padding:12px!important;
+  }
+  body[data-admin-view="home"] .home-quick-card>span:last-child{
+    font-size:19px!important;line-height:1.2!important;
+  }
+  body[data-admin-view="home"] .home-dashboard>.home-voice-button{
+    margin:22px auto 6px!important;height:100px!important;
+  }
+  body[data-admin-view="home"] .home-mic-ring{
+    width:90px!important;height:90px!important;flex-basis:90px!important;
+  }
+  body[data-admin-view="menu"] #tabs{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:13px 16px!important;
+  }
+  body[data-admin-view="menu"] #tabs>:is(button,a){
+    display:flex!important;flex-direction:row!important;align-items:center!important;
+    justify-content:flex-start!important;min-height:68px!important;
+    padding:10px 16px!important;width:100%!important;
+  }
+  body[data-admin-view]:not([data-admin-view="home"]) main{padding-inline:30px!important}
+  body[data-admin-view]:not([data-admin-view="home"]) #panelToolbar{
+    padding-inline:max(26px,calc((100vw - 1160px) / 2 + 26px))!important;
+  }
+  body[data-admin-view="people"] #invite{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;align-items:end;
+  }
+  body[data-admin-view="people"] #invite>:is(p,button){grid-column:1/-1}
+  body[data-admin-view="equipment"] #relayInstallerForm .relay-install-primary,
+  body[data-admin-view="equipment"] #relayInstallerForm .relay-install-advanced-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body[data-admin-view] :is(.relay-center-grid,.relay-admin-folders){max-width:100%}
+  body[data-admin-view] :is(input,select,textarea){max-width:100%}
+  body[data-admin-view] #users,body[data-admin-view] #auditRows{min-width:0}
+}
+
+/* Vinculación protegida de un PC a la misma administración. */
+#adminWorkstationOverlay[hidden]{display:none!important}
+#adminWorkstationOverlay{
+  position:fixed;inset:0;z-index:2600;background:rgba(0,10,28,.84);
+  display:flex;justify-content:center;align-items:center;padding:12px;
+}
+#adminWorkstationOverlay .admin-pc-panel{
+  color:#f5fbff;background:#092849;border:2px solid #50caff;border-radius:16px;
+  box-shadow:0 12px 40px #0008;width:min(680px,100%);max-height:calc(100dvh - 24px);
+  overflow:auto;padding:22px;font:16px/1.45 system-ui;
+}
+#adminWorkstationOverlay header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#adminWorkstationOverlay h2{margin:0;font-size:clamp(20px,5vw,26px)}
+#adminWorkstationOverlay p{line-height:1.6}
+#adminWorkstationOverlay label{display:block;margin:15px 0}
+#adminWorkstationOverlay input{width:100%;min-height:46px;padding:10px;font:inherit;overflow-wrap:anywhere}
+#adminWorkstationOverlay button{
+  min-height:46px;padding:10px 14px;border:1px solid #a3dfff;
+  border-radius:11px;background:#76d9ff;color:#071f40;font:700 15px system-ui;
+}
+#adminWorkstationOverlay #adminPcClose{font-size:22px}
+#adminWorkstationOverlay #adminPcFeedback{color:#9df2ff;font-weight:600;min-height:25px}
+#adminWorkstationOverlay [hidden]{display:none!important}
+@media(max-width:560px){
+  #adminWorkstationOverlay .admin-pc-panel{padding:14px}
+  #adminWorkstationOverlay input{font-size:14px}
+}

@@ -16,6 +16,7 @@ module.exports=async(req,res)=>{
       if(!/^[a-f0-9]{64}$/.test(b.token||''))throw A.error('Invitación inválida.');
       const key='ayn:managed:invite:'+A.hash(b.token);const raw=await A.redis('GET',key);if(!raw)throw A.error('Invitación vencida o utilizada.',410);
       const invitation=JSON.parse(raw);
+      const isAdminWorkstation=invitation.adminWorkstation===true;
       if(invitation.groupId&&invitation.groupId!=='master'){
         const restoredAt=await A.redis('HGET','ayn:matrix:restored-groups',invitation.groupId);
         if(restoredAt&&(!Number.isFinite(Date.parse(invitation.createdAt))||Date.parse(invitation.createdAt)<=Date.parse(restoredAt)))
@@ -56,7 +57,7 @@ module.exports=async(req,res)=>{
           throw A.error('Esta invitación fue cancelada por el Máster.',410);
       }
       // Relés originales designados por el Máster antes de aceptar una invitación.
-      const reservations=invitation.role==='admin'?await A.redis('HGETALL','ayn:matrix:original:reservations'):[];
+      const reservations=invitation.role==='admin'&&!isAdminWorkstation?await A.redis('HGETALL','ayn:matrix:original:reservations'):[];
       const reservedRelays=[];
       for(let i=0;i<(reservations||[]).length;i+=2)
         if(String(reservations[i+1])===invitation.groupId&&[1,2,3].includes(Number(reservations[i])))
@@ -64,10 +65,17 @@ module.exports=async(req,res)=>{
       let upgradedExistingUser=false;
       await A.updateRegistry(registry=>{
         const creator=registry.devices[invitation.creator];
-        if(!creator||creator.status!=='active'||(['admin','super_master'].includes(invitation.role)?creator.role!=='super_master':!['super_master','admin'].includes(creator.role)))throw A.error('Invitación anulada.',403);
+        if(!creator||creator.status!=='active')throw A.error('Invitación anulada.',403);
+        if(isAdminWorkstation){
+          if(invitation.role!=='admin'||creator.role!=='admin'||creator.workstationOf||!invitation.groupId||creator.groupId!==invitation.groupId)
+            throw A.error('La vinculación del PC fue cancelada.',403);
+        }else if((['admin','super_master'].includes(invitation.role)?creator.role!=='super_master':!['super_master','admin'].includes(creator.role)))
+          throw A.error('Invitación anulada.',403);
         if(creator.role==='admin'&&creator.groupId!==invitation.groupId)throw A.error('Invitación inválida.',403);
         if(registry.revoked?.[id]||id===registry.masterId)throw A.error('Este equipo no puede aceptar la invitación.',403);
         const old=registry.devices[id];
+        if(isAdminWorkstation&&old&&(old.role!=='user'||old.status!=='pending'||(old.groupId&&old.groupId!==invitation.groupId)))
+          throw A.error('Este navegador ya tiene una cuenta. Vincula un navegador nuevo.',403);
         const replacedAdmin=invitation.replaceAdminId?registry.devices[invitation.replaceAdminId]:null;
         if(invitation.replaceAdminId){
           if(!replacedAdmin||replacedAdmin.role!=='admin'||replacedAdmin.groupId!==invitation.groupId||replacedAdmin.status==='deleted')throw A.error('El administrador original ya no está disponible.',409);
@@ -80,18 +88,19 @@ module.exports=async(req,res)=>{
         if(old?.groupId&&old.groupId!==invitation.groupId&&!masterAdminUpgrade&&!alreadySameAdmin)throw A.error('Este equipo pertenece a otra administración.',403);
         if(Object.values(registry.devices).some(d=>d.inviteHash===A.hash(b.token)))throw A.error('Invitación utilizada.',410);
         upgradedExistingUser=masterAdminUpgrade||alreadySameAdmin;
-        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:temporaryGrant?[...temporaryGrant.relays]:[...new Set([...(replacedAdmin?.relays||[]),...reservedRelays])].sort((a,b)=>a-b),actuatorIds:[],inviteHash:A.hash(b.token),accessStartsAt:temporaryGrant?.startsAt||'',accessEndsAt:temporaryGrant?.endsAt||'',temporaryPermissionId:temporaryGrant?.id||'',createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
+        registry.devices[id]={...old,name:String(req.headers['x-device-name']||invitation.name).slice(0,60),adminName:invitation.name,phone:invitation.phone,apartment:invitation.apartment||'',role:invitation.role,groupId:invitation.groupId,status:'active',relays:invitation.role==='super_master'?[1,2,3]:isAdminWorkstation?[...(creator.relays||[])]:temporaryGrant?[...temporaryGrant.relays]:[...new Set([...(replacedAdmin?.relays||[]),...reservedRelays])].sort((a,b)=>a-b),actuatorIds:[],...(isAdminWorkstation?{workstationOf:invitation.creator}:{}),inviteHash:A.hash(b.token),accessStartsAt:temporaryGrant?.startsAt||'',accessEndsAt:temporaryGrant?.endsAt||'',temporaryPermissionId:temporaryGrant?.id||'',createdAt:old?.createdAt||new Date().toISOString(),roleChangedAt:(masterAdminUpgrade||alreadySameAdmin)?new Date().toISOString():old?.roleChangedAt,roleChangedBy:(masterAdminUpgrade||alreadySameAdmin)?invitation.creator:old?.roleChangedBy};
         if(replacedAdmin){
           replacedAdmin.status='deleted';replacedAdmin.replacedBy=id;
           replacedAdmin.statusChangedAt=new Date().toISOString();replacedAdmin.statusChangedBy=invitation.creator;
         }
         if(invitation.role==='super_master')registry.masterIds=[...new Set([...(registry.masterIds||[]),id])];
       });
-      if(invitation.role==='admin'){
+      if(invitation.role==='admin'&&!isAdminWorkstation){
         for(const relay of reservedRelays)
           await A.redis('HDEL','ayn:matrix:original:reservations',String(relay)).catch(()=>{});
         await Matrix.markStatus(invitation.groupId,'active',invitation.name);
       }
+      if(isAdminWorkstation)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Administrador',action:'Navegador de PC vinculado de forma independiente'}).catch(()=>{});
       if(upgradedExistingUser||invitation.replaceAdminId)await addHistory({kind:'permissions',groupId:invitation.groupId,userName:invitation.name,actor:'Máster',action:invitation.replaceAdminId?'Reemplazo de administrador confirmado; acceso anterior eliminado':'Cuenta existente convertida en administrador mediante invitación'}).catch(()=>{});
       if(temporaryGrant){
         await A.redis('HSET','ayn:temporary:grants:'+invitation.groupId,temporaryGrant.id,
@@ -103,8 +112,27 @@ module.exports=async(req,res)=>{
       await A.redis('DEL',key);return res.json({ok:true,role:invitation.role,groupId:invitation.groupId,upgradedExistingUser});
     }
     const auth=await A.access(req);
+    if(b.action==='inviteAdminWorkstation'){
+      if(req.method!=='POST'||auth.role!=='admin'||auth.registry.devices[auth.device.id]?.workstationOf)
+        throw A.error('Solo el administrador principal puede vincular su PC.',403);
+      const groupId=A.group(auth);
+      const rateKey='ayn:managed:workstation-invite-rate:'+A.hash(auth.device.id);
+      const attempts=Number(await A.redis('INCR',rateKey));
+      if(attempts===1)await A.redis('EXPIRE',rateKey,3600);
+      if(attempts>3)throw A.error('Máximo 3 vinculaciones por hora.',429);
+      const token=A.token();
+      const creator=auth.registry.devices[auth.device.id];
+      const invitation={creator:auth.device.id,role:'admin',groupId,
+        name:creator.adminName||creator.name||'Administración',phone:creator.phone||'',
+        adminWorkstation:true,createdAt:new Date().toISOString()};
+      await A.redis('SET','ayn:managed:invite:'+A.hash(token),JSON.stringify(invitation),'EX',3600);
+      const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
+      const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();
+      const base=String(process.env.APP_PUBLIC_URL||'').trim().replace(/\/$/,'')||proto+'://'+host;
+      return res.json({ok:true,inviteUrl:base+'/administracion.html#invite='+token,expiresIn:3600});
+    }
     if(req.method==='GET'){
-      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
+      const all=await A.records();const groups=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='admin'&&!d.workstationOf&&d.status!=='deleted'&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([accountId,d])=>({id:d.groupId,accountId,name:d.adminName||d.name,status:d.status}));
       const users=Object.entries(auth.registry.devices).filter(([id,d])=>d.role==='user'&&!d.temporaryPermissionId&&(auth.role==='super_master'||d.groupId===auth.groupId)).map(([id,d])=>({id,name:d.adminName||d.name,phone:d.phone||'',apartment:d.apartment||'',groupId:d.groupId,status:d.status,actuatorIds:d.actuatorIds||[]}));
       const matrix=auth.role==='admin'?Matrix.publicConfig(await Matrix.ensure(auth.groupId,auth.device.adminName||auth.device.name||'Administración'),'admin'):null;
       const originals=auth.role==='super_master'?(await T.originalList()).map(item=>({...item,

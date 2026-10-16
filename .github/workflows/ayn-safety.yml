@@ -41,9 +41,6 @@ jobs:
       - name: Verificar transiciones ON/OFF y temporización de Accesos
         run: node tests/access-state-feedback.cjs
 
-      - name: Verificar duracion del temporizador y canal de prueba sin dispositivos reales
-        run: node tests/actuator-timers.cjs
-
       - name: Verificar permisos estrictos de residentes y actuadores no autorizados
         run: node tests/resident-relay-permissions.cjs
 

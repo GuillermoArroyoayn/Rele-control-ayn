@@ -58,3 +58,6 @@ function speechProbe(file,starting,ending){
 
 // Restauración de preferencia AYN tras cerrar y reabrir la aplicación.
 require('./voice-preference-persistence.cjs');
+
+// Volver a abrir la PWA Android con permiso concedido sin interferir llamadas.
+require('./voice-android-consent-resume.cjs');

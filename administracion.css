@@ -948,3 +948,16 @@ body[data-admin-view="home"] .home-dashboard > .home-voice-button:focus-visible{
 #homeDashboard .home-quick-card[data-carla-pulse="sending"]{opacity:.65;pointer-events:none}
 #homeDashboard .home-carla-pulse-status{font-size:12px;line-height:1.2;color:#cceaff;text-align:center}
 #homeDashboard .home-carla-pulse-status[data-error="true"]{color:#ffd0d0}
+
+/* Voz v223: distinguir escucha real de preferencia guardada.
+   La etiqueta visible se apoya en el botón existente: sin controles flotantes. */
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state]::after{
+  position:absolute!important;bottom:2px;left:5px;right:5px;z-index:3;
+  text-align:center;font:600 12px/1.25 system-ui,sans-serif;
+  pointer-events:none;white-space:normal;color:#ecfaff;
+}
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="off"]::after{content:"Voz desactivada"}
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="selected"]::after{content:"Voz activada · micrófono en espera"}
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="starting"]::after{content:"Iniciando escucha…"}
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="attention"]::after{content:"Micrófono pausado · toca para reanudar";color:#ffe19d}
+body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="listening"]::after{content:"AYN está escuchando";color:#86f5c2}

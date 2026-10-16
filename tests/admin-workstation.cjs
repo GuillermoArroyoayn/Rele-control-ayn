@@ -7,7 +7,8 @@ const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const registry={masterId:'master-id-123456',revoked:{},devices:{
  'master-id-123456':{role:'super_master',status:'active',name:'Máster',groupId:'',relays:[]},
  'admin-phone-123456':{role:'admin',status:'active',name:'Karla admin',adminName:'Karla',phone:'56955555555',groupId:'group-karla',relays:[1],actuatorIds:[]},
- 'user-other-123456':{role:'user',status:'active',name:'Residente ajeno',groupId:'group-b',relays:[]}
+ 'user-other-123456':{role:'user',status:'active',name:'Residente ajeno',groupId:'group-b',relays:[]},
+ 'user-karla-123456':{role:'user',status:'active',name:'Residente local',groupId:'group-karla',relays:[]}
 }};
 const values=new Map(),counter=new Map();
 let marks=0,history=0,tuyaCommands=0;
@@ -125,10 +126,16 @@ async function send(id,body,headers={}){
  let deviceAuth=await deviceMod.exports.authorize(pcRequest,{allowRegistration:false});
  assert.equal(deviceAuth.ok,true,'PC autorizado debe entrar a la misma comunidad');
  assert.equal(deviceAuth.groupId,'group-karla');
+ const residentRequest={headers:{'x-app-pin':'good','x-device-id':'user-karla-123456'}};
+ let residentAuth=await deviceMod.exports.authorize(residentRequest,{allowRegistration:false});
+ assert.equal(residentAuth.ok,true,'El residente sigue activo con administrador principal autorizado');
  const blockedRegistry=JSON.parse(backing);
  blockedRegistry.devices['admin-phone-123456'].status='blocked';backing=JSON.stringify(blockedRegistry);
  deviceAuth=await deviceMod.exports.authorize(pcRequest,{allowRegistration:false});
  assert.equal(deviceAuth.ok,false,'El PC debe suspenderse cuando se bloquee su administrador');
  assert.equal(deviceAuth.status,403);
+ residentAuth=await deviceMod.exports.authorize(residentRequest,{allowRegistration:false});
+ assert.equal(residentAuth.ok,false,'Un PC secundario no debe mantener activa una comunidad con principal bloqueado');
+ assert.equal(residentAuth.status,403);
  console.log('AYN PC administrador OK: token de un uso, caducidad, permisos y grupo iguales, revocación enlazada y cero comandos a relés.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -104,6 +104,13 @@ async function send(id,body,headers={}){
  const linked=await send(pc,{action:'inviteAdminWorkstation'});
  assert.equal(linked.status,403,'Un PC secundario no puede invitar más equipos');
  assert.equal(history,1,'Solo se agrega un registro de vinculación');
+ const adminsLib=fs.readFileSync('lib/administrations.js','utf8');
+ const financeApi=fs.readFileSync('api/common-expenses.js','utf8');
+ const communityApi=fs.readFileSync('api/community.js','utf8');
+ for(const [name,code] of [['administrations',adminsLib],['common-expenses',financeApi],['community',communityApi]]){
+   assert(code.includes('!d.workstationOf')||code.includes('!x.workstationOf'),
+     name+': los PC vinculados no son una segunda administración');
+ }
  const devices=fs.readFileSync('lib/devices.js','utf8');
  assert(devices.includes('if(record.workstationOf)'), 'El equipo secundario debe tener guardia');
  assert(devices.includes("primary.status!=='active'"),'El bloqueo del administrador original debe afectar a su PC');

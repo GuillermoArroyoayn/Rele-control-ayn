@@ -106,5 +106,29 @@ async function send(id,body,headers={}){
  const devices=fs.readFileSync('lib/devices.js','utf8');
  assert(devices.includes('if(record.workstationOf)'), 'El equipo secundario debe tener guardia');
  assert(devices.includes("primary.status!=='active'"),'El bloqueo del administrador original debe afectar a su PC');
+
+ // Comprobar también la autorización real del PC en el código de dispositivos.
+ const deviceMod={exports:{}};
+ let backing=JSON.stringify(registry);
+ const fakeFetch=async(_url,options)=>{
+   const [cmd,key,value]=JSON.parse(options.body);let result=null;
+   if(cmd==='GET'&&key==='ayn:relay:devices')result=backing;
+   else if(cmd==='SET'&&key==='ayn:relay:devices'){backing=value;result='OK';}
+   else if(cmd==='HGETALL')result=[];
+   return {ok:true,json:async()=>({result})};
+ };
+ vm.runInNewContext(fs.readFileSync('lib/devices.js','utf8'),{
+   module:deviceMod,require:p=>{if(p!=='crypto')throw Error('Unexpected device module');return crypto;},
+   Buffer,fetch:fakeFetch,console,process:{env:{APP_PIN:'good',KV_REST_API_URL:'https://mock.invalid',KV_REST_API_TOKEN:'mock'}}
+ });
+ const pcRequest={headers:{'x-app-pin':'good','x-device-id':pc}};
+ let deviceAuth=await deviceMod.exports.authorize(pcRequest,{allowRegistration:false});
+ assert.equal(deviceAuth.ok,true,'PC autorizado debe entrar a la misma comunidad');
+ assert.equal(deviceAuth.groupId,'group-karla');
+ const blockedRegistry=JSON.parse(backing);
+ blockedRegistry.devices['admin-phone-123456'].status='blocked';backing=JSON.stringify(blockedRegistry);
+ deviceAuth=await deviceMod.exports.authorize(pcRequest,{allowRegistration:false});
+ assert.equal(deviceAuth.ok,false,'El PC debe suspenderse cuando se bloquee su administrador');
+ assert.equal(deviceAuth.status,403);
  console.log('AYN PC administrador OK: token de un uso, caducidad, permisos y grupo iguales, revocación enlazada y cero comandos a relés.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

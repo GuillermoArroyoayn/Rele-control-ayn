@@ -589,7 +589,9 @@ function syncAccessBrand(view){
 const syncHomeVoice = () => {
   const listening = voiceCommand.classList.contains("listening");
   homeVoiceButton.classList.toggle("listening", listening);
-  homeVoiceText.textContent = listening ? "AYN está escuchando" : "Toca el micrófono para activar AYN";
+  const selected = localStorage.getItem("aynVoiceSelected") === "true";
+  homeVoiceButton.setAttribute("aria-pressed", String(selected));
+  homeVoiceText.textContent = listening ? "AYN está escuchando" : selected ? "AYN activado · esperando permiso de micrófono" : "Toca el micrófono para activar AYN";
 };
 new MutationObserver(syncHomeVoice).observe(voiceCommand, { attributes: true, attributeFilter: ["class", "disabled"] });
 syncHomeVoice();
@@ -1284,6 +1286,7 @@ if (bluetoothQuietToggle) {
 const SpeechRecognition = window.AinLocalRecognition;
 const voiceRelayNames = { 1: "Acceso QR", 2: "Acceso vehicular", 3: "Acceso peatonal" };
 let voiceEnabled = false;
+let voiceNeedsGesture = false; // Si Android exige un toque nuevo, mantener la preferencia sin reintentos infinitos.
 let voiceListening = false;
 let voiceSpeaking = false;
 let lastVoiceCommand = "";
@@ -1819,7 +1822,8 @@ if (!SpeechRecognition) {
       return;
     }
     if (messages[event.error]) {
-      stopVoiceMode(messages[event.error] + " La selección queda guardada; toca Activar AIN por voz para reintentar.", false);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") voiceNeedsGesture = true;
+      stopVoiceMode(messages[event.error] + " La preferencia queda guardada; toca el micrófono si Android requiere permiso.", false);
       voiceStatus.classList.add("error");
     }
   };
@@ -1844,6 +1848,7 @@ if (!SpeechRecognition) {
       setVoiceStatus('☎ Teléfono en uso. La voz debe permanecer en pausa.');
       return;
     }
+    voiceNeedsGesture = false;
     voiceEnabled = true;
     localStorage.setItem("aynVoiceSelected", "true");
     voiceSessionGeneration += 1;
@@ -1860,7 +1865,8 @@ if (!SpeechRecognition) {
   });
   const restoreVoiceSelection = () => {
     if (!statusReady) return;
-    if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") === "false") return;
+    // Solo una selección explícita puede activar la voz al restaurar la app.
+    if (document.visibilityState === "hidden" || localStorage.getItem("aynVoiceSelected") !== "true" || voiceNeedsGesture) return;
     if (window.AynCallPriority && !window.AynCallPriority.shouldListen()) {
       // Conservar la selección visible sin reclamar el micrófono durante llamadas.
       voiceEnabled=true;
@@ -1876,7 +1882,6 @@ if (!SpeechRecognition) {
       startVoiceListening();
       return;
     }
-    localStorage.setItem("aynVoiceSelected", "true");
     voiceEnabled = true;
     voiceCommand.setAttribute("aria-pressed", "true");
     voiceCommand.innerHTML = '<span aria-hidden="true">🎙️</span> Desactivar AIN por voz';

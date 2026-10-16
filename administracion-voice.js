@@ -6,6 +6,7 @@
 
   let recognition=null;
   let enabled=false;
+  let needsMicGesture=false; // Permisos del SO pueden exigir un toque manual; no borrar la elección.
   let listening=false;
   let starting=false;
   let restartTimer=0;
@@ -369,7 +370,7 @@
   }
 
   function start(){
-    if(!enabled||listening||starting||!recognition||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
+    if(!enabled||listening||starting||document.hidden||!recognition||(window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
     starting=true;
     paint('Activando AYN…','starting');
     try{
@@ -477,8 +478,9 @@
         return;
       }
       if(event.error==='not-allowed'){
-        stop(true);
-        paint('Permite el micrófono y vuelve a tocar el botón','error');
+        needsMicGesture=true;
+        stop(false);
+        paint('Preferencia guardada. Permite el micrófono y toca el botón para reanudar.','error');
         return;
       }
       stop(false);
@@ -504,6 +506,7 @@
         paint('☎ Micrófono reservado para la llamada. Usa los botones.','idle');
         return;
       }
+      needsMicGesture=false;
       enable(true);
     }
   });
@@ -516,10 +519,18 @@
     }else if(!listening&&!starting&&!restartTimer)start();
   },2000);
 
-  window.addEventListener('pagehide',()=>{clearTimeout(restartTimer);clearTimeout(phraseTimer);recognition?.abort();listening=starting=false;});
+  window.addEventListener('pagehide',()=>{
+    // El micrófono web deja de capturar al cerrar, pero no se modifica la selección.
+    stop(false);
+  });
   const restore=()=>{
-    if(document.hidden||localStorage.getItem('aynVoiceSelected')!=='true'||enabled||
+    if(document.hidden||localStorage.getItem('aynVoiceSelected')!=='true'||needsMicGesture||
        (window.AynCallPriority&&!window.AynCallPriority.shouldListen()))return;
+    if(enabled){
+      recognition?.resume?.();
+      if(!listening&&!starting)start();
+      return;
+    }
     enable(false);
   };
   window.addEventListener('ayn:call-priority-change',()=>{
@@ -538,8 +549,7 @@
   window.addEventListener('pageshow',restore);
   window.addEventListener('focus',restore);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)restore();});
-  if(localStorage.getItem('aynVoiceSelected')!=='false'){
-    localStorage.setItem('aynVoiceSelected','true');
+  if(localStorage.getItem('aynVoiceSelected')==='true'){
     if(window.AynCallPriority&&!window.AynCallPriority.shouldListen()){
       enabled=true;
       paint('☎ Micrófono protegido. La voz seleccionada se reanudará al quedar disponible.','idle');

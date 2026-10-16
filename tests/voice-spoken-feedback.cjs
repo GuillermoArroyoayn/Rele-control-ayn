@@ -55,3 +55,6 @@ function speechProbe(file,starting,ending){
  assert.equal(control.played.at(-1),'Te escucho','No hablar durante una llamada en Karla');
  console.log('Voz v181: OK y activación audibles por defecto, silencio voluntario y llamada con prioridad OK.');
 })().catch(error=>{console.error(error);process.exitCode=1});
+
+// Restauración de preferencia AYN tras cerrar y reabrir la aplicación.
+require('./voice-preference-persistence.cjs');

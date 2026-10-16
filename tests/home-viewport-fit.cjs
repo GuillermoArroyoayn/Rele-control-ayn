@@ -101,3 +101,6 @@ require('./admin-desktop-expenses.cjs');
 
 // Vinculación segura del computador al administrador original.
 require('./admin-workstation.cjs');
+
+// Validar temporizador real mediante mocks, sin conmutar dispositivos físicos.
+require('./actuator-timers.cjs');

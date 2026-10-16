@@ -65,3 +65,31 @@
   body[data-admin-view] :is(input,select,textarea){max-width:100%}
   body[data-admin-view] #users,body[data-admin-view] #auditRows{min-width:0}
 }
+
+/* Vinculación protegida de un PC a la misma administración. */
+#adminWorkstationOverlay[hidden]{display:none!important}
+#adminWorkstationOverlay{
+  position:fixed;inset:0;z-index:2600;background:rgba(0,10,28,.84);
+  display:flex;justify-content:center;align-items:center;padding:12px;
+}
+#adminWorkstationOverlay .admin-pc-panel{
+  color:#f5fbff;background:#092849;border:2px solid #50caff;border-radius:16px;
+  box-shadow:0 12px 40px #0008;width:min(680px,100%);max-height:calc(100dvh - 24px);
+  overflow:auto;padding:22px;font:16px/1.45 system-ui;
+}
+#adminWorkstationOverlay header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#adminWorkstationOverlay h2{margin:0;font-size:clamp(20px,5vw,26px)}
+#adminWorkstationOverlay p{line-height:1.6}
+#adminWorkstationOverlay label{display:block;margin:15px 0}
+#adminWorkstationOverlay input{width:100%;min-height:46px;padding:10px;font:inherit;overflow-wrap:anywhere}
+#adminWorkstationOverlay button{
+  min-height:46px;padding:10px 14px;border:1px solid #a3dfff;
+  border-radius:11px;background:#76d9ff;color:#071f40;font:700 15px system-ui;
+}
+#adminWorkstationOverlay #adminPcClose{font-size:22px}
+#adminWorkstationOverlay #adminPcFeedback{color:#9df2ff;font-weight:600;min-height:25px}
+#adminWorkstationOverlay [hidden]{display:none!important}
+@media(max-width:560px){
+  #adminWorkstationOverlay .admin-pc-panel{padding:14px}
+  #adminWorkstationOverlay input{font-size:14px}
+}

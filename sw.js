@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v221-karla-confirm-wide222-voicepersist20261015";
+const CACHE = "reles-ayn-v223-karla-voice-resume-20261016";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -28,14 +28,14 @@ const ASSETS = [
   "/panic.css?v=20261006-orbit123",
   "/reports.css?v=20261006-orbit123",
   "/ui-feedback.css?v=20261006-orbit123",
-  "/ayn-call-priority.js?v=20261008-voice181",
+  "/ayn-call-priority.js?v=20261008-voice181-restore223",
   "/ain-local-voice.js?v=20261008-voice181",
   "/ain-voice-phrases.js?v=20261006-voice116",
   "/app.js?v=20261010-karla216-wide222-voicepersist20261015",
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261010-carla01",
+  "/administracion.css?v=20261010-carla01-voicestate223",
   "/expenses-board.css?v=20261015-02",
   "/expenses-board.js?v=20261015-02",
   "/admin-desktop.css?v=20261015-01",
@@ -45,7 +45,7 @@ const ASSETS = [
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261008-compact160",
   "/actuator-voice.js?v=20261010-audio220-wide222",
-  "/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015"
+  "/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015-restore223"
 ];
 // Una imagen o archivo opcional que falle no debe bloquear la actualización en iOS.
 self.addEventListener("install", (event) =>

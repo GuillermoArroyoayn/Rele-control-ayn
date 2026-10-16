@@ -91,7 +91,7 @@ module.exports=async(req,res)=>{
       "local n=tonumber(redis.call('GET',KEYS[3]) or '0'); if n>=6 then return -1 end "+
       "redis.call('INCR',KEYS[3]); if n==0 then redis.call('EXPIRE',KEYS[3],3600) end "+
       "redis.call('SET',KEYS[1],ARGV[1],'EX',ARGV[3]); "+
-      "for i=4,#KEYS do redis.call('SET',KEYS[i],ARGV[i+1],'EX',ARGV[3]) end "+
+      "for i=4,#KEYS do redis.call('SET',KEYS[i],ARGV[i],'EX',ARGV[3]) end "+
       "redis.call('LPUSH',KEYS[2],ARGV[2]); redis.call('LTRIM',KEYS[2],0,35); "+
       "redis.call('EXPIRE',KEYS[2],ARGV[3]); return 1";
     const keys=[root+'item:'+id,root+'list',P+'rate:'+auth.device.id,

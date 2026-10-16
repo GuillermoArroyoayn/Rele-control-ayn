@@ -86,9 +86,9 @@ assert.equal(adminProbe('true',false,false,true).activated,0,'Admin espera nueva
 assert.equal(adminProbe('true',false,false,false,true).activated,0,'Admin protege llamada');
 assert.equal(adminProbe('true').state,'true','La reanudación no modifica la elección guardada');
 
-assert(index.includes('/app.js?v=20261015-voice-persist01'));
-assert(adminHtml.includes('/administracion-voice.js?v=20261015-voice-persist01'));
-assert(sw.includes('/app.js?v=20261015-voice-persist01'));
-assert(sw.includes('/administracion-voice.js?v=20261015-voice-persist01'));
+assert(index.includes('/app.js?v=20261010-karla216-wide222-voicepersist20261015'));
+assert(adminHtml.includes('/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015'));
+assert(sw.includes('/app.js?v=20261010-karla216-wide222-voicepersist20261015'));
+assert(sw.includes('/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015'));
 assert(sw.includes('voicepersist20261015'));
 console.log('AYN Voz Persistente OK: consentimiento, ON/OFF guardado, reanudación al abrir, error de permisos, prioridad de llamadas y caché Android.');

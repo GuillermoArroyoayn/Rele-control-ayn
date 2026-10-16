@@ -78,7 +78,7 @@
   }
   async function load(){
     if(!opened||loading)return;
-    loading=true;const group=current.groupId||sessionStorage.getItem('aynCommunityActiveGroup')||'master';
+    loading=true;const group=current.groupId||'';
     try{
       const data=await api(null,group?{groupId:group}:{});
       if(!opened||(current.groupId&&current.groupId!==group))return;
@@ -101,7 +101,7 @@
   document.addEventListener('ayn-access-restricted',close);
   button.onclick=()=>{
     opened=true;lastFocus=document.activeElement;overlay.hidden=false;
-    current.groupId=sessionStorage.getItem('aynCommunityActiveGroup')||'';
+    current.groupId='';
     const now=new Date();$('expenseMonth').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
     $('expenseClose').focus();load();
   };

@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v221-karla-confirm-wide222-expenses20261015";
+const CACHE = "reles-ayn-v221-karla-confirm-wide222-expenses-pc20261015";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -38,6 +38,9 @@ const ASSETS = [
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
   "/administracion.css?v=20261010-carla01",
+  "/expenses-board.css?v=20261015-02",
+  "/expenses-board.js?v=20261015-02",
+  "/admin-desktop.css?v=20261015-01",
   "/administracion.js?v=20261009-startup211",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",

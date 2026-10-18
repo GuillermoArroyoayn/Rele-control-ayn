@@ -54,9 +54,12 @@ module.exports=async(req,res)=>{
   if(b.action!=='pulse')throw A.error('Acción de pruebas no permitida.',403);
   if(b.areaClear!==true||b.technicianPresent!==true)
    throw A.error('Comprueba presencialmente que no haya personas ni obstáculos antes de activar.',400);
-  if(grant.remaining<=0)throw A.error('Se agotaron las tres pruebas autorizadas.',403);
+  if(grant.remaining<=0||grant.halted===true)throw A.error('Pruebas agotadas o suspendidas por seguridad.',403);
+  if(Date.now()<Date.parse(grant.nextPulseAt||'1970-01-01T00:00:00Z'))
+   throw A.error('Espera a que termine el pulso anterior antes de activar nuevamente.',429);
   // Consumir el intento ANTES del comando impide abrir varias veces desde llamadas paralelas.
-  const update={...grant,remaining:grant.remaining-1};
+  const update={...grant,remaining:grant.remaining-1,
+   nextPulseAt:new Date(Date.now()+12000).toISOString()};
   const script="if redis.call('HGET',KEYS[1],ARGV[1])~=ARGV[2] then return 0 end "+
    "redis.call('HSET',KEYS[1],ARGV[1],ARGV[3]); return 1";
   const consumed=await A.redis('EVAL',script,1,GRANTS,id,raw,JSON.stringify(update));
@@ -64,9 +67,15 @@ module.exports=async(req,res)=>{
   try{
    // Pulso de cuatro segundos y OFF esperado desde servidor: jamás ON permanente.
    const result=await runTimed(actuator.deviceId,actuator.code,true,4,actuator.timer||null);
-   const safeResult={ok:true,remaining:update.remaining,pulseSeconds:4,
+   if(result.autoOffPending===true||result.autoOffConfirmed!==true){
+    // Fallo/ausencia de confirmación de OFF: suspende los pulsos restantes.
+    const blocked={...update,remaining:0,halted:true};
+    await A.redis('EVAL',script,1,GRANTS,id,JSON.stringify(update),JSON.stringify(blocked));
+   }
+   const safeResult={ok:true,remaining:result.autoOffConfirmed===true?update.remaining:0,pulseSeconds:4,
     confirmed:Boolean(result.activationConfirmed||result.autoOffConfirmed),
-    autoOffConfirmed:result.autoOffConfirmed===true,autoOffPending:result.autoOffPending===true};
+    autoOffConfirmed:result.autoOffConfirmed===true,autoOffPending:result.autoOffPending===true,
+    halted:result.autoOffConfirmed!==true};
    await addHistory({kind:'permissions',groupId:grant.groupId,userName:'Técnico instalador',
     actor:'Instalador autorizado',action:'Pulso de prueba del relé '+actuator.name+' · 4 segundos'}).catch(()=>{});
    return res.json(safeResult);

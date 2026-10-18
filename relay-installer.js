@@ -6,7 +6,7 @@ if(!p||!toggle)return;
 const ids=['name','location','wifiSsid','model','deviceId','code','timerSeconds','groupId'];
 const input=n=>document.getElementById('install-'+n);
 const make=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;return el;};
-let drafts=[],groups=[],started=false,busy=false;
+let drafts=[],groups=[],testDevices=[],started=false,busy=false;
 const report=(msg,error=false)=>{message.textContent=msg;message.dataset.error=String(error);};
 async function request(action,values){
  const response=await fetch('/api/relay-installations',{method:action?'POST':'GET',
@@ -98,14 +98,38 @@ function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');
  const found=drafts.filter(x=>!q||[x.name,x.location,x.wifiSsid,groups.find(g=>g.id===x.groupId)?.name].join(' ').toLocaleLowerCase('es').includes(q));
  toggle.textContent=area.hidden?'＋ Preparar relé'+(drafts.length?' · '+drafts.length+' guardado'+(drafts.length===1?'':'s'):''):'− Cerrar preparación';
- saved.hidden=drafts.length===0;
+ saved.hidden=drafts.length===0&&testDevices.length===0;
  document.getElementById('relayInstallerSearch').parentElement.hidden=drafts.length<4;
  list.replaceChildren();for(const item of found)list.append(row(item));
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));
+ const testing=document.getElementById('relayInstallerTesting');
+ testing.replaceChildren();
+ if(testDevices.length){
+  testing.append(make('h3','Pruebas de instalación autorizables desde oficina'));
+  for(const device of testDevices){
+   const card=make('article','');card.className='relay-install-item';
+   const info=make('p',device.name+' · '+(groups.find(g=>g.id===device.groupId)?.name||device.groupId||'Sin asignar')+
+     (device.result?' · Resultado: '+(device.result.result==='ok'?'Correcto':'Con observaciones'):' · Sin prueba final registrada'));
+   card.append(info);
+   card.append(action('Autorizar 3 pruebas · 15 minutos',async()=>{
+    if(!confirm('¿El técnico está presente y el acceso de '+device.name+' está despejado? Se autorizarán hasta 3 aperturas de prueba de 4 segundos durante 15 minutos.'))return;
+    const r=await request('authorizeTechnicianTest',{actuatorId:device.id,confirmSupervised:true});
+    const link=location.origin+'/instalador.html#test='+encodeURIComponent(r.token);
+    try{await navigator.clipboard.writeText(link);report('✓ Enlace de prueba copiado para '+device.name+'. Válido por 15 minutos.');}
+    catch{window.prompt('Copia este enlace de prueba para el técnico:',link);report('Enlace generado. Envíalo al técnico responsable.');}
+   }),action('Revocar pruebas',async()=>{
+    if(!confirm('¿Revocar pruebas de '+device.name+'?'))return;
+    await request('revokeTechnicianTest',{actuatorId:device.id});
+    report('Pruebas de '+device.name+' revocadas.');
+   }));
+   testing.append(card);
+  }
+ }
+ 
 }
 async function reload(){
  if(busy)return;busy=true;
- try{const r=await request();drafts=r.drafts||[];groups=r.groups||[];
+ try{const r=await request();drafts=r.drafts||[];groups=r.groups||[];testDevices=r.testDevices||[];
   groupsSelect(input('groupId').value);render();}finally{busy=false;}
 }
 toggle.onclick=()=>{area.hidden=!area.hidden;toggle.setAttribute('aria-expanded',String(!area.hidden));render();if(!area.hidden)reload().catch(e=>report(e.message,true));};

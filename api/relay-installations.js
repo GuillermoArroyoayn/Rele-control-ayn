@@ -55,7 +55,13 @@ module.exports=async(req,res)=>{
     };}catch{}
    }
    for(const item of drafts)item.technicianReport=reportById[item.id]||null;
-   return res.json({drafts,groups,automaticWifiPairing:false,passwordsStored:false});
+   const installed=(await A.records()).filter(item=>item.installedFrom&&item.approved===true);
+   const resultRaw=await A.redis('HGETALL','ayn:installer:test-results');
+   const testResults={};
+   for(let i=0;i<(resultRaw||[]).length;i+=2)try{testResults[resultRaw[i]]=JSON.parse(resultRaw[i+1]);}catch{}
+   const testDevices=installed.map(item=>({id:item.id,name:item.name,groupId:item.groupId,
+     location:item.location||'',result:testResults[item.id]||null}));
+   return res.json({drafts,groups,testDevices,automaticWifiPairing:false,passwordsStored:false});
   }
   const b=req.body||{};
   if(b.action==='create'){
@@ -64,6 +70,27 @@ module.exports=async(req,res)=>{
    const ok=await A.redis('HSETNX',KEY,id,JSON.stringify(item));
    if(!ok)throw A.error('No fue posible crear la preparación.',409);
    return res.json({ok:true,id});
+  }
+  if(b.action==='authorizeTechnicianTest'){
+   const actuatorId=clean(b.actuatorId,80);
+   const installed=(await A.records()).find(x=>x.id===actuatorId);
+   if(!installed||!installed.installedFrom||installed.approved!==true)
+    throw A.error('La prueba requiere un relé instalado y autorizado por AYN.',409);
+   if(b.confirmSupervised!==true)throw A.error('Confirma que el técnico está presente y el acceso está despejado.',400);
+   if(Object.values(auth.registry.devices||{}).some(x=>x.role==='user'&&x.status==='active'&&x.groupId===installed.groupId&&
+      (x.actuatorIds||[]).includes(actuatorId)))throw A.error('Relé ya entregado a residentes. No se autoriza prueba de instalación.',409);
+   const token=A.token(),expiresAt=new Date(Date.now()+15*60*1000).toISOString();
+   const test={hash:A.hash(token),actuatorId,groupId:installed.groupId,deviceId:installed.deviceId,
+    code:installed.code,expiresAt,remaining:3,createdAt:new Date().toISOString()};
+   await A.redis('HSET','ayn:installer:test-grants',actuatorId,JSON.stringify(test));
+   return res.json({ok:true,token:actuatorId+'.'+token,expiresAt,maxPulses:3});
+  }
+  if(b.action==='revokeTechnicianTest'){
+   const actuatorId=clean(b.actuatorId,80);
+   const installed=(await A.records()).find(x=>x.id===actuatorId&&x.installedFrom);
+   if(!installed)throw A.error('Relé de instalación no encontrado.',404);
+   await A.redis('HDEL','ayn:installer:test-grants',actuatorId);
+   return res.json({ok:true});
   }
   const id=clean(b.id),{raw,item}=await lookup(id);
   if(b.action==='technicianInvite'){

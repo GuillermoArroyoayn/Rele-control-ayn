@@ -70,7 +70,7 @@ async function run(action,payload={},method='POST'){
  assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!allCount"),'Ocultar carpetas sin relés originales ni gestionados');
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
- assert(html.includes('/relay-installer.js?v=20261018-tech-installer01'));
+ assert(html.includes('/relay-installer.js?v=20261018-techtest02'));
  assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw)&&sw.includes('/relay-installer.js?v=20261018-techtest02'));
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
  assert(html.includes('relayInstallerRefresh'),'El Máster puede consultar nuevas solicitudes de técnicos');

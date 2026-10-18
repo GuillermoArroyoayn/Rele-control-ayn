@@ -59,6 +59,6 @@ for(const [source,pattern,message] of [
   [status,/communityName=String\(owner\?\.adminName/,'Nombre verificado desde el propietario de comunidad'],
   [index,/\/app\.js\?v=20261010-karla216/,'Nueva app versionada'],
   [adminHtml,/\/administracion-voice\.js\?v=20261010-confirm221/,'Nueva voz administracion versionada'],
-  [sw,/reles-ayn-v221-karla-confirm/,'Nueva caché para Android']
+  [sw,/const CACHE = "reles-ayn-v\d+-[a-z0-9-]+"/,'Caché de Android versionada']
 ])assert.match(source,pattern,message);
 console.log('Karla voz y pulsador: una Puerta, permisos, comunidad, rechazo de ambigüedad y PWA OK.');

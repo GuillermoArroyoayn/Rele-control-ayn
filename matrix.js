@@ -136,6 +136,7 @@ function loadGroup(){
   $('appName').value=current.branding?.appName||'A&N Control';
   $('communityName').value=current.branding?.communityName||group.name;
   $('adminStatus').textContent=group.status==='deleted'?'ELIMINADO':group.status==='pending'?'PENDIENTE DE ACEPTAR INVITACIÓN':String(group.status||'active').toUpperCase();
+  $('selectedAdministratorSummary').textContent='Registro seleccionado: '+group.name+' · '+$('adminStatus').textContent;
   $('modules').replaceChildren(...(current.modules||[]).map(moduleRow));
   $('actuators').replaceChildren(...(group.actuators||[]).map(device=>actuatorRow(device,current)));
   if(!(group.actuators||[]).length)$('actuators').append(el('p','Todavía no hay relés/actuadores asignados. Usa el selector superior para asignarlos.'));
@@ -217,6 +218,7 @@ function renderGroups(preferred=requestedGroup){
     const option=el('option',group.name+' · '+state);option.value=group.id;$('group').append(option);
   }
   $('editor').hidden=!payload.groups?.length;
+  $('selectedAdministratorTools').hidden=!payload.groups?.length;
   if(payload.groups?.length){
     const target=(payload.groups||[]).some(group=>group.id===preferred)?preferred:payload.groups[0].id;
     $('group').value=target;loadGroup();

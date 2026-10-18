@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071b3a"><title>AYN Instalador</title>
+<link rel="manifest" href="/instalador.webmanifest">
+<link rel="icon" href="/app-icon-192.png" type="image/png">
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#eff8ff;background:#06152c}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:linear-gradient(#0b356b,#041126);padding:20px}
+main{max-width:600px;margin:0 auto}header{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+header img{width:54px;height:54px}h1{font-size:24px;margin:0}h2{font-size:19px;margin:0 0 12px}
+p{line-height:1.5}section{border:1px solid #5ee7ff55;background:#071d3d;border-radius:17px;padding:18px;margin:16px 0}
+label{display:block;font-weight:750;margin:13px 0}input:not([type=checkbox]),textarea{display:block;width:100%;margin-top:5px;padding:13px;border:1px solid #77caff77;border-radius:10px;font:inherit;background:#061226;color:#fff}
+button{font:inherit;font-weight:800;padding:13px 16px;border:0;border-radius:10px;color:#fff;background:#1175e4;width:100%;margin:6px 0}
+button:disabled{opacity:.5}.status{font-weight:700;color:#b1edff}.warning{border-left:4px solid #ffca74;padding-left:12px;color:#ffe5b3}
+fieldset{border:1px solid #6cbcff55;border-radius:10px}legend{font-weight:700}
+[hidden]{display:none!important}
+</style></head><body><main>
+<header><img src="/app-icon-192.png" alt=""><div><h1>AYN Instalador</h1><span>Instalación en terreno · solo informes</span></div></header>
+<section id="login"><h2>Orden de trabajo</h2><p>Abre el enlace personal recibido de AYN Control. No se necesita la clave Máster.</p>
+<label>Código de instalación<input id="accessCode" autocomplete="off" placeholder="Pega tu código de instalación"></label>
+<button id="openJob" type="button">Abrir trabajo</button></section>
+<p id="feedback" class="status" role="status" aria-live="polite"></p>
+<section id="job" hidden><h2 id="jobTitle"></h2><p id="jobCommunity"></p><p id="jobLocation"></p>
+<p class="warning">El relé debe quedar conectado al WiFi de 2,4 GHz del condominio y vinculado a la plataforma Tuya autorizada por AYN. Esta app no configura el WiFi automáticamente ni activa accesos.</p>
+<form id="report">
+<label>Nombre del técnico<input name="techName" maxlength="60" required autocomplete="name"></label>
+<label>Identificador Tuya del relé<input name="deviceId" maxlength="64" required pattern="[A-Za-z0-9]{8,64}" placeholder="ID del dispositivo"></label>
+<label>Red WiFi instalada (solo nombre)<input name="wifiSsid" maxlength="32" required placeholder="SSID del condominio"></label>
+<label>Canal ON/OFF<input name="code" value="switch_1" required pattern="switch_[1-9][0-9]?"></label>
+<label>Ubicación / puerta<input name="location" maxlength="80" placeholder="Portón principal"></label>
+<label>Observaciones (opcional)<textarea name="notes" maxlength="240" rows="3" placeholder="Indica resultado de pruebas físicas y cualquier observación"></textarea></label>
+<label><input type="checkbox" name="installedConfirmed" required> Confirmo que instalé el equipo y revisé alimentación, conexión y condiciones de seguridad.</label>
+<button id="sendReport" type="submit">Enviar informe a oficina</button>
+</form><p id="sent" hidden>Informe entregado. Solo el Máster puede verificar e incorporar este relé a AYN Control.</p></section>
+<section><p><strong>Seguridad:</strong> nunca ingreses aquí la clave Máster, claves del WiFi ni credenciales Tuya. Los permisos de acceso se autorizan exclusivamente desde oficina.</p></section>
+</main><script src="/instalador.js?v=20261018-pilot01" defer></script></body></html>

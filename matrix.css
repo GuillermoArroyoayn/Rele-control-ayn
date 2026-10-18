@@ -140,3 +140,13 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
 .matrix-selected-tools[hidden]{display:none!important}
 .matrix-selected-tools #deleteAdmin{width:100%}
 .matrix-selected-summary{margin:0 0 10px!important;color:#eef7ff!important;font-size:14px;font-weight:800}
+
+/* v187 · Alta de administradores dentro del Constructor sin navegación. */
+.matrix-new-admin{flex:1 1 100%;width:100%;padding:16px;border:1px solid #5ee7ff55;border-radius:14px;background:#061d3b}
+.matrix-new-admin[hidden]{display:none!important}
+.matrix-new-admin h2{margin:0 0 8px;font-size:19px}
+.matrix-new-admin p{margin:0 0 12px;line-height:1.5}
+.matrix-new-admin-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px}
+.matrix-new-admin-fields label{margin:0}
+.matrix-new-admin-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.matrix-new-admin-actions button{min-height:44px}

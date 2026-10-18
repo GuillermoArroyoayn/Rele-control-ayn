@@ -169,7 +169,9 @@ const seed=id=>{
  assert(markup.includes('id="communityDeletePin" type="password"'));
  assert(matrix.includes('confirmationPin'));
  assert(!matrix.includes("prompt('Confirmación definitiva"));
- assert(markup.includes('href="/administracion.html#people"'),'Enlace para nuevo administrador siempre visible');
+ assert(markup.includes('id="createAdministrator"'),'Crear administrador debe estar visible en Constructor');
+ assert(markup.includes('id="newAdministratorForm"')&&markup.includes('id="newAdminPhone"'),'Formulario de alta debe estar dentro del Constructor');
+ assert(!markup.includes('href="/administracion.html#people"'),'No debe mandar a la lista de usuarios de otra comunidad');
  const invites=fs.readFileSync('api/administrations.js','utf8');
  assert(invites.includes('invitation.stagedAdmin'));
  assert(invites.includes("staged.status!=='sent'"));

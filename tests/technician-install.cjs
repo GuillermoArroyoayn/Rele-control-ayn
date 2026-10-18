@@ -5,7 +5,9 @@ const keys={
  'ayn:installer:invites':new Map(),
  'ayn:installer:reports':new Map(),
  'ayn:managed:device-owners':new Map(),
- 'ayn:managed:actuators':new Map()
+ 'ayn:managed:actuators':new Map(),
+ 'ayn:installer:test-grants':new Map(),
+ 'ayn:installer:test-results':new Map()
 };
 let role='super_master',seq=0,connected=false;
 const h=key=>{if(!keys[key])throw Error('Tabla Redis inesperada '+key);return keys[key];};
@@ -45,7 +47,7 @@ async function redis(cmd,key,...tail){
  throw Error('Comando Redis inesperado '+cmd);
 }
 const A={
- redis,access:async()=>({role,registry:{devices:{master:{role:'super_master'},adminA:{role:'admin',status:'active',groupId:'group-A',adminName:'Condominio A'}}}}),
+ redis,records:async()=>[...keys['ayn:managed:actuators'].values()].map(JSON.parse),access:async()=>({role,registry:{devices:{master:{role:'super_master'},adminA:{role:'admin',status:'active',groupId:'group-A',adminName:'Condominio A'}}}}),
  error:(s,status=400)=>Object.assign(new Error(s),{status}),
  uuid:()=>('00000000-0000-0000-0000-'+String(++seq).padStart(12,'0')),
  token:()=>String(++seq).padStart(64,'a'),
@@ -127,7 +129,8 @@ async function call(fn,body=null,token=''){
  const html=fs.readFileSync('instalador.html','utf8'),ui=fs.readFileSync('instalador.js','utf8'),sw=fs.readFileSync('sw.js','utf8');
  assert(html.includes('rel="manifest" href="/instalador.webmanifest"'));
  assert(html.includes('id="sendReport"')&&ui.includes('/api/technician-install'));
- assert(sw.includes('/instalador.js?v=20261018-pilot01'));
+ assert(sw.includes('/instalador.js?v=20261018-test02'));
+ assert(html.includes('id="pulseRelay"'),'Control de prueba técnico presente');
  assert(!fs.readFileSync('api/technician-install.js','utf8').includes("require('../lib/tuya')"),'Técnico no puede mandar órdenes Tuya');
  console.log('App técnico AYN: token 24h, revocación, informe aislado, rechazo, comprobación y aprobación solo Máster OK.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

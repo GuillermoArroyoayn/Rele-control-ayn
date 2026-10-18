@@ -80,8 +80,12 @@ module.exports=async(req,res)=>{
     actor:'Instalador autorizado',action:'Pulso de prueba del relé '+actuator.name+' · 4 segundos'}).catch(()=>{});
    return res.json(safeResult);
   }catch(error){
+   // Ante error posterior al envío, no podemos suponer el estado físico del relé.
+   // Suspender pruebas futuras hasta nueva inspección/autorización del Máster.
+   const blocked={...update,remaining:0,halted:true};
+   await A.redis('EVAL',script,1,GRANTS,id,JSON.stringify(update),JSON.stringify(blocked)).catch(()=>{});
    await addHistory({kind:'permissions',groupId:grant.groupId,userName:'Técnico instalador',
-    actor:'Instalador autorizado',action:'Pulso de prueba fallido en '+actuator.name}).catch(()=>{});
+    actor:'Instalador autorizado',action:'Pulso de prueba fallido en '+actuator.name+'; pruebas suspendidas'}).catch(()=>{});
    throw error;
   }
  }catch(error){return res.status(error.status||500).json({error:error.message||'Error en prueba técnica.'});}

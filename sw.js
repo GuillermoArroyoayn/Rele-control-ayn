@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v221-karla-confirm-wide222-voicepersist20261015-restore223";
+const CACHE = "reles-ayn-v224-tecnicos20261018";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -43,7 +43,10 @@ const ASSETS = [
   "/administracion.js?v=20261009-startup211",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
-  "/relay-installer.js?v=20261008-compact160",
+  "/relay-installer.js?v=20261018-tech-installer01",
+  "/instalador.html",
+  "/instalador.js?v=20261018-pilot01",
+  "/instalador.webmanifest",
   "/actuator-voice.js?v=20261010-audio220-wide222",
   "/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015-restore223"
 ];

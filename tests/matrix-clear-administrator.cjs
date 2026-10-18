@@ -161,6 +161,10 @@ const seed=id=>{
         'Ocultar limpieza cuando no exista ningún registro');
  assert(matrix.includes("selectedAdministratorSummary').textContent"),
         'Mostrar nombre y estado del registro antes de borrar');
+ const css=fs.readFileSync('matrix.css','utf8');
+ assert(/\.matrix-actions\{[^}]*position:static/.test(css),'La botonera debe quedar en el flujo normal de la página');
+ assert(!/\.matrix-actions\{[^}]*position:sticky/.test(css),'La botonera grande no puede tapar herramientas con sticky');
+ assert(markup.includes('/matrix.css?v=20261018-layout186'),'Se debe renovar caché de estilos tras corregir el diseño');
  assert(markup.includes('Eliminar comunidad completa y administradores'));
  assert(markup.includes('id="communityDeletePin" type="password"'));
  assert(matrix.includes('confirmationPin'));

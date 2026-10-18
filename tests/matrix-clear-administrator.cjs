@@ -164,12 +164,21 @@ const seed=id=>{
  const css=fs.readFileSync('matrix.css','utf8');
  assert(/\.matrix-actions\{[^}]*position:static/.test(css),'La botonera debe quedar en el flujo normal de la página');
  assert(!/\.matrix-actions\{[^}]*position:sticky/.test(css),'La botonera grande no puede tapar herramientas con sticky');
- assert(markup.includes('/matrix.css?v=20261018-layout186'),'Se debe renovar caché de estilos tras corregir el diseño');
+ assert(markup.includes('/matrix.css?v=20261018-newadmin187'),'Se debe renovar caché de estilos tras corregir el diseño');
  assert(markup.includes('Eliminar comunidad completa y administradores'));
  assert(markup.includes('id="communityDeletePin" type="password"'));
  assert(matrix.includes('confirmationPin'));
  assert(!matrix.includes("prompt('Confirmación definitiva"));
- assert(markup.includes('href="/administracion.html#people"'),'Enlace para nuevo administrador siempre visible');
+ const adminMarkup=fs.readFileSync('matrix.html','utf8');
+ assert(matrix.includes("action:'prepareAdmin'"),'El alta debe preparar administrador sin activarlo');
+ assert(matrix.includes("await reload(result.groupId)"),'El alta debe abrir nueva comunidad en Constructor');
+ assert(matrix.includes("event.preventDefault()"),'El formulario de alta no debe abandonar el Constructor');
+ assert(adminMarkup.includes('/matrix.js?v=20261018-newadmin187')&&adminMarkup.includes('/matrix.css?v=20261018-newadmin187'),
+   'Los recursos de nueva versión deben actualizarse conjuntamente');
+ assert(/\.matrix-new-admin\[hidden\]\{display:none!important\}/.test(css),'El formulario de nuevo administrador debe permanecer oculto cuando corresponda');
+ assert(markup.includes('id="createAdministrator"'),'Crear administrador debe estar visible en Constructor');
+ assert(markup.includes('id="newAdministratorForm"')&&markup.includes('id="newAdminPhone"'),'Formulario de alta debe estar dentro del Constructor');
+ assert(!markup.includes('href="/administracion.html#people"'),'No debe mandar a la lista de usuarios de otra comunidad');
  const invites=fs.readFileSync('api/administrations.js','utf8');
  assert(invites.includes('invitation.stagedAdmin'));
  assert(invites.includes("staged.status!=='sent'"));

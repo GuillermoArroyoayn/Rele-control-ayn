@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-const GRANTS=new Map(),RESULTS=new Map();let times=0,usersAssigned=false,pulseSuccess=true;
+const GRANTS=new Map(),RESULTS=new Map();let times=0,usersAssigned=false,pulseSuccess=true,pulseThrows=false;
 const id='00000000-0000-0000-0000-000000000005',secret='b'.repeat(64);
 const grant={hash:crypto.createHash('sha256').update(secret).digest('hex'),actuatorId:id,
  groupId:'group-A',deviceId:'sampledevice123',code:'switch_1',
@@ -35,7 +35,7 @@ vm.runInNewContext(fs.readFileSync('api/technician-test.js','utf8'),{
  module:m,Date,console,
  require:n=>n==='../lib/administrations'?A:n==='../lib/devices'?D:n==='../lib/history'?
   {addHistory:async data=>history.push(data)}:n==='../lib/timed-command'?
-  {runTimed:async(...args)=>{pulses.push(args);return pulseSuccess?
+  {runTimed:async(...args)=>{pulses.push(args);if(pulseThrows)throw Error('Comunicación remota no confirmada');return pulseSuccess?
    {activationConfirmed:true,autoOffConfirmed:true}:
    {activationConfirmed:true,autoOffConfirmed:false,autoOffPending:true};}}:(()=>{throw Error(n);})()
 });
@@ -74,6 +74,12 @@ async function call(body=null,token=id+'.'+secret){
  r=await call(p);assert.equal(r.code,200);
  assert.equal(r.out.halted,true);assert.equal(r.out.remaining,0);
  assert.equal((await call(p)).code,403);
+ // Si hay error remoto, también se suspende el permiso.
+ GRANTS.set(id,JSON.stringify({...grant}));pulseThrows=true;
+ assert.equal((await call(p)).code,500);
+ assert.equal(JSON.parse(GRANTS.get(id)).halted,true);
+ assert.equal((await call(p)).code,403);
+ pulseThrows=false;
  // Vencimiento invalidará incluso un enlace correcto.
  GRANTS.set(id,JSON.stringify({...grant,expiresAt:'2020-01-01T00:00:00Z'}));
  assert.equal((await call()).code,403);

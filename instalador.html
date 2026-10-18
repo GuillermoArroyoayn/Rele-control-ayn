@@ -32,5 +32,23 @@ fieldset{border:1px solid #6cbcff55;border-radius:10px}legend{font-weight:700}
 <label><input type="checkbox" name="installedConfirmed" required> Confirmo que instalé el equipo y revisé alimentación, conexión y condiciones de seguridad.</label>
 <button id="sendReport" type="submit">Enviar informe a oficina</button>
 </form><p id="sent" hidden>Informe entregado. Solo el Máster puede verificar e incorporar este relé a AYN Control.</p></section>
+<section id="testJob" hidden>
+<h2 id="testTitle">Pruebas autorizadas</h2>
+<p id="testTime" class="status"></p>
+<p class="warning">Antes de cada prueba, confirma que estás físicamente frente al acceso y que no hay personas, vehículos ni obstáculos en la zona de movimiento.</p>
+<p>El pulsador acciona exclusivamente este relé durante un máximo de 4 segundos. El Máster puede revocar el permiso desde oficina.</p>
+<label><input id="testAreaClear" type="checkbox"> Verifiqué que el área de movimiento está despejada.</label>
+<label><input id="testTechnicianPresent" type="checkbox"> Estoy presente y puedo supervisar esta prueba.</label>
+<button id="pulseRelay" type="button">Probar relé · pulso 4 segundos</button>
+<p id="testResult" class="status" role="status" aria-live="polite"></p>
+<form id="finishTest">
+<label>Resultado de instalación
+<select id="testFinalResult" required><option value="ok">Funcionamiento correcto</option><option value="issue">Presenta observaciones</option></select></label>
+<label>Observaciones<input id="testNotes" maxlength="240" placeholder="Opcional"></label>
+<button id="finishButton" type="submit">Finalizar prueba y devolver permiso</button>
+</form></section>
+<style>
+#testJob select{display:block;width:100%;margin-top:6px;padding:13px;border:1px solid #77caff77;border-radius:10px;font:inherit;background:#061226;color:#fff}
+</style>
 <section><p><strong>Seguridad:</strong> nunca ingreses aquí la clave Máster, claves del WiFi ni credenciales Tuya. Los permisos de acceso se autorizan exclusivamente desde oficina.</p></section>
-</main><script src="/instalador.js?v=20261018-pilot01" defer></script></body></html>
+</main><script src="/instalador.js?v=20261018-test02" defer></script></body></html>

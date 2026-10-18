@@ -245,6 +245,42 @@ async function save(action){
   }catch(error){message(error.message,true);return false;}finally{button.disabled=false;}
 }
 
+$('createAdministrator').onclick=()=>{
+  const form=$('newAdministratorForm');
+  form.hidden=!form.hidden;
+  $('createAdministrator').setAttribute('aria-expanded',String(!form.hidden));
+  if(!form.hidden)$('newAdminName').focus();
+};
+$('cancelNewAdministrator').onclick=()=>{
+  $('newAdministratorForm').hidden=true;
+  $('createAdministrator').setAttribute('aria-expanded','false');
+};
+$('newAdministratorForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(payload?.role!=='super_master'){message('Solo el Máster puede crear administradores.',true);return;}
+  const button=$('confirmNewAdministrator');
+  button.disabled=true;
+  try{
+    // Prepara una comunidad nueva, sin cuentas activas, sin relés y sin enviar invitación.
+    const result=await administrationAction({
+      action:'prepareAdmin',
+      name:$('newAdminName').value.trim(),
+      phone:$('newAdminPhone').value.trim(),
+      apartment:$('newAdminApartment').value.trim()
+    });
+    if(!result?.groupId)throw new Error('El servidor no confirmó la preparación del administrador.');
+    $('newAdministratorForm').reset();
+    $('newAdministratorForm').hidden=true;
+    $('createAdministrator').setAttribute('aria-expanded','false');
+    sessionStorage.setItem('aynNewAdminGroup',result.groupId);
+    history.replaceState(null,'','/matrix.html?group='+encodeURIComponent(result.groupId)+'&setup=1');
+    await reload(result.groupId);
+    message('✓ Administrador preparado. Configura sus funciones y relés; después finaliza y envía la invitación.');
+    $('preparedAdminBanner').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(error){message(error.message||'No se pudo preparar el administrador.',true);}
+  finally{button.disabled=false;}
+});
+
 $('group').addEventListener('change',()=>{history.replaceState(null,'','/matrix.html?group='+encodeURIComponent($('group').value));loadGroup();});
 $('appName').addEventListener('input',()=>{renderPreview();markDirty();});$('communityName').addEventListener('input',()=>{renderPreview();markDirty();});
 for(const button of document.querySelectorAll('[data-preview]'))button.addEventListener('click',()=>{previewRole=button.dataset.preview;for(const item of document.querySelectorAll('[data-preview]'))item.classList.toggle('active',item===button);renderPreview();});

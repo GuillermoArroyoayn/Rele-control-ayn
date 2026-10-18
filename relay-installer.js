@@ -42,6 +42,14 @@ function row(item){
  groups.find(g=>g.id===item.groupId)?.name||({master:'Máster general',unassigned:'Sin asignar'})[item.groupId]||'Sin asignar'].join(' · '));
  const status=make('span','Pendiente de emparejamiento');status.className='relay-install-state';
  const buttons=make('div','');buttons.className='relay-install-buttons';
+ const handoff=item.technicianReport;
+ if(handoff){
+  const pending=make('p','Solicitud del técnico: '+handoff.techName+
+   ' · ID '+handoff.deviceId+' · Red '+(handoff.wifiSsid||'sin informar')+
+   ' · '+(handoff.location||'sin ubicación')+(handoff.notes?' · '+handoff.notes:''));
+  pending.className='relay-install-tech-report';article.append(pending);
+  status.textContent='Esperando aprobación desde oficina';
+ }
  const enable=action('Incorporar a AYN',async()=>{
   if(!confirm('¿Confirmas que la instalación eléctrica está revisada y quieres incorporar '+item.name+'? No se enviarán órdenes.'))return;
   await request('activate',{id:item.id,confirmInstalled:true});await reload();
@@ -49,6 +57,25 @@ function row(item){
  });
  enable.disabled=true;
  buttons.append(
+ action('Enviar al técnico',async()=>{
+  if(handoff)throw new Error('Primero aprueba o rechaza la solicitud pendiente.');
+  const r=await request('technicianInvite',{id:item.id});
+  const link=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
+  try{await navigator.clipboard.writeText(link);report('✓ Enlace del técnico copiado. Válido por 24 horas.');}
+  catch{window.prompt('Copia el enlace y envíalo al técnico:',link);report('Enlace generado. Comparte solamente con el técnico autorizado.');}
+ }),
+ ...(handoff?[
+ action('Aplicar informe',async()=>{
+  if(!confirm('¿Confirmas los datos del técnico '+handoff.techName+'? Después tendrás que COMPROBAR el dispositivo y autorizar su incorporación.'))return;
+  await request('applyTechnicianReport',{id:item.id,confirmReport:true});
+  await reload();report('✓ Informe aplicado. Pulsa Comprobar y después Incorporar a AYN cuando verifiques la instalación.');
+ }),
+ action('Rechazar informe',async()=>{
+  if(!confirm('¿Rechazar este informe? Deberás generar un enlace nuevo para el técnico.'))return;
+  await request('rejectTechnicianReport',{id:item.id,confirmReject:true});
+  await reload();report('Informe rechazado. Puedes generar un nuevo enlace.');
+ })
+ ]:[]),
  action('Editar',async()=>{
   for(const key of ids)if(key!=='groupId')input(key).value=item[key]??'';
   groupsSelect(item.groupId);input('draftId').value=item.id;
@@ -90,6 +117,8 @@ form.onsubmit=async e=>{
  }catch(error){report(error.message,true);}finally{b.disabled=false;}
 };
 document.getElementById('relayInstallerCancel').onclick=()=>{reset();report('Formulario reiniciado.');};
+const refresh=document.getElementById('relayInstallerRefresh');
+if(refresh)refresh.onclick=()=>reload().then(()=>report('Solicitudes actualizadas.')).catch(error=>report(error.message,true));
 document.getElementById('relayInstallerSearch').oninput=render;
 function visible(){
  const allowed=document.body.dataset.adminView==='equipment'&&!document.getElementById('relayCenterHead').hidden;

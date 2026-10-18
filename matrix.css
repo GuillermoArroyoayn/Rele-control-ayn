@@ -133,3 +133,10 @@ button:disabled{opacity:.45;cursor:not-allowed}.state-line{display:flex;justify-
 .community-delete-actions button{white-space:normal;min-height:54px}
 .community-delete-actions .danger{background:#ad2d45!important;border-color:#ffb2bc!important}
 @media(max-width:480px){.community-delete-actions{grid-template-columns:1fr}}
+
+/* v185: la eliminación individual queda junto al selector, no bajo las herramientas. */
+.matrix-select{flex-wrap:wrap}
+.matrix-selected-tools{width:100%;flex:1 1 100%;border-top:1px solid #5ee7ff44;padding-top:12px}
+.matrix-selected-tools[hidden]{display:none!important}
+.matrix-selected-tools #deleteAdmin{width:100%}
+.matrix-selected-summary{margin:0 0 10px!important;color:#eef7ff!important;font-size:14px;font-weight:800}

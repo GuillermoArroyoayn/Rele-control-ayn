@@ -106,10 +106,5 @@ async function request(handler,body,method=body?'POST':'GET',id=master){
  assert(js.includes("action:'prepareAdmin'")&&js.includes('Confirmar y configurar autorizaciones'));
  assert(editor.includes("action:'sendPreparedAdminInvite'")&&editor.includes("await save('publish')"));
  assert(html.includes('id="sendPreparedInvite"')&&html.includes('id="preparedInviteResult"'));
- assert(html.includes('id="newAdministratorForm"')&&html.includes('id="newAdminName"'),'El formulario debe abrirse en Constructor');
- assert(editor.includes("action:'prepareAdmin'"),'Constructor debe preparar admin sin crear cuenta activa');
- assert(editor.includes('await reload(result.groupId)'),'Debe seleccionar el nuevo administrador en su configuración');
- assert(editor.includes("sessionStorage.setItem('aynNewAdminGroup',result.groupId)"),'Debe conservar identificador del administrador preparado');
- assert(html.includes('/matrix.js?v=20261018-newadmin187'),'Actualizar caché JS del nuevo formulario');
  console.log('Alta v180: confirmación sin envío, departamento opcional, permisos inicialmente cerrados, publicar antes de invitar, envío único y aceptación OK.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

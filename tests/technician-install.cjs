@@ -129,7 +129,7 @@ async function call(fn,body=null,token=''){
  const html=fs.readFileSync('instalador.html','utf8'),ui=fs.readFileSync('instalador.js','utf8'),sw=fs.readFileSync('sw.js','utf8');
  assert(html.includes('rel="manifest" href="/instalador.webmanifest"'));
  assert(html.includes('id="sendReport"')&&ui.includes('/api/technician-install'));
- assert(sw.includes('/instalador.js?v=20261018-test02'));
+ assert(sw.includes('/instalador.js?v=20261018-batch227'));
  assert(html.includes('id="pulseRelay"'),'Control de prueba técnico presente');
  assert(!fs.readFileSync('api/technician-install.js','utf8').includes("require('../lib/tuya')"),'Técnico no puede mandar órdenes Tuya');
  console.log('App técnico AYN: token 24h, revocación, informe aislado, rechazo, comprobación y aprobación solo Máster OK.');

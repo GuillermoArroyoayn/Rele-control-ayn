@@ -45,7 +45,7 @@ const ASSETS = [
   "/master-admin-manager.js?v=20261008-community184",
   "/relay-installer.js?v=20261018-batch227",
   "/instalador.html",
-  "/instalador.js?v=20261018-test02",
+  "/instalador.js?v=20261018-batch227",
   "/instalador.webmanifest",
   "/actuator-voice.js?v=20261010-audio220-wide222",
   "/administracion-voice.js?v=20261010-confirm221-wide222-voicepersist20261015-restore223"

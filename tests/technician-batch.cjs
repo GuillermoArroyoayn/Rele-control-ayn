@@ -124,5 +124,7 @@ async function call(api,body,token){
  assert(client.includes("inlineStatus.setAttribute('aria-live','polite')")&&
   client.includes('relayFeedback(error.message,true)'),
   'Mostrar errores de Tuya junto al botón sin ocultarlos arriba');
+ assert(client.includes("$('batchNotice').textContent='✓ '+result.message"),
+  'Confirmación final sigue visible luego de actualizar el estado');
  console.log('AYN batch 5h OK: dos relés, misma red, caducidad, vinculación Tuya GET-only, rechazo de terceros y ausencia de permisos.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

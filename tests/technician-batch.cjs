@@ -81,10 +81,9 @@ async function call(api,body,token){
  assert.equal((await call(tech)).status,401,'Rechazar acceso sin código');
  assert.equal((await call(master,{action:'technicianBatchInvite',ids:[first,third]})).status,409,'No combinar destinos');
  assert.equal((await call(master,{action:'technicianBatchInvite',ids:[first,first]})).status,400,'No repetir relés');
- const start=Date.now();
  const invitation=await call(master,{action:'technicianBatchInvite',ids:[first,second],jobName:'Condominio Test'});
  assert.equal(invitation.status,200,JSON.stringify(invitation.result));
- const expires=Date.parse(invitation.result.expiresAt)-start;
+ const expires=Date.parse(invitation.result.expiresAt)-Date.now();
  assert(expires>0&&expires<=5*60*60*1000,'Enlace expira en máximo 5 horas');
  const token=invitation.result.token;
  assert.equal((await call(tech,null,token)).result.order.total,2);

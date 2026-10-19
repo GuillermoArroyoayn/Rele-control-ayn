@@ -103,7 +103,7 @@ module.exports=async(req,res)=>{
    }
    if(prepared.some(x=>x.groupId!==prepared[0].groupId))
     throw A.error('Todos los relés de una orden deben pertenecer al mismo destino.',409);
-   const token=A.token(),batchId=A.uuid(),expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
+   const token=A.token(),batchId=A.uuid(),expiresAt=new Date(Date.now()+5*60*60*1000).toISOString();
    const jobName=clean(b.jobName,80)||'Instalación AYN';
    const batch={hash:A.hash(token),expiresAt,jobName,groupId:prepared[0].groupId,
     ids:prepared.map(x=>x.id),createdAt:new Date().toISOString()};
@@ -127,7 +127,7 @@ module.exports=async(req,res)=>{
   const id=clean(b.id),{raw,item}=await lookup(id);
   if(b.action==='technicianInvite'){
    if(await A.redis('HGET',REPORTS,id))throw A.error('Ya existe un informe pendiente. Revísalo antes de invitar nuevamente.',409);
-   const token=A.token(),expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
+   const token=A.token(),expiresAt=new Date(Date.now()+5*60*60*1000).toISOString();
    const assigned=Object.values(auth.registry.devices||{}).find(x=>x.role==='admin'&&x.groupId===item.groupId&&x.status!=='deleted');
    const groupName=assigned?.adminName||assigned?.name||'Pendiente de asignar';
    await A.redis('HSET',INVITES,id,JSON.stringify({hash:A.hash(token),expiresAt,groupName}));

@@ -961,3 +961,16 @@ body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="selected"]::afte
 body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="starting"]::after{content:"Iniciando escucha…"}
 body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="attention"]::after{content:"Micrófono pausado · toca para reanudar";color:#ffe19d}
 body[data-admin-view="home"] #homeVoiceToggle[data-voice-state="listening"]::after{content:"AYN está escuchando";color:#86f5c2}
+
+/* v226: invitación individual de instalación por WhatsApp. */
+body[data-admin-view="equipment"] .relay-install-tech-form{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding:13px;border:1px solid var(--theme-border,#5ee7ff99);border-radius:12px;background:rgba(0,20,46,.36)}
+body[data-admin-view="equipment"] .relay-install-tech-form[hidden]{display:none!important}
+body[data-admin-view="equipment"] .relay-install-tech-form>strong,
+body[data-admin-view="equipment"] .relay-install-tech-form>label,
+body[data-admin-view="equipment"] .relay-install-tech-form>small{flex:1 1 100%;margin:0}
+body[data-admin-view="equipment"] .relay-install-tech-form label{font-weight:700}
+body[data-admin-view="equipment"] .relay-install-tech-form input{display:block;box-sizing:border-box;width:100%;min-height:46px;margin:6px 0 0;padding:9px 12px;font-size:16px}
+body[data-admin-view="equipment"] .relay-install-tech-form>button,
+body[data-admin-view="equipment"] .relay-install-whatsapp-link{flex:1 1 190px;min-height:44px;padding:10px 14px;text-align:center;border-radius:10px;font-weight:700}
+body[data-admin-view="equipment"] .relay-install-whatsapp-link{display:flex;align-items:center;justify-content:center;background:#146c45;color:white;text-decoration:none}
+body[data-admin-view="equipment"] .relay-install-tech-form [hidden]{display:none!important}

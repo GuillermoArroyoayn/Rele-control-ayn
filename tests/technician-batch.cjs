@@ -4,7 +4,7 @@ const tables=Object.fromEntries([
  'ayn:installer:reserved-devices','ayn:installer:reports','ayn:installer:invites',
  'ayn:managed:device-owners','ayn:managed:actuators','ayn:installer:test-results'
 ].map(s=>[s,new Map()]));
-let sequence=0,online=true,requests=[],deniedStep='';
+let sequence=0,online=true,requests=[],deniedStep='',deniedBudget=null,uncachedCalls=0;
 const db=k=>{if(!tables[k])throw Error('Tabla desconocida '+k);return tables[k];};
 async function redis(cmd,key,...rest){
  if(cmd==='HGET')return db(key).get(String(rest[0]))??null;
@@ -45,10 +45,12 @@ const A={
 };
 const cloud={
  getToken:async()=>'fake-tuya-token',
+ getUncachedToken:async()=>{uncachedCalls++;return 'fresh-tuya-token';},
  tuyaFetch:async(method,path)=>{
   requests.push({method,path});
   assert.equal(method,'GET','Configurar nunca acciona los relés');
-  if(deniedStep&&path.endsWith(deniedStep)){
+  if(deniedStep&&path.endsWith(deniedStep)&&(deniedBudget===null||deniedBudget>0)){
+   if(deniedBudget!==null)deniedBudget--;
    const error=new Error('Tuya 1106: permission deny');
    error.tuya={code:1106};throw error;
   }
@@ -101,12 +103,17 @@ async function call(api,body,token){
  const rejected=await call(tech,payload,token);
  assert.equal(rejected.status,409,'Una API sin permiso no registra el relé');
  assert.match(rejected.result.error,/Tuya 1106.*funciones ON\/OFF/,'Indicar etapa de permiso rechazado');
+ assert.equal(uncachedCalls,1,'Ante rechazo se consulta un único token fresco');
  assert.equal(db('ayn:managed:actuators').size,0,'Sin permisos de acceso al fallar Tuya');
  deniedStep='';
  online=false;
  assert.equal((await call(tech,payload,token)).status,409,'No aceptar relé Tuya desconectado');
  online=true;
- assert.equal((await call(tech,payload,token)).status,200,'Una sola autorización basta para configurar');
+ // Simula una autorización Tuya recién vinculada que funciona con token fresco.
+ deniedStep='/functions';deniedBudget=1;
+ assert.equal((await call(tech,payload,token)).status,200,'Token fresco permite completar registro sin reconectar el relé');
+ assert.equal(uncachedCalls,2,'Renovación puntual sin invalidar token compartido');
+ deniedStep='';deniedBudget=null;
  let state=await call(tech,null,token);
  assert.equal(state.result.order.completed,1,'Primer relé listo sin aprobación posterior');
  assert.equal(state.result.order.wifiSsid,'Wifi-Comunidad');

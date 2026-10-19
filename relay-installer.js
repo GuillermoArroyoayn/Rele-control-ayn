@@ -35,6 +35,59 @@ function action(label,fn){
  b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){report(e.message,true);}finally{b.disabled=false;}};
  return b;
 }
+// Invitación por WhatsApp: el Máster siempre confirma el envío del mensaje.
+function technicianWhatsappPhone(raw){
+ const value=String(raw||'').trim();
+ if(!/^\+?[\d\s().-]+$/.test(value))throw new Error('Escribe un teléfono válido.');
+ const digits=value.replace(/\D/g,'');
+ if(/^9\d{8}$/.test(digits))return '56'+digits;
+ if(/^569\d{8}$/.test(digits))return digits;
+ if(value.startsWith('+')&&/^[1-9]\d{7,14}$/.test(digits))return digits;
+ throw new Error('Ingresa el celular con 9 dígitos (9XXXXXXXX) o con +56.');
+}
+function technicianWhatsappMessage(item,link){
+ return '🔧 AYN Instalador · A&N Control\n\nOrden de instalación: '+item.name+
+  '\n\nAbre este enlace personal para instalar AYN Instalador y registrar el relé:\n'+link+
+  '\n\nEl código de instalación va incluido automáticamente. Válido por 24 horas. No compartas el enlace.';
+}
+function technicianHandoffForm(item){
+ const panel=make('form','');panel.className='relay-install-tech-form';panel.hidden=true;
+ const title=make('strong','Invitación para técnico instalador');
+ const label=make('label','Número de WhatsApp del técnico');
+ const phone=make('input','');phone.type='tel';phone.inputMode='tel';phone.required=true;
+ phone.autocomplete='tel';phone.placeholder='Ej. 9XXXXXXXX o +569XXXXXXXX';
+ const help=make('small','Solo permite registrar la instalación de '+item.name+'. No entrega acceso Máster ni permiso para abrir relés.');
+ const generate=make('button','Preparar enlace por WhatsApp');generate.type='submit';
+ const share=make('a','Abrir WhatsApp para enviar');share.className='relay-install-whatsapp-link';
+ share.target='_blank';share.rel='noopener noreferrer';share.hidden=true;
+ const copy=make('button','Copiar enlace personal');copy.type='button';copy.hidden=true;
+ let generatedLink='';
+ phone.addEventListener('input',()=>{generatedLink='';share.hidden=true;copy.hidden=true;});
+ copy.onclick=async()=>{
+  if(!generatedLink)return;
+  try{await navigator.clipboard.writeText(generatedLink);report('✓ Enlace de instalación copiado para el técnico.');}
+  catch{window.prompt('Copia el enlace personal:',generatedLink);}
+ };
+ panel.onsubmit=async event=>{
+  event.preventDefault();
+  let number;
+  try{number=technicianWhatsappPhone(phone.value);}
+  catch(error){report(error.message,true);phone.focus();return;}
+  generate.disabled=true;
+  try{
+   const r=await request('technicianInvite',{id:item.id});
+   generatedLink=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
+   const messageText=technicianWhatsappMessage(item,generatedLink);
+   share.href='https://wa.me/'+number+'?text='+encodeURIComponent(messageText);
+   share.hidden=false;copy.hidden=false;
+   generate.textContent='Regenerar código (invalida el anterior)';
+   report('✓ Mensaje listo para '+number+'. Abre WhatsApp y confirma el envío. Código válido por 24 horas.');
+  }catch(error){report(error.message,true);}
+  finally{generate.disabled=false;}
+ };
+ label.append(phone);panel.append(title,label,help,generate,share,copy);
+ return panel;
+}
 function row(item){
  const article=make('article','');article.className='relay-install-item';
  const name=make('strong',item.name),details=make('small',[
@@ -43,6 +96,7 @@ function row(item){
  const status=make('span','Pendiente de emparejamiento');status.className='relay-install-state';
  const buttons=make('div','');buttons.className='relay-install-buttons';
  const handoff=item.technicianReport;
+ const technicianForm=handoff?null:technicianHandoffForm(item);
  if(handoff){
   const pending=make('p','Solicitud del técnico: '+handoff.techName+
    ' · ID '+handoff.deviceId+' · Red '+(handoff.wifiSsid||'sin informar')+
@@ -57,14 +111,11 @@ function row(item){
  });
  enable.disabled=true;
  buttons.append(
- action('Enviar al técnico',async()=>{
-  if(handoff)throw new Error('Primero aprueba o rechaza la solicitud pendiente.');
-  const r=await request('technicianInvite',{id:item.id});
-  const link=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
-  try{await navigator.clipboard.writeText(link);report('✓ Enlace del técnico copiado. Válido por 24 horas.');}
-  catch{window.prompt('Copia el enlace y envíalo al técnico:',link);report('Enlace generado. Comparte solamente con el técnico autorizado.');}
- }),
- ...(handoff?[
+ ...(!handoff?[action('Enviar al técnico',()=>{
+  technicianForm.hidden=!technicianForm.hidden;
+  if(!technicianForm.hidden)technicianForm.querySelector('input').focus();
+ })]:[]),
+  ...(handoff?[
  action('Aplicar informe',async()=>{
   if(!confirm('¿Confirmas los datos del técnico '+handoff.techName+'? Después tendrás que COMPROBAR el dispositivo y autorizar su incorporación.'))return;
   await request('applyTechnicianReport',{id:item.id,confirmReport:true});
@@ -92,7 +143,9 @@ function row(item){
   if(!confirm('¿Eliminar este relé de pendientes?'))return;
   await request('delete',{id:item.id});await reload();report('Preparación eliminada.');
  }),enable);
- article.append(name,status,details,buttons);return article;
+ article.append(name,status,details,buttons);
+ if(technicianForm)article.append(technicianForm);
+ return article;
 }
 function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');

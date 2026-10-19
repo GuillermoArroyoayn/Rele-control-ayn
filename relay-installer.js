@@ -7,6 +7,7 @@ const ids=['name','location','wifiSsid','model','deviceId','code','timerSeconds'
 const input=n=>document.getElementById('install-'+n);
 const make=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;return el;};
 let drafts=[],groups=[],testDevices=[],started=false,busy=false;
+const selectedDrafts=new Set();let lastBatchLink='';
 const report=(msg,error=false)=>{message.textContent=msg;message.dataset.error=String(error);};
 async function request(action,values){
  const response=await fetch('/api/relay-installations',{method:action?'POST':'GET',
@@ -48,7 +49,7 @@ function technicianWhatsappPhone(raw){
 function technicianWhatsappMessage(item,link){
  return '🔧 AYN Instalador · A&N Control\n\nOrden de instalación: '+item.name+
   '\n\nAbre este enlace personal para instalar AYN Instalador y registrar el relé:\n'+link+
-  '\n\nEl código de instalación va incluido automáticamente. Válido por 24 horas. No compartas el enlace.';
+  '\n\nEl código de instalación va incluido automáticamente. Válido por 5 horas. No compartas el enlace.';
 }
 function technicianHandoffForm(item){
  const panel=make('form','');panel.className='relay-install-tech-form';panel.hidden=true;
@@ -75,13 +76,13 @@ function technicianHandoffForm(item){
   catch(error){report(error.message,true);phone.focus();return;}
   generate.disabled=true;
   try{
-   const r=await request('technicianInvite',{id:item.id});
-   generatedLink=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
+   const r=await request('technicianBatchInvite',{ids:[item.id],jobName:'Instalación de '+item.name});
+   generatedLink=location.origin+'/instalador.html#lote='+encodeURIComponent(r.token);
    const messageText=technicianWhatsappMessage(item,generatedLink);
    share.href='https://wa.me/'+number+'?text='+encodeURIComponent(messageText);
    share.hidden=false;copy.hidden=false;
    generate.textContent='Regenerar código (invalida el anterior)';
-   report('✓ Mensaje listo para '+number+'. Abre WhatsApp y confirma el envío. Código válido por 24 horas.');
+   report('✓ Mensaje listo para '+number+'. Abre WhatsApp y confirma el envío. Código válido por 5 horas.');
   }catch(error){report(error.message,true);}
   finally{generate.disabled=false;}
  };
@@ -95,6 +96,17 @@ function row(item){
  groups.find(g=>g.id===item.groupId)?.name||({master:'Máster general',unassigned:'Sin asignar'})[item.groupId]||'Sin asignar'].join(' · '));
  const status=make('span','Pendiente de emparejamiento');status.className='relay-install-state';
  const buttons=make('div','');buttons.className='relay-install-buttons';
+ {
+  const pick=make('label','Agregar a la orden');
+  pick.className='relay-install-pick';
+  const check=make('input','');check.type='checkbox';check.checked=selectedDrafts.has(item.id);
+  check.onchange=()=>{
+   if(check.checked&&selectedDrafts.size>=10){check.checked=false;report('Selecciona máximo 10 relés por orden.',true);return;}
+   if(check.checked)selectedDrafts.add(item.id);else selectedDrafts.delete(item.id);
+   updateBatchControls();
+  };
+  pick.prepend(check);article.append(pick);
+ }
  const handoff=item.technicianReport;
  const technicianForm=handoff?null:technicianHandoffForm(item);
  if(handoff){
@@ -147,13 +159,45 @@ function row(item){
  if(technicianForm)article.append(technicianForm);
  return article;
 }
+function updateBatchControls(){
+ const chosen=drafts.filter(x=>selectedDrafts.has(x.id));
+ const count=document.getElementById('relayInstallerBatchCount');
+ const btn=document.getElementById('relayInstallerBatchCreate');
+ const box=document.getElementById('relayInstallerBatch');
+ const errors=new Set(chosen.map(x=>x.groupId));
+ count.textContent=chosen.length+' relé'+(chosen.length===1?'':'s')+' seleccionado'+(chosen.length===1?'':'s');
+ box.hidden=drafts.length===0;
+ btn.disabled=!chosen.length||errors.size>1;
+ if(errors.size>1)count.textContent+=' · Selecciona solo equipos del mismo destino';
+}
+async function sendBatch(){
+ const chosen=drafts.filter(x=>selectedDrafts.has(x.id));
+ if(!chosen.length||chosen.length>10)throw new Error('Selecciona entre 1 y 10 relés disponibles.');
+ if(new Set(chosen.map(x=>x.groupId)).size!==1)throw new Error('Todos los relés deben tener la misma comunidad.');
+ const number=technicianWhatsappPhone(document.getElementById('relayInstallerBatchPhone').value);
+ const name=document.getElementById('relayInstallerBatchName').value.trim()||'Instalación de '+chosen.length+' relés AYN';
+ if(!confirm('¿Autorizar la configuración de '+chosen.length+' relé(s) durante 5 horas para el técnico indicado?'))return;
+ const r=await request('technicianBatchInvite',{ids:chosen.map(x=>x.id),jobName:name});
+ const link=location.origin+'/instalador.html#lote='+encodeURIComponent(r.token);
+ lastBatchLink=link;
+ const msg='🔧 AYN Instalador · A&N Control\\n\\n'+name+
+  '\\nRelés: '+chosen.map(x=>x.name).join(', ')+
+  '\\n\\nAbre esta orden autorizada para configurar los relés: '+link+
+  '\\n\\nCódigo incluido. Vigencia máxima: 5 horas.';
+ const share=document.getElementById('relayInstallerBatchShare');
+ share.href='https://wa.me/'+number+'?text='+encodeURIComponent(msg);
+ share.hidden=false;document.getElementById('relayInstallerBatchCopy').hidden=false;
+ report('✓ Orden para '+chosen.length+' relés preparada. Abre WhatsApp y confirma el envío (válida 5 horas).');
+}
 function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');
  const found=drafts.filter(x=>!q||[x.name,x.location,x.wifiSsid,groups.find(g=>g.id===x.groupId)?.name].join(' ').toLocaleLowerCase('es').includes(q));
  toggle.textContent=area.hidden?'＋ Preparar relé'+(drafts.length?' · '+drafts.length+' guardado'+(drafts.length===1?'':'s'):''):'− Cerrar preparación';
  saved.hidden=drafts.length===0&&testDevices.length===0;
  document.getElementById('relayInstallerSearch').parentElement.hidden=drafts.length<4;
+ for(const id of [...selectedDrafts])if(!drafts.some(x=>x.id===id))selectedDrafts.delete(id);
  list.replaceChildren();for(const item of found)list.append(row(item));
+ updateBatchControls();
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));
  const testing=document.getElementById('relayInstallerTesting');
  testing.replaceChildren();
@@ -197,6 +241,17 @@ document.getElementById('relayInstallerCancel').onclick=()=>{reset();report('For
 const refresh=document.getElementById('relayInstallerRefresh');
 if(refresh)refresh.onclick=()=>reload().then(()=>report('Solicitudes actualizadas.')).catch(error=>report(error.message,true));
 document.getElementById('relayInstallerSearch').oninput=render;
+const bulk=document.getElementById('relayInstallerBatchCreate');
+bulk.onclick=async()=>{bulk.disabled=true;try{await sendBatch();}catch(e){report(e.message,true);}finally{updateBatchControls();}};
+document.getElementById('relayInstallerBatchPhone').oninput=()=>{
+ lastBatchLink='';document.getElementById('relayInstallerBatchShare').hidden=true;
+ document.getElementById('relayInstallerBatchCopy').hidden=true;
+};
+document.getElementById('relayInstallerBatchCopy').onclick=async()=>{
+ if(!lastBatchLink)return;
+ try{await navigator.clipboard.writeText(lastBatchLink);report('✓ Enlace de lote copiado.');}
+ catch{window.prompt('Copia el enlace:',lastBatchLink);}
+};
 function visible(){
  const allowed=document.body.dataset.adminView==='equipment'&&!document.getElementById('relayCenterHead').hidden;
  p.hidden=!allowed;

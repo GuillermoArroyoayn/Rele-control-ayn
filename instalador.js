@@ -78,8 +78,86 @@ $('finishTest').onsubmit=async event=>{
   $('testJob').hidden=true;message('✓ '+r.message);
  }catch(e){message(e.message,true);b.disabled=false;}
 };
+let batchToken='';
+async function batchRequest(body){
+ const response=await fetch('/api/technician-batch',{method:body?'POST':'GET',
+  headers:{'content-type':'application/json','x-installer-batch-token':batchToken},
+  ...(body?{body:JSON.stringify(body)}:{})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(data.error||'No se pudo completar la configuración.');
+ return data;
+}
+function batchField(labelText,value='',required=true){
+ const label=document.createElement('label');label.textContent=labelText;
+ const input=document.createElement('input');input.value=value;input.maxLength=80;input.required=required;
+ label.append(input);return {label,input};
+}
+async function openBatch(value){
+ batchToken=String(value||'').trim();
+ if(!batchToken)throw new Error('Código de instalación múltiple inválido.');
+ const {order}=await batchRequest();
+ if(!/^[a-f0-9-]{36}\.[a-f0-9]{64}$/i.test(batchToken))throw new Error('Código inválido.');
+ localStorage.setItem('aynInstallerActiveBatch',batchToken);
+ localStorage.setItem('aynInstallerBatchExpiry',order.expiresAt);
+ $('login').hidden=true;$('job').hidden=true;$('testJob').hidden=true;$('batchJob').hidden=false;
+ $('batchTitle').textContent='Instalación: '+order.name;
+ $('batchExpires').textContent='Autorizado hasta '+new Date(order.expiresAt).toLocaleString('es-CL');
+ if(order.wifiSsid)$('batchWifiSsid').value=order.wifiSsid;
+ const list=$('batchRelayList');list.replaceChildren();
+ for(const relay of order.relays){
+  const section=document.createElement('section');
+  const name=document.createElement('h2');name.textContent=relay.name||'Equipo no disponible';
+  const description=document.createElement('p');
+  description.textContent=relay.available?(relay.status==='configured'?'✓ Configurado y verificado':'Pendiente de configurar · '+(relay.location||'Por confirmar')):'Equipo eliminado o reasignado';
+  section.append(name,description);
+  if(relay.available&&relay.status!=='configured'){
+   const form=document.createElement('form');
+   const dev=batchField('ID Tuya de '+relay.name,relay.deviceId||'');
+   dev.input.placeholder='Identificador del dispositivo';dev.input.maxLength=64;
+   const code=batchField('Canal ON/OFF','switch_1');
+   code.input.maxLength=20;
+   const loc=batchField('Ubicación del relé',relay.location||'',false);
+   const confirm=document.createElement('label');
+   const checked=document.createElement('input');checked.type='checkbox';checked.required=true;
+   confirm.append(checked,document.createTextNode(' Confirmo que emparejé físicamente el relé y comprobé su conexión.'));
+   const submit=document.createElement('button');submit.type='submit';
+   submit.textContent='Verificar y guardar '+relay.name;
+   form.append(dev.label,code.label,loc.label,confirm,submit);
+   form.onsubmit=async event=>{
+    event.preventDefault();
+    if(!$('batchTechName').value.trim()||!$('batchWifiSsid').value.trim()){
+     message('Indica primero el nombre del técnico y la red WiFi del condominio.',true);return;
+    }
+    submit.disabled=true;
+    try{
+     const result=await batchRequest({action:'configure',id:relay.id,
+      techName:$('batchTechName').value.trim(),wifiSsid:$('batchWifiSsid').value.trim(),
+      deviceId:dev.input.value.trim(),code:code.input.value.trim(),
+      location:loc.input.value.trim(),confirmed:checked.checked});
+     message('✓ '+result.message);
+     await openBatch(batchToken);
+    }catch(error){message(error.message,true);submit.disabled=false;}
+   };
+   section.append(form);
+  }
+  list.append(section);
+ }
+ $('batchProgress').textContent=order.completed+' de '+order.total+' relés configurados y verificados.';
+ $('batchFinish').hidden=order.completed!==order.total;
+ message('Orden autorizada desde oficina. No necesitas solicitar permiso adicional para registrar estos equipos.');
+}
+$('batchRefresh').onclick=()=>openBatch(batchToken).catch(error=>message(error.message,true));
+
 const urlToken=new URLSearchParams(location.hash.slice(1)).get('token');
 const testParam=new URLSearchParams(location.hash.slice(1)).get('test');
-if(testParam){history.replaceState(null,'',location.pathname);openTest(testParam).catch(e=>{message(e.message,true);});}
+const batchParam=new URLSearchParams(location.hash.slice(1)).get('lote');
+if(batchParam){history.replaceState(null,'',location.pathname);openBatch(batchParam).catch(e=>{message(e.message,true);});}
+else if(testParam){history.replaceState(null,'',location.pathname);openTest(testParam).catch(e=>{message(e.message,true);});}
 else if(urlToken){history.replaceState(null,'',location.pathname);openJob(urlToken).catch(e=>{$('accessCode').value=urlToken;message(e.message,true);});}
+else {
+ const saved=localStorage.getItem('aynInstallerActiveBatch');
+ const until=Date.parse(localStorage.getItem('aynInstallerBatchExpiry')||'');
+ if(saved&&until>Date.now())openBatch(saved).catch(error=>{localStorage.removeItem('aynInstallerActiveBatch');localStorage.removeItem('aynInstallerBatchExpiry');message(error.message,true);});
+ else {localStorage.removeItem('aynInstallerActiveBatch');localStorage.removeItem('aynInstallerBatchExpiry');}
+}
 })();

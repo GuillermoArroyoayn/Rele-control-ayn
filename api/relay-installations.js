@@ -92,10 +92,42 @@ module.exports=async(req,res)=>{
    await A.redis('HDEL','ayn:installer:test-grants',actuatorId);
    return res.json({ok:true});
   }
+  // La autorización Máster se concede una sola vez para TODO el lote, no por dispositivo.
+  if(b.action==='technicianBatchInvite'){
+   if(!Array.isArray(b.ids)||b.ids.length<1||b.ids.length>10||
+      new Set(b.ids).size!==b.ids.length)throw A.error('Selecciona de 1 a 10 relés distintos para el mismo trabajo.',400);
+   const prepared=[];
+   for(const relayId of b.ids){
+    const {item:draft}=await lookup(clean(relayId,80));
+    prepared.push(draft);
+   }
+   if(prepared.some(x=>x.groupId!==prepared[0].groupId))
+    throw A.error('Todos los relés de una orden deben pertenecer al mismo destino.',409);
+   const token=A.token(),batchId=A.uuid(),expiresAt=new Date(Date.now()+5*60*60*1000).toISOString();
+   const jobName=clean(b.jobName,80)||'Instalación AYN';
+   const batch={hash:A.hash(token),expiresAt,jobName,groupId:prepared[0].groupId,
+    ids:prepared.map(x=>x.id),createdAt:new Date().toISOString()};
+   // Los enlaces anteriores para esos relés se invalidan al generar una orden nueva.
+   const previous=await A.redis('HGETALL','ayn:installer:batch-owners');
+   const currentOwners={};
+   for(let i=0;i<(previous||[]).length;i+=2)currentOwners[previous[i]]=previous[i+1];
+   // Evitar lotes con un relé asociado a una instalación vigente de otro lote.
+   for(const relay of prepared){
+    const owner=currentOwners[relay.id];
+    if(owner){
+     const existing=await A.redis('HGET','ayn:installer:batch-invites',owner);
+     if(existing&&Date.parse(JSON.parse(existing).expiresAt)>Date.now())
+      throw A.error('El relé '+relay.name+' ya tiene una orden vigente. Espera su vencimiento para crear otra.',409);
+    }
+   }
+   await A.redis('HSET','ayn:installer:batch-invites',batchId,JSON.stringify(batch));
+   for(const relay of prepared)await A.redis('HSET','ayn:installer:batch-owners',relay.id,batchId);
+   return res.json({ok:true,token:batchId+'.'+token,jobName,expiresAt,count:prepared.length});
+  }
   const id=clean(b.id),{raw,item}=await lookup(id);
   if(b.action==='technicianInvite'){
    if(await A.redis('HGET',REPORTS,id))throw A.error('Ya existe un informe pendiente. Revísalo antes de invitar nuevamente.',409);
-   const token=A.token(),expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
+   const token=A.token(),expiresAt=new Date(Date.now()+5*60*60*1000).toISOString();
    const assigned=Object.values(auth.registry.devices||{}).find(x=>x.role==='admin'&&x.groupId===item.groupId&&x.status!=='deleted');
    const groupName=assigned?.adminName||assigned?.name||'Pendiente de asignar';
    await A.redis('HSET',INVITES,id,JSON.stringify({hash:A.hash(token),expiresAt,groupName}));

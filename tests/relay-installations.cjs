@@ -90,7 +90,7 @@ async function run(action,payload={},method='POST'){
  const installerApi=fs.readFileSync('api/relay-installations.js','utf8');
  assert(installerApi.includes("b.action==='applyTechnicianReport'"),'La API Máster tiene flujo de aprobación');
  assert(installerApi.includes("if(b.confirmReport!==true)"),'Se exige confirmación de informe');
- require('./technician-install.cjs');require('./technician-test.cjs');
+ require('./technician-install.cjs');require('./technician-test.cjs');require('./technician-whatsapp.cjs');
  assert(fs.readFileSync('administracion.css','utf8').includes('.relay-installer[hidden]'));
  console.log('Installer v158 OK: roles, staging, cloud GET-only, offline, confirmation, duplicates and PWA.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

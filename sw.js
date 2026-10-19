@@ -1,4 +1,4 @@
-const CACHE = "reles-ayn-v226-whatsapp-installer20261018";
+const CACHE = "reles-ayn-v227-batch-installer20261018";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
@@ -35,7 +35,7 @@ const ASSETS = [
   "/panic.js?v=20261008-sos194",
   "/reports.js?v=20261008-labels190",
   "/ui-feedback.js?v=20261004-release111",
-  "/administracion.css?v=20261018-installer-whatsapp226",
+  "/administracion.css?v=20261018-batch227",
   "/expenses-board.css?v=20261015-02",
   "/expenses-board.js?v=20261015-02",
   "/admin-desktop.css?v=20261015-01",
@@ -43,7 +43,7 @@ const ASSETS = [
   "/administracion.js?v=20261009-startup211",
   "/master-admin-manager.css?v=20261008-community184",
   "/master-admin-manager.js?v=20261008-community184",
-  "/relay-installer.js?v=20261018-whatsapp226",
+  "/relay-installer.js?v=20261018-batch227",
   "/instalador.html",
   "/instalador.js?v=20261018-test02",
   "/instalador.webmanifest",

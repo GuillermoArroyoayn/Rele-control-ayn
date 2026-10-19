@@ -1,7 +1,7 @@
 // AYN Instalador: una orden de trabajo para varios relés, con red WiFi común.
 // Nunca crea autorizaciones de residentes ni envía comandos ON/OFF.
 const A=require('../lib/administrations');
-const {getToken,tuyaFetch}=require('../lib/tuya');
+const {getToken,getUncachedToken,tuyaFetch}=require('../lib/tuya');
 const DRAFTS='ayn:managed:install-drafts',BATCHES='ayn:installer:batch-invites',
  OWNERS='ayn:installer:batch-owners',RESERVED='ayn:installer:reserved-devices',
  REPORTS='ayn:installer:reports',SINGLE='ayn:installer:invites',ACTIVE='ayn:managed:device-owners';
@@ -44,13 +44,20 @@ async function verifyTuya(deviceId,code){
  if(installed.some(x=>x.deviceId===deviceId))
   throw A.error('Este relé ya está registrado como equipo activo.',409);
  const token=await getToken(),root='/v1.0/iot-03/devices/'+deviceId;
- // Reporta la etapa exacta cuando Tuya niega una consulta, sin modificar dispositivos.
+ // Un token nuevo puede recoger permisos de una cuenta recién asociada a Tuya Cloud.
+ // Aislarlo: no sustituir ni invalidar el token de accesos activos.
+ let retryToken=null;
  const safeRead=async(path,stage)=>{
-  try{return await tuyaFetch('GET',path,'',token);}
+  try{return await tuyaFetch('GET',path,'',retryToken||token);}
   catch(error){
-   if(String(error?.tuya?.code)==='1106')
-    throw A.error('Tuya 1106: acceso denegado al consultar '+stage+'. Comprueba permisos API del proyecto y vinculación del dispositivo.',409);
-   throw error;
+   if(String(error?.tuya?.code)!=='1106')throw error;
+   if(!retryToken)retryToken=await getUncachedToken();
+   try{return await tuyaFetch('GET',path,'',retryToken);}
+   catch(retryError){
+    if(String(retryError?.tuya?.code)==='1106')
+     throw A.error('Tuya 1106: sin autorización para '+stage+' incluso con token nuevo. Revisa vinculación de cuenta/dispositivo y API de servicio del proyecto.',409);
+    throw retryError;
+   }
   }
  };
  const detail=(await safeRead(root,'identidad del relé')).result||{};

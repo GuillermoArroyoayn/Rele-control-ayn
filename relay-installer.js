@@ -96,7 +96,7 @@ function row(item){
  groups.find(g=>g.id===item.groupId)?.name||({master:'Máster general',unassigned:'Sin asignar'})[item.groupId]||'Sin asignar'].join(' · '));
  const status=make('span','Pendiente de emparejamiento');status.className='relay-install-state';
  const buttons=make('div','');buttons.className='relay-install-buttons';
- if(!item.technicianReport){
+ {
   const pick=make('label','Agregar a la orden');
   pick.className='relay-install-pick';
   const check=make('input','');check.type='checkbox';check.checked=selectedDrafts.has(item.id);
@@ -160,7 +160,7 @@ function row(item){
  return article;
 }
 function updateBatchControls(){
- const chosen=drafts.filter(x=>selectedDrafts.has(x.id)&&!x.technicianReport);
+ const chosen=drafts.filter(x=>selectedDrafts.has(x.id));
  const count=document.getElementById('relayInstallerBatchCount');
  const btn=document.getElementById('relayInstallerBatchCreate');
  const box=document.getElementById('relayInstallerBatch');
@@ -171,7 +171,7 @@ function updateBatchControls(){
  if(errors.size>1)count.textContent+=' · Selecciona solo equipos del mismo destino';
 }
 async function sendBatch(){
- const chosen=drafts.filter(x=>selectedDrafts.has(x.id)&&!x.technicianReport);
+ const chosen=drafts.filter(x=>selectedDrafts.has(x.id));
  if(!chosen.length||chosen.length>10)throw new Error('Selecciona entre 1 y 10 relés disponibles.');
  if(new Set(chosen.map(x=>x.groupId)).size!==1)throw new Error('Todos los relés deben tener la misma comunidad.');
  const number=technicianWhatsappPhone(document.getElementById('relayInstallerBatchPhone').value);
@@ -195,7 +195,7 @@ function render(){
  toggle.textContent=area.hidden?'＋ Preparar relé'+(drafts.length?' · '+drafts.length+' guardado'+(drafts.length===1?'':'s'):''):'− Cerrar preparación';
  saved.hidden=drafts.length===0&&testDevices.length===0;
  document.getElementById('relayInstallerSearch').parentElement.hidden=drafts.length<4;
- for(const id of [...selectedDrafts])if(!drafts.some(x=>x.id===id&&!x.technicianReport))selectedDrafts.delete(id);
+ for(const id of [...selectedDrafts])if(!drafts.some(x=>x.id===id))selectedDrafts.delete(id);
  list.replaceChildren();for(const item of found)list.append(row(item));
  updateBatchControls();
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));

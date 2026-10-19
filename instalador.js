@@ -103,6 +103,7 @@ async function openBatch(value){
  $('batchTitle').textContent='Instalación: '+order.name;
  $('batchExpires').textContent='Autorizado hasta '+new Date(order.expiresAt).toLocaleString('es-CL');
  if(order.wifiSsid)$('batchWifiSsid').value=order.wifiSsid;
+ $('batchNotice').textContent='';
  const list=$('batchRelayList');list.replaceChildren();
  for(const relay of order.relays){
   const section=document.createElement('section');
@@ -122,21 +123,38 @@ async function openBatch(value){
    confirm.append(checked,document.createTextNode(' Confirmo que emparejé físicamente el relé y comprobé su conexión.'));
    const submit=document.createElement('button');submit.type='submit';
    submit.textContent='Verificar y guardar '+relay.name;
-   form.append(dev.label,code.label,loc.label,confirm,submit);
+   const inlineStatus=document.createElement('p');
+   inlineStatus.className='status';
+   inlineStatus.setAttribute('role','status');
+   inlineStatus.setAttribute('aria-live','polite');
+   const relayFeedback=(text,error=false)=>{
+    inlineStatus.textContent=text;
+    inlineStatus.style.color=error?'#ffbcbc':'#b1edff';
+    message(text,error);
+   };
+   form.append(dev.label,code.label,loc.label,confirm,submit,inlineStatus);
    form.onsubmit=async event=>{
     event.preventDefault();
-    if(!$('batchTechName').value.trim()||!$('batchWifiSsid').value.trim()){
-     message('Indica primero el nombre del técnico y la red WiFi del condominio.',true);return;
+    const technician=$('batchTechName'),wifi=$('batchWifiSsid');
+    if(!technician.value.trim()){
+     relayFeedback('Falta el nombre del técnico. Escríbelo arriba antes de guardar.',true);
+     technician.focus();return;
+    }
+    if(!wifi.value.trim()){
+     relayFeedback('Falta el nombre de la red WiFi de 2,4 GHz. Escríbelo arriba antes de guardar.',true);
+     wifi.focus();return;
     }
     submit.disabled=true;
+    relayFeedback('Verificando el ID y la conexión con Tuya…');
     try{
      const result=await batchRequest({action:'configure',id:relay.id,
       techName:$('batchTechName').value.trim(),wifiSsid:$('batchWifiSsid').value.trim(),
       deviceId:dev.input.value.trim(),code:code.input.value.trim(),
       location:loc.input.value.trim(),confirmed:checked.checked});
-     message('✓ '+result.message);
      await openBatch(batchToken);
-    }catch(error){message(error.message,true);submit.disabled=false;}
+     $('batchNotice').textContent='✓ '+result.message;
+     message('✓ '+result.message);
+    }catch(error){relayFeedback(error.message,true);submit.disabled=false;}
    };
    section.append(form);
   }

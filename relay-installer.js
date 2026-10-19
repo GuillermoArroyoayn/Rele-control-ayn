@@ -48,7 +48,7 @@ function technicianWhatsappPhone(raw){
 function technicianWhatsappMessage(item,link){
  return '🔧 AYN Instalador · A&N Control\n\nOrden de instalación: '+item.name+
   '\n\nAbre este enlace personal para instalar AYN Instalador y registrar el relé:\n'+link+
-  '\n\nEl código de instalación va incluido automáticamente. Válido por 24 horas. No compartas el enlace.';
+  '\n\nEl código de instalación va incluido automáticamente. Válido por 5 horas. No compartas el enlace.';
 }
 function technicianHandoffForm(item){
  const panel=make('form','');panel.className='relay-install-tech-form';panel.hidden=true;
@@ -75,13 +75,13 @@ function technicianHandoffForm(item){
   catch(error){report(error.message,true);phone.focus();return;}
   generate.disabled=true;
   try{
-   const r=await request('technicianInvite',{id:item.id});
-   generatedLink=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
+   const r=await request('technicianBatchInvite',{ids:[item.id],jobName:'Instalación de '+item.name});
+   generatedLink=location.origin+'/instalador.html#lote='+encodeURIComponent(r.token);
    const messageText=technicianWhatsappMessage(item,generatedLink);
    share.href='https://wa.me/'+number+'?text='+encodeURIComponent(messageText);
    share.hidden=false;copy.hidden=false;
    generate.textContent='Regenerar código (invalida el anterior)';
-   report('✓ Mensaje listo para '+number+'. Abre WhatsApp y confirma el envío. Código válido por 24 horas.');
+   report('✓ Mensaje listo para '+number+'. Abre WhatsApp y confirma el envío. Código válido por 5 horas.');
   }catch(error){report(error.message,true);}
   finally{generate.disabled=false;}
  };

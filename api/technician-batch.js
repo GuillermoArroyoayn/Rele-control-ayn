@@ -17,7 +17,7 @@ async function auth(req){
  try{batch=JSON.parse(raw);}catch{throw A.error('Orden inválida.',403);}
  if(batch.hash!==A.hash(m[2])||Date.parse(batch.expiresAt)<=Date.now())
   throw A.error('Esta orden venció. Solicita un enlace nuevo a la oficina.',403);
- if(!Array.isArray(batch.ids)||batch.ids.length<2||batch.ids.length>10)
+ if(!Array.isArray(batch.ids)||batch.ids.length<1||batch.ids.length>10)
   throw A.error('Orden con cantidad inválida.',403);
  return {batchId:m[1],batch,raw};
 }

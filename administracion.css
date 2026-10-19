@@ -974,3 +974,17 @@ body[data-admin-view="equipment"] .relay-install-tech-form>button,
 body[data-admin-view="equipment"] .relay-install-whatsapp-link{flex:1 1 190px;min-height:44px;padding:10px 14px;text-align:center;border-radius:10px;font-weight:700}
 body[data-admin-view="equipment"] .relay-install-whatsapp-link{display:flex;align-items:center;justify-content:center;background:#146c45;color:white;text-decoration:none}
 body[data-admin-view="equipment"] .relay-install-tech-form [hidden]{display:none!important}
+
+/* v227 · Orden compartida para 1-10 relés de la misma red. */
+body[data-admin-view="equipment"] .relay-install-batch{border:1px solid var(--theme-border,#5ee7ff99);border-radius:13px;padding:14px;margin-bottom:12px;background:rgba(5,20,44,.33)}
+body[data-admin-view="equipment"] .relay-install-batch[hidden]{display:none!important}
+body[data-admin-view="equipment"] .relay-install-batch h3{margin:0 0 8px}
+body[data-admin-view="equipment"] .relay-install-batch p{margin:5px 0 12px}
+body[data-admin-view="equipment"] .relay-install-batch label{display:block;margin:8px 0;font-weight:700}
+body[data-admin-view="equipment"] .relay-install-batch input{width:100%;max-width:100%;box-sizing:border-box;font-size:16px;min-height:44px;padding:9px}
+body[data-admin-view="equipment"] .relay-install-batch button,
+body[data-admin-view="equipment"] .relay-install-batch a{display:block;text-align:center;width:100%;min-height:44px;margin:10px 0;padding:10px;border-radius:10px}
+body[data-admin-view="equipment"] .relay-install-batch a{background:#146c45;color:white;text-decoration:none;font-weight:750}
+body[data-admin-view="equipment"] .relay-install-batch [hidden]{display:none!important}
+body[data-admin-view="equipment"] .relay-install-pick{display:flex;align-items:center;gap:10px;font-weight:700;margin:7px 0}
+body[data-admin-view="equipment"] .relay-install-pick input{width:21px;height:21px;flex-shrink:0}

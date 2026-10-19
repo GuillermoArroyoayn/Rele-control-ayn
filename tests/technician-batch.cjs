@@ -135,5 +135,8 @@ async function call(api,body,token){
   'Mostrar errores de Tuya junto al botón sin ocultarlos arriba');
  assert(client.includes("$('batchNotice').textContent='✓ '+result.message"),
   'Confirmación final sigue visible luego de actualizar el estado');
+ assert(client.includes('aynInstallerTechnicianName')&&client.includes('changedOrder')&&
+  client.includes("if(changedOrder)$('batchWifiSsid').value=order.wifiSsid||''"),
+  'Mantener el nombre del técnico sin arrastrar redes WiFi de una orden anterior');
  console.log('AYN batch 5h OK: dos relés, misma red, caducidad, vinculación Tuya GET-only, rechazo de terceros y ausencia de permisos.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

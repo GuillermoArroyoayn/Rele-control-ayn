@@ -44,13 +44,22 @@ async function verifyTuya(deviceId,code){
  if(installed.some(x=>x.deviceId===deviceId))
   throw A.error('Este relé ya está registrado como equipo activo.',409);
  const token=await getToken(),root='/v1.0/iot-03/devices/'+deviceId;
- const detail=(await tuyaFetch('GET',root,'',token)).result||{};
+ // Reporta la etapa exacta cuando Tuya niega una consulta, sin modificar dispositivos.
+ const safeRead=async(path,stage)=>{
+  try{return await tuyaFetch('GET',path,'',token);}
+  catch(error){
+   if(String(error?.tuya?.code)==='1106')
+    throw A.error('Tuya 1106: acceso denegado al consultar '+stage+'. Comprueba permisos API del proyecto y vinculación del dispositivo.',409);
+   throw error;
+  }
+ };
+ const detail=(await safeRead(root,'identidad del relé')).result||{};
  if(detail.id!==deviceId)throw A.error('No se confirmó el ID Tuya del relé.',409);
- const funcs=(await tuyaFetch('GET',root+'/functions','',token)).result?.functions||[];
+ const funcs=(await safeRead(root+'/functions','funciones ON/OFF')).result?.functions||[];
  if(!funcs.some(f=>f.code===code&&String(f.type).toLowerCase()==='boolean'))
   throw A.error('El canal del relé no admite el control ON/OFF solicitado.',409);
  if(detail.online!==true)throw A.error('El relé figura desconectado en Tuya. Configura el WiFi y reintenta.',409);
- const status=(await tuyaFetch('GET',root+'/status','',token)).result||[];
+ const status=(await safeRead(root+'/status','estado del relé')).result||[];
  if(typeof status.find(s=>s.code===code)?.value!=='boolean')
   throw A.error('No fue posible comprobar el estado del relé en Tuya.',409);
  return {online:true};

@@ -4,7 +4,7 @@ const tables=Object.fromEntries([
  'ayn:installer:reserved-devices','ayn:installer:reports','ayn:installer:invites',
  'ayn:managed:device-owners','ayn:managed:actuators','ayn:installer:test-results'
 ].map(s=>[s,new Map()]));
-let sequence=0,online=true,requests=[];
+let sequence=0,online=true,requests=[],deniedStep='';
 const db=k=>{if(!tables[k])throw Error('Tabla desconocida '+k);return tables[k];};
 async function redis(cmd,key,...rest){
  if(cmd==='HGET')return db(key).get(String(rest[0]))??null;
@@ -48,6 +48,10 @@ const cloud={
  tuyaFetch:async(method,path)=>{
   requests.push({method,path});
   assert.equal(method,'GET','Configurar nunca acciona los relés');
+  if(deniedStep&&path.endsWith(deniedStep)){
+   const error=new Error('Tuya 1106: permission deny');
+   error.tuya={code:1106};throw error;
+  }
   const id=path.match(/devices\/([^/]+)/)?.[1];
   if(path.endsWith('/functions'))return {result:{functions:[{code:'switch_1',type:'Boolean'}]}};
   if(path.endsWith('/status'))return {result:[{code:'switch_1',value:false}]};
@@ -81,10 +85,9 @@ async function call(api,body,token){
  assert.equal((await call(tech)).status,401,'Rechazar acceso sin código');
  assert.equal((await call(master,{action:'technicianBatchInvite',ids:[first,third]})).status,409,'No combinar destinos');
  assert.equal((await call(master,{action:'technicianBatchInvite',ids:[first,first]})).status,400,'No repetir relés');
- const start=Date.now();
  const invitation=await call(master,{action:'technicianBatchInvite',ids:[first,second],jobName:'Condominio Test'});
  assert.equal(invitation.status,200,JSON.stringify(invitation.result));
- const expires=Date.parse(invitation.result.expiresAt)-start;
+ const expires=Date.parse(invitation.result.expiresAt)-Date.now();
  assert(expires>0&&expires<=5*60*60*1000,'Enlace expira en máximo 5 horas');
  const token=invitation.result.token;
  assert.equal((await call(tech,null,token)).result.order.total,2);
@@ -94,6 +97,12 @@ async function call(api,body,token){
  const payload={action:'configure',id:first,deviceId:'devicevalid0001',code:'switch_1',
   wifiSsid:'Wifi-Comunidad',techName:'Instalador Test',confirmed:true};
  assert.equal((await call(tech,{...payload,confirmed:false},token)).status,400);
+ deniedStep='/functions';
+ const rejected=await call(tech,payload,token);
+ assert.equal(rejected.status,409,'Una API sin permiso no registra el relé');
+ assert.match(rejected.result.error,/Tuya 1106.*funciones ON\/OFF/,'Indicar etapa de permiso rechazado');
+ assert.equal(db('ayn:managed:actuators').size,0,'Sin permisos de acceso al fallar Tuya');
+ deniedStep='';
  online=false;
  assert.equal((await call(tech,payload,token)).status,409,'No aceptar relé Tuya desconectado');
  online=true;
@@ -118,5 +127,16 @@ async function call(api,body,token){
  assert.equal(db('ayn:managed:actuators').size,0,'Ningún actuador ajeno se alteró');
  const markup=fs.readFileSync('instalador.html','utf8'),client=fs.readFileSync('instalador.js','utf8');
  assert(markup.includes('id="batchRelayList"')&&client.includes("get('lote')"),'Pantalla móvil para el lote');
+ assert(markup.includes('id="batchNotice"'),'Confirmación visible junto al lote');
+ assert(client.includes("technician.focus()")&&client.includes("wifi.focus()"),
+  'Solicitar el nombre del técnico y el WiFi faltantes antes de verificar');
+ assert(client.includes("inlineStatus.setAttribute('aria-live','polite')")&&
+  client.includes('relayFeedback(error.message,true)'),
+  'Mostrar errores de Tuya junto al botón sin ocultarlos arriba');
+ assert(client.includes("$('batchNotice').textContent='✓ '+result.message"),
+  'Confirmación final sigue visible luego de actualizar el estado');
+ assert(client.includes('aynInstallerTechnicianName')&&client.includes('changedOrder')&&
+  client.includes("if(changedOrder)$('batchWifiSsid').value=order.wifiSsid||''"),
+  'Mantener el nombre del técnico sin arrastrar redes WiFi de una orden anterior');
  console.log('AYN batch 5h OK: dos relés, misma red, caducidad, vinculación Tuya GET-only, rechazo de terceros y ausencia de permisos.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

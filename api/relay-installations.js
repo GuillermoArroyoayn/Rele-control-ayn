@@ -94,8 +94,8 @@ module.exports=async(req,res)=>{
   }
   // La autorización Máster se concede una sola vez para TODO el lote, no por dispositivo.
   if(b.action==='technicianBatchInvite'){
-   if(!Array.isArray(b.ids)||b.ids.length<2||b.ids.length>10||
-      new Set(b.ids).size!==b.ids.length)throw A.error('Selecciona de 2 a 10 relés distintos para el mismo trabajo.',400);
+   if(!Array.isArray(b.ids)||b.ids.length<1||b.ids.length>10||
+      new Set(b.ids).size!==b.ids.length)throw A.error('Selecciona de 1 a 10 relés distintos para el mismo trabajo.',400);
    const prepared=[];
    for(const relayId of b.ids){
     const {item:draft}=await lookup(clean(relayId,80));

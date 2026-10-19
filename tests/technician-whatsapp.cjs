@@ -14,7 +14,7 @@ for(const bad of ['','123','98765432','hola', '5555555'])assert.throws(()=>phone
 const link='https://rele-control-ayn.vercel.app/instalador.html#token=abc.test';
 const text=message({name:'AYN-1'},link);
 assert(text.includes('AYN-1')&&text.includes(link),'Texto incluye relé y enlace con código');
-assert(text.includes('24 horas'),'Vigencia visible');
+assert(text.includes('5 horas'),'Vigencia visible');
 assert(source.includes('share.href='+"'https://wa.me/'"),'Abrir WhatsApp al número correcto');
 assert(source.includes('share.hidden=false'),'No mostrar enlace antes de generar código');
 assert(source.includes("phone.addEventListener('input'"),'Anular propuesta al cambiar destinatario');

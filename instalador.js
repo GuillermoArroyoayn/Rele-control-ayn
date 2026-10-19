@@ -93,7 +93,9 @@ function batchField(labelText,value='',required=true){
  label.append(input);return {label,input};
 }
 async function openBatch(value){
- batchToken=String(value||'').trim();
+ const nextToken=String(value||'').trim();
+ const changedOrder=nextToken!==batchToken;
+ batchToken=nextToken;
  if(!batchToken)throw new Error('Código de instalación múltiple inválido.');
  const {order}=await batchRequest();
  if(!/^[a-f0-9-]{36}\.[a-f0-9]{64}$/i.test(batchToken))throw new Error('Código inválido.');
@@ -102,7 +104,9 @@ async function openBatch(value){
  $('login').hidden=true;$('job').hidden=true;$('testJob').hidden=true;$('batchJob').hidden=false;
  $('batchTitle').textContent='Instalación: '+order.name;
  $('batchExpires').textContent='Autorizado hasta '+new Date(order.expiresAt).toLocaleString('es-CL');
- if(order.wifiSsid)$('batchWifiSsid').value=order.wifiSsid;
+ if(changedOrder)$('batchWifiSsid').value=order.wifiSsid||'';
+ else if(order.wifiSsid)$('batchWifiSsid').value=order.wifiSsid;
+ if(!$('batchTechName').value)$('batchTechName').value=localStorage.getItem('aynInstallerTechnicianName')||'';
  $('batchNotice').textContent='';
  const list=$('batchRelayList');list.replaceChildren();
  for(const relay of order.relays){
@@ -144,6 +148,7 @@ async function openBatch(value){
      relayFeedback('Falta el nombre de la red WiFi de 2,4 GHz. Escríbelo arriba antes de guardar.',true);
      wifi.focus();return;
     }
+    localStorage.setItem('aynInstallerTechnicianName',technician.value.trim().slice(0,60));
     submit.disabled=true;
     relayFeedback('Verificando el ID y la conexión con Tuya…');
     try{

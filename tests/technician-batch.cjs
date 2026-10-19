@@ -4,7 +4,7 @@ const tables=Object.fromEntries([
  'ayn:installer:reserved-devices','ayn:installer:reports','ayn:installer:invites',
  'ayn:managed:device-owners','ayn:managed:actuators','ayn:installer:test-results'
 ].map(s=>[s,new Map()]));
-let sequence=0,online=true,requests=[];
+let sequence=0,online=true,requests=[],deniedStep='';
 const db=k=>{if(!tables[k])throw Error('Tabla desconocida '+k);return tables[k];};
 async function redis(cmd,key,...rest){
  if(cmd==='HGET')return db(key).get(String(rest[0]))??null;
@@ -48,6 +48,10 @@ const cloud={
  tuyaFetch:async(method,path)=>{
   requests.push({method,path});
   assert.equal(method,'GET','Configurar nunca acciona los relés');
+  if(deniedStep&&path.endsWith(deniedStep)){
+   const error=new Error('Tuya 1106: permission deny');
+   error.tuya={code:1106};throw error;
+  }
   const id=path.match(/devices\/([^/]+)/)?.[1];
   if(path.endsWith('/functions'))return {result:{functions:[{code:'switch_1',type:'Boolean'}]}};
   if(path.endsWith('/status'))return {result:[{code:'switch_1',value:false}]};
@@ -93,6 +97,12 @@ async function call(api,body,token){
  const payload={action:'configure',id:first,deviceId:'devicevalid0001',code:'switch_1',
   wifiSsid:'Wifi-Comunidad',techName:'Instalador Test',confirmed:true};
  assert.equal((await call(tech,{...payload,confirmed:false},token)).status,400);
+ deniedStep='/functions';
+ const rejected=await call(tech,payload,token);
+ assert.equal(rejected.status,409,'Una API sin permiso no registra el relé');
+ assert.match(rejected.result.error,/Tuya 1106.*funciones ON\/OFF/,'Indicar etapa de permiso rechazado');
+ assert.equal(db('ayn:managed:actuators').size,0,'Sin permisos de acceso al fallar Tuya');
+ deniedStep='';
  online=false;
  assert.equal((await call(tech,payload,token)).status,409,'No aceptar relé Tuya desconectado');
  online=true;

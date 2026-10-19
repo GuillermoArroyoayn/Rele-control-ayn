@@ -75,7 +75,7 @@ async function run(action,payload={},method='POST'){
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
  assert(html.includes('relayInstallerRefresh'),'El Máster puede consultar nuevas solicitudes de técnicos');
  const installerUi=fs.readFileSync('relay-installer.js','utf8');
- assert(installerUi.includes("request('technicianInvite'"),'El Máster puede generar acceso temporal para un equipo');
+ assert(installerUi.includes("request('technicianBatchInvite'"),'El Máster puede generar una orden temporal de uno o varios relés');
  assert(installerUi.includes("phone.type='tel'"),'Solicitar teléfono de técnico desde Máster');
  assert(installerUi.includes("share.href='https://wa.me/'"),'WhatsApp abre mensaje prediseñado sin autoenviar');
  assert(installerUi.includes("share.target='_blank'"),'WhatsApp abre mediante acción del Máster');

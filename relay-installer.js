@@ -6,7 +6,7 @@ if(!p||!toggle)return;
 const ids=['name','location','wifiSsid','model','deviceId','code','timerSeconds','groupId'];
 const input=n=>document.getElementById('install-'+n);
 const make=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;return el;};
-let drafts=[],groups=[],started=false,busy=false;
+let drafts=[],groups=[],testDevices=[],started=false,busy=false;
 const report=(msg,error=false)=>{message.textContent=msg;message.dataset.error=String(error);};
 async function request(action,values){
  const response=await fetch('/api/relay-installations',{method:action?'POST':'GET',
@@ -42,6 +42,14 @@ function row(item){
  groups.find(g=>g.id===item.groupId)?.name||({master:'Máster general',unassigned:'Sin asignar'})[item.groupId]||'Sin asignar'].join(' · '));
  const status=make('span','Pendiente de emparejamiento');status.className='relay-install-state';
  const buttons=make('div','');buttons.className='relay-install-buttons';
+ const handoff=item.technicianReport;
+ if(handoff){
+  const pending=make('p','Solicitud del técnico: '+handoff.techName+
+   ' · ID '+handoff.deviceId+' · Red '+(handoff.wifiSsid||'sin informar')+
+   ' · '+(handoff.location||'sin ubicación')+(handoff.notes?' · '+handoff.notes:''));
+  pending.className='relay-install-tech-report';article.append(pending);
+  status.textContent='Esperando aprobación desde oficina';
+ }
  const enable=action('Incorporar a AYN',async()=>{
   if(!confirm('¿Confirmas que la instalación eléctrica está revisada y quieres incorporar '+item.name+'? No se enviarán órdenes.'))return;
   await request('activate',{id:item.id,confirmInstalled:true});await reload();
@@ -49,6 +57,25 @@ function row(item){
  });
  enable.disabled=true;
  buttons.append(
+ action('Enviar al técnico',async()=>{
+  if(handoff)throw new Error('Primero aprueba o rechaza la solicitud pendiente.');
+  const r=await request('technicianInvite',{id:item.id});
+  const link=location.origin+'/instalador.html#token='+encodeURIComponent(r.token);
+  try{await navigator.clipboard.writeText(link);report('✓ Enlace del técnico copiado. Válido por 24 horas.');}
+  catch{window.prompt('Copia el enlace y envíalo al técnico:',link);report('Enlace generado. Comparte solamente con el técnico autorizado.');}
+ }),
+ ...(handoff?[
+ action('Aplicar informe',async()=>{
+  if(!confirm('¿Confirmas los datos del técnico '+handoff.techName+'? Después tendrás que COMPROBAR el dispositivo y autorizar su incorporación.'))return;
+  await request('applyTechnicianReport',{id:item.id,confirmReport:true});
+  await reload();report('✓ Informe aplicado. Pulsa Comprobar y después Incorporar a AYN cuando verifiques la instalación.');
+ }),
+ action('Rechazar informe',async()=>{
+  if(!confirm('¿Rechazar este informe? Deberás generar un enlace nuevo para el técnico.'))return;
+  await request('rejectTechnicianReport',{id:item.id,confirmReject:true});
+  await reload();report('Informe rechazado. Puedes generar un nuevo enlace.');
+ })
+ ]:[]),
  action('Editar',async()=>{
   for(const key of ids)if(key!=='groupId')input(key).value=item[key]??'';
   groupsSelect(item.groupId);input('draftId').value=item.id;
@@ -71,14 +98,38 @@ function render(){
  const q=(document.getElementById('relayInstallerSearch').value||'').trim().toLocaleLowerCase('es');
  const found=drafts.filter(x=>!q||[x.name,x.location,x.wifiSsid,groups.find(g=>g.id===x.groupId)?.name].join(' ').toLocaleLowerCase('es').includes(q));
  toggle.textContent=area.hidden?'＋ Preparar relé'+(drafts.length?' · '+drafts.length+' guardado'+(drafts.length===1?'':'s'):''):'− Cerrar preparación';
- saved.hidden=drafts.length===0;
+ saved.hidden=drafts.length===0&&testDevices.length===0;
  document.getElementById('relayInstallerSearch').parentElement.hidden=drafts.length<4;
  list.replaceChildren();for(const item of found)list.append(row(item));
  if(!found.length)list.append(make('p',q?'No hay coincidencias.':'Todavía no hay relés preparados.'));
+ const testing=document.getElementById('relayInstallerTesting');
+ testing.replaceChildren();
+ if(testDevices.length){
+  testing.append(make('h3','Pruebas de instalación autorizables desde oficina'));
+  for(const device of testDevices){
+   const card=make('article','');card.className='relay-install-item';
+   const info=make('p',device.name+' · '+(groups.find(g=>g.id===device.groupId)?.name||device.groupId||'Sin asignar')+
+     (device.result?' · Resultado: '+(device.result.result==='ok'?'Correcto':'Con observaciones'):' · Sin prueba final registrada'));
+   card.append(info);
+   card.append(action('Autorizar 3 pruebas · 15 minutos',async()=>{
+    if(!confirm('¿El técnico está presente y el acceso de '+device.name+' está despejado? Se autorizarán hasta 3 aperturas de prueba de 4 segundos durante 15 minutos.'))return;
+    const r=await request('authorizeTechnicianTest',{actuatorId:device.id,confirmSupervised:true});
+    const link=location.origin+'/instalador.html#test='+encodeURIComponent(r.token);
+    try{await navigator.clipboard.writeText(link);report('✓ Enlace de prueba copiado para '+device.name+'. Válido por 15 minutos.');}
+    catch{window.prompt('Copia este enlace de prueba para el técnico:',link);report('Enlace generado. Envíalo al técnico responsable.');}
+   }),action('Revocar pruebas',async()=>{
+    if(!confirm('¿Revocar pruebas de '+device.name+'?'))return;
+    await request('revokeTechnicianTest',{actuatorId:device.id});
+    report('Pruebas de '+device.name+' revocadas.');
+   }));
+   testing.append(card);
+  }
+ }
+ 
 }
 async function reload(){
  if(busy)return;busy=true;
- try{const r=await request();drafts=r.drafts||[];groups=r.groups||[];
+ try{const r=await request();drafts=r.drafts||[];groups=r.groups||[];testDevices=r.testDevices||[];
   groupsSelect(input('groupId').value);render();}finally{busy=false;}
 }
 toggle.onclick=()=>{area.hidden=!area.hidden;toggle.setAttribute('aria-expanded',String(!area.hidden));render();if(!area.hidden)reload().catch(e=>report(e.message,true));};
@@ -90,6 +141,8 @@ form.onsubmit=async e=>{
  }catch(error){report(error.message,true);}finally{b.disabled=false;}
 };
 document.getElementById('relayInstallerCancel').onclick=()=>{reset();report('Formulario reiniciado.');};
+const refresh=document.getElementById('relayInstallerRefresh');
+if(refresh)refresh.onclick=()=>reload().then(()=>report('Solicitudes actualizadas.')).catch(error=>report(error.message,true));
 document.getElementById('relayInstallerSearch').oninput=render;
 function visible(){
  const allowed=document.body.dataset.adminView==='equipment'&&!document.getElementById('relayCenterHead').hidden;

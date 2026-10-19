@@ -1,6 +1,7 @@
 const A=require('../lib/administrations');
 const {getToken,tuyaFetch}=require('../lib/tuya');
 const KEY='ayn:managed:install-drafts',OWNERS='ayn:managed:device-owners',ACTIVE='ayn:managed:actuators';
+const INVITES='ayn:installer:invites',REPORTS='ayn:installer:reports';
 const clean=(v,n=60)=>String(v??'').trim().replace(/[\x00-\x1f\x7f]/g,'').slice(0,n);
 const validId=x=>/^[a-zA-Z0-9]{8,64}$/.test(x||'');
 function normalize(b,old,auth){
@@ -46,7 +47,21 @@ module.exports=async(req,res)=>{
    for(let i=0;i<(raw||[]).length;i+=2)drafts.push(JSON.parse(raw[i+1]));
    drafts.sort((x,y)=>String(y.updatedAt).localeCompare(String(x.updatedAt)));
    const groups=Object.values(auth.registry.devices||{}).filter(x=>x.role==='admin'&&x.status!=='deleted').map(x=>({id:x.groupId,name:x.adminName||x.name,status:x.status}));
-   return res.json({drafts,groups,automaticWifiPairing:false,passwordsStored:false});
+   const reports=await A.redis('HGETALL',REPORTS),reportById={};
+   for(let i=0;i<(reports||[]).length;i+=2){
+    try{const item=JSON.parse(reports[i+1]);reportById[reports[i]]={
+      techName:item.techName,deviceId:item.deviceId,code:item.code,
+      wifiSsid:item.wifiSsid,location:item.location,notes:item.notes,submittedAt:item.submittedAt
+    };}catch{}
+   }
+   for(const item of drafts)item.technicianReport=reportById[item.id]||null;
+   const installed=(await A.records()).filter(item=>item.installedFrom&&item.approved===true);
+   const resultRaw=await A.redis('HGETALL','ayn:installer:test-results');
+   const testResults={};
+   for(let i=0;i<(resultRaw||[]).length;i+=2)try{testResults[resultRaw[i]]=JSON.parse(resultRaw[i+1]);}catch{}
+   const testDevices=installed.map(item=>({id:item.id,name:item.name,groupId:item.groupId,
+     location:item.location||'',result:testResults[item.id]||null}));
+   return res.json({drafts,groups,testDevices,automaticWifiPairing:false,passwordsStored:false});
   }
   const b=req.body||{};
   if(b.action==='create'){
@@ -56,7 +71,63 @@ module.exports=async(req,res)=>{
    if(!ok)throw A.error('No fue posible crear la preparación.',409);
    return res.json({ok:true,id});
   }
+  if(b.action==='authorizeTechnicianTest'){
+   const actuatorId=clean(b.actuatorId,80);
+   const installed=(await A.records()).find(x=>x.id===actuatorId);
+   if(!installed||!installed.installedFrom||installed.approved!==true)
+    throw A.error('La prueba requiere un relé instalado y autorizado por AYN.',409);
+   if(b.confirmSupervised!==true)throw A.error('Confirma que el técnico está presente y el acceso está despejado.',400);
+   if(Object.values(auth.registry.devices||{}).some(x=>x.role==='user'&&x.status==='active'&&x.groupId===installed.groupId&&
+      (x.actuatorIds||[]).includes(actuatorId)))throw A.error('Relé ya entregado a residentes. No se autoriza prueba de instalación.',409);
+   const token=A.token(),expiresAt=new Date(Date.now()+15*60*1000).toISOString();
+   const test={hash:A.hash(token),actuatorId,groupId:installed.groupId,deviceId:installed.deviceId,
+    code:installed.code,expiresAt,remaining:3,createdAt:new Date().toISOString()};
+   await A.redis('HSET','ayn:installer:test-grants',actuatorId,JSON.stringify(test));
+   return res.json({ok:true,token:actuatorId+'.'+token,expiresAt,maxPulses:3});
+  }
+  if(b.action==='revokeTechnicianTest'){
+   const actuatorId=clean(b.actuatorId,80);
+   const installed=(await A.records()).find(x=>x.id===actuatorId&&x.installedFrom);
+   if(!installed)throw A.error('Relé de instalación no encontrado.',404);
+   await A.redis('HDEL','ayn:installer:test-grants',actuatorId);
+   return res.json({ok:true});
+  }
   const id=clean(b.id),{raw,item}=await lookup(id);
+  if(b.action==='technicianInvite'){
+   if(await A.redis('HGET',REPORTS,id))throw A.error('Ya existe un informe pendiente. Revísalo antes de invitar nuevamente.',409);
+   const token=A.token(),expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
+   const assigned=Object.values(auth.registry.devices||{}).find(x=>x.role==='admin'&&x.groupId===item.groupId&&x.status!=='deleted');
+   const groupName=assigned?.adminName||assigned?.name||'Pendiente de asignar';
+   await A.redis('HSET',INVITES,id,JSON.stringify({hash:A.hash(token),expiresAt,groupName}));
+   return res.json({ok:true,token:id+'.'+token,expiresAt,groupName});
+  }
+  if(b.action==='applyTechnicianReport'){
+   if(b.confirmReport!==true)throw A.error('Debes confirmar la revisión del informe técnico.',400);
+   const reportRaw=await A.redis('HGET',REPORTS,id);
+   if(!reportRaw)throw A.error('No hay informe técnico pendiente.',404);
+   const report=JSON.parse(reportRaw);
+   if(!validId(report.deviceId)||!/^switch_[1-9][0-9]?$/.test(report.code))
+    throw A.error('Datos técnicos inválidos.',409);
+   // Aquí solo se completa el inventario; nunca se activa el acceso automáticamente.
+   const updated={...item,deviceId:report.deviceId,code:report.code,
+    location:report.location||item.location,wifiSsid:report.wifiSsid||item.wifiSsid,
+    installationReport:{techName:report.techName,submittedAt:report.submittedAt,notes:report.notes},
+    phase:'pending-pairing',updatedAt:new Date().toISOString()};
+   const script="if redis.call('HGET',KEYS[1],ARGV[1])~=ARGV[2] or redis.call('HGET',KEYS[2],ARGV[1])~=ARGV[3] then return 0 end "+
+    "redis.call('HSET',KEYS[1],ARGV[1],ARGV[4]); redis.call('HDEL',KEYS[2],ARGV[1]); redis.call('HDEL',KEYS[3],ARGV[1]); return 1";
+   const ok=await A.redis('EVAL',script,3,KEY,REPORTS,INVITES,id,raw,reportRaw,JSON.stringify(updated));
+   if(ok!==1)throw A.error('El relé cambió. Actualiza y vuelve a revisar.',409);
+   return res.json({ok:true,message:'Informe aplicado al inventario. Ahora comprueba Tuya y autoriza la incorporación desde tu oficina.'});
+  }
+  if(b.action==='rejectTechnicianReport'){
+   if(b.confirmReject!==true)throw A.error('Confirma el rechazo del informe.',400);
+   const reportRaw=await A.redis('HGET',REPORTS,id);
+   if(!reportRaw)throw A.error('No hay informe pendiente.',404);
+   const script="if redis.call('HGET',KEYS[1],ARGV[1])~=ARGV[2] then return 0 end redis.call('HDEL',KEYS[1],ARGV[1]); redis.call('HDEL',KEYS[2],ARGV[1]); return 1";
+   const ok=await A.redis('EVAL',script,2,REPORTS,INVITES,id,reportRaw);
+   if(ok!==1)throw A.error('El informe cambió. Actualiza y vuelve a revisar.',409);
+   return res.json({ok:true});
+  }
   if(b.action==='update'){
    const updated={...item,...normalize(b,item,auth),phase:'pending-pairing',updatedAt:new Date().toISOString()};
    const ok=await A.redis('EVAL',"if redis.call('HGET',KEYS[1],ARGV[1])~=ARGV[2] then return 0 end redis.call('HSET',KEYS[1],ARGV[1],ARGV[3]); return 1",1,KEY,id,raw,JSON.stringify(updated));

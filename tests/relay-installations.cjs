@@ -21,7 +21,7 @@ const redis=async(...args)=>{
 };
 const A={
  access:async()=>({role,registry:{devices:{adminA:{role:'admin',groupId:'group-A',status:'active',adminName:'Condominio A'}}}}),
- redis,error:(m,s=400)=>Object.assign(new Error(m),{status:s}),
+ redis,records:async()=>[...active.values()].map(JSON.parse),error:(m,s=400)=>Object.assign(new Error(m),{status:s}),
  uuid:()=>('00000000-0000-0000-0000-'+String(++serial).padStart(12,'0')),
  group:(auth,g)=>{if(!['unassigned','master','group-A'].includes(g))throw Error('Grupo inválido');return g;},
  timerCapability:()=>null,seconds:n=>{if(!Number.isInteger(n)||n<0||n>86400)throw Error('Timer inválido');return n;}
@@ -70,9 +70,18 @@ async function run(action,payload={},method='POST'){
  assert(fs.readFileSync('administracion.js','utf8').includes("$('relayCenterLists').hidden=!allCount"),'Ocultar carpetas sin relés originales ni gestionados');
  assert(fs.readFileSync('administracion.js','utf8').includes("relayAddOpen?'Cerrar registro de relé':'＋ Agregar relé ya conectado'"),'Mantener nombre diferenciado al cerrar formulario');
  assert(fs.readFileSync('relay-installer.js','utf8').includes("toggle.textContent=area.hidden?'＋ Preparar relé'"),'Preparación es la acción principal');
- assert(html.includes('/relay-installer.js?v=20261008-compact160'));
- assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw)&&sw.includes('/relay-installer.js?v=20261008-compact160'));
+ assert(html.includes('/relay-installer.js?v=20261018-techtest02'));
+ assert(/reles-ayn-v\d+-[a-z0-9-]+/.test(sw)&&sw.includes('/relay-installer.js?v=20261018-techtest02'));
  assert(fs.readFileSync('relay-installer.js','utf8').includes('confirmInstalled:true'));
+ assert(html.includes('relayInstallerRefresh'),'El Máster puede consultar nuevas solicitudes de técnicos');
+ const installerUi=fs.readFileSync('relay-installer.js','utf8');
+ assert(installerUi.includes("request('technicianInvite'"),'El Máster puede generar acceso temporal para un equipo');
+ assert(installerUi.includes("request('applyTechnicianReport'"),'El Máster revisa manualmente el informe');
+ assert(installerUi.includes("request('rejectTechnicianReport'"),'El Máster puede rechazar un informe');
+ const installerApi=fs.readFileSync('api/relay-installations.js','utf8');
+ assert(installerApi.includes("b.action==='applyTechnicianReport'"),'La API Máster tiene flujo de aprobación');
+ assert(installerApi.includes("if(b.confirmReport!==true)"),'Se exige confirmación de informe');
+ require('./technician-install.cjs');require('./technician-test.cjs');
  assert(fs.readFileSync('administracion.css','utf8').includes('.relay-installer[hidden]'));
  console.log('Installer v158 OK: roles, staging, cloud GET-only, offline, confirmation, duplicates and PWA.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

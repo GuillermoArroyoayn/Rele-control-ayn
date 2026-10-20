@@ -28,6 +28,10 @@ if [[ ! -s .secrets/valkey_acl ]]; then
   unset valkey_pass
 fi
 chmod 600 .secrets/*
+# En Docker Compose con secretos de tipo archivo se conserva el modo del archivo.
+# Valkey corre como usuario sin privilegios; necesita leer su ACL.
+# La carpeta .secrets permanece con permisos 0700, inaccesible a otros usuarios del host.
+chmod 644 .secrets/valkey_acl
 
 echo "Iniciando SOLO las bases de datos de laboratorio (sin acceso exterior)..."
 docker compose up -d

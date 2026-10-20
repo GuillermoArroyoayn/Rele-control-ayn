@@ -37,6 +37,8 @@ const maps={
     /^package\.json$/,
     /^package-lock\.json$/,
     /^README\.md$/,
+    /^infra\/ayn-lab\//,
+    /^docs\/servidor\/LABORATORIO-DATOS\.md$/,
     /^tests\/safety-/
   ],
   admin:[

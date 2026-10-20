@@ -58,3 +58,6 @@ jobs:
 
       - name: Verificar puente local de almacenamiento (solo laboratorio)
         run: node --test infra/ayn-lab/kv-bridge/bridge.test.cjs
+
+      - name: Verificar permisos y relés simulados sin hardware
+        run: node --test infra/ayn-lab/simulation/engine.test.cjs

@@ -37,6 +37,8 @@ const maps={
     /^package\.json$/,
     /^package-lock\.json$/,
     /^README\.md$/,
+    /^scripts\/ayn-server-bootstrap\.sh$/,
+    /^docs\/servidor\/BOOTSTRAP-RASPBERRY\.md$/,
     /^tests\/safety-/
   ],
   admin:[

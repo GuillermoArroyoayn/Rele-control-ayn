@@ -55,3 +55,6 @@ jobs:
 
       - name: Verificar portada completa en todos los roles
         run: node tests/home-viewport-fit.cjs
+
+      - name: Verificar puente local de almacenamiento (solo laboratorio)
+        run: node --test infra/ayn-lab/kv-bridge/bridge.test.cjs

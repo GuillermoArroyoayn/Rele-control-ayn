@@ -1,0 +1,48 @@
+name: ayn-lab
+
+# Aislado: no expone puertos al host ni a Internet.
+# NO ejecutar en producción sin endurecimiento, respaldos y pruebas.
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aynlab
+      POSTGRES_DB: aynlab
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+    secrets:
+      - pg_password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aynlab -d aynlab"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [privada]
+    security_opt: ["no-new-privileges:true"]
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--aclfile", "/run/secrets/valkey_acl"]
+    secrets:
+      - valkey_acl
+    volumes:
+      - valkey_data:/data
+    networks: [privada]
+    security_opt: ["no-new-privileges:true"]
+
+secrets:
+  pg_password:
+    file: ./.secrets/postgres_password
+  valkey_acl:
+    file: ./.secrets/valkey_acl
+
+networks:
+  privada:
+    driver: bridge
+
+volumes:
+  pg_data:
+  valkey_data:

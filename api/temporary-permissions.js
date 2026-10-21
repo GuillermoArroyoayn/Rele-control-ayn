@@ -51,14 +51,15 @@ module.exports=async function handler(req,res){
         permissions.push({id:grant.id,name:grant.name,phone:grant.phone,relays:grant.relays,
           startsAt:grant.startsAt,endsAt:grant.endsAt,claimedAt:grant.claimedAt||'',
           active:grant.active===true&&!expired,expired,
-          status:expired?'expired':grant.active!==true?'inactive':grant.claimedAt?'active':'pending'});
+          status:expired?'expired':grant.active!==true?'inactive':grant.claimedAt?'active':'pending',
+          mode:grant.mode||'installed'});
       }
       permissions.sort((a,b)=>Date.parse(b.startsAt)-Date.parse(a.startsAt));
       const history=(await readHistory(500,'temporary',groupId))
         .filter(entry=>entry.kind==='temporary'&&entry.groupId===groupId);
       return res.status(200).json({groups:available,groupId,relays,permissions,history});
     }
-    if(b.action==='create'){
+    if(b.action==='create'||b.action==='createGuest'){
       const name=String(b.name||'').trim().slice(0,60);
       const phone=WhatsApp.normalizePhone(b.phone);
       const hours=Number(b.hours),relays=[...new Set((Array.isArray(b.relays)?b.relays:[]).map(Number))].sort();
@@ -70,24 +71,26 @@ module.exports=async function handler(req,res){
         grant.phone===phone&&grant.active===true&&Date.parse(grant.endsAt)>now);
       if(existing)throw A.error('Este teléfono ya tiene un permiso temporal vigente en esta comunidad. Puedes desactivarlo primero.',409);
       const token=A.token(),startsAt=new Date(now).toISOString(),endsAt=new Date(now+hours*3600000).toISOString();
-      const grant={id:A.uuid(),groupId,name,phone,relays,startsAt,endsAt,active:true,createdBy:auth.device.id};
+      const isWeb=b.action==='createGuest';
+      const grant={id:A.uuid(),groupId,name,phone,relays,startsAt,endsAt,active:true,
+        createdBy:auth.device.id,createdByName:auth.device.name,mode:isWeb?'web':'installed'};
       const invite={creator:auth.device.id,role:'user',groupId,name,phone,createdAt:startsAt,
         temporaryGrantId:grant.id,accessStartsAt:startsAt,accessEndsAt:endsAt,relays};
-      const inviteKey='ayn:managed:invite:'+A.hash(token);
+      const inviteKey=(isWeb?'ayn:guest:pass:':'ayn:managed:invite:')+A.hash(token);
       await A.redis('HSET',key,grant.id,JSON.stringify(grant));
       // Caducidad de respaldo: no retener registros personales indefinidamente
       // cuando una comunidad deje de utilizar o consultar el módulo.
       await A.redis('EXPIRE',key,String(181*86400));
-      try{await A.redis('SET',inviteKey,JSON.stringify(invite),'EX',String(hours*3600));}
+      try{await A.redis('SET',inviteKey,JSON.stringify(isWeb?{groupId,grantId:grant.id}:invite),'EX',String(hours*3600));}
       catch(e){await A.redis('HDEL',key,grant.id).catch(()=>{});throw e;}
       const host=String(req.headers['x-forwarded-host']||req.headers.host||'rele-control-ayn.vercel.app').split(',')[0].trim();
       const safeHost=/^[\w.-]+(?::\d{1,5})?$/.test(host)?host:'rele-control-ayn.vercel.app';
       const origin=String(process.env.APP_PUBLIC_URL||'').trim().replace(/\/$/,'')||'https://'+safeHost;
-      const inviteUrl=origin+'/administracion.html#invite='+token;
-      const message='Hola '+name+', tienes permiso temporal de A&N Control hasta el '+new Date(endsAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+'. Activa tu equipo desde: '+inviteUrl;
+      const inviteUrl=origin+(isWeb?'/pase.html#token=':'/administracion.html#invite=')+token;
+      const message='Hola '+name+', tienes permiso temporal de A&N Control hasta el '+new Date(endsAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})+'. '+(isWeb?'Abre tu pase desde este celular sin instalar ninguna aplicación: ':'Activa tu equipo desde: ')+inviteUrl;
       const whatsappUrl='https://wa.me/'+phone+'?text='+encodeURIComponent(message);
       await recordEvent(grant,auth.device.name,'Permiso creado · Pendiente de aceptación');
-      return res.status(201).json({ok:true,id:grant.id,inviteUrl,whatsappUrl,endsAt});
+      return res.status(201).json({ok:true,id:grant.id,inviteUrl,whatsappUrl,endsAt,mode:grant.mode});
     }
     if(b.action==='toggle'){
       const id=String(b.id||'');

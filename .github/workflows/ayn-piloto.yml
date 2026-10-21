@@ -1,0 +1,30 @@
+name: AYN Piloto — Pases y Conserjería
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  piloto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sintaxis de rutas nuevas
+        run: |
+          node --check api/temporary-permissions.js
+          node --check temporary-permissions.js
+          node --check api/guest-pass.js
+          node --check api/concierge.js
+          node --check pase.js
+          node --check conserjeria.js
+      - name: Regresión de permisos temporales actuales
+        run: node tests/temporary-permissions.cjs
+      - name: Regresión de invitados web y conserjería
+        run: node tests/piloto-web-conserjeria.cjs
+      - name: Regresión de aislamiento de invitados
+        run: node tests/temporary-session-isolation.cjs

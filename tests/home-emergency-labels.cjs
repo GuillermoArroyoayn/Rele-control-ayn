@@ -34,14 +34,15 @@ assert(info.includes("button.classList.toggle('ayn-info-urgent',section==='emerg
 assert(info.includes('maybeDisplay(pending)'), 'Mantener ventana emergente de mensajes');
 assert(info.includes('enableAudioFromGesture'), 'Mantener sonido de alertas');
 for(const page of [index, adminHome]){
-  const js=page.match(/\/information\.js\?v=20261008-[a-z0-9]+/);
+  const js=page.match(/\/information\.js\?v=\d{8}-[a-z0-9]+/);
   const css=page.match(/\/information\.css\?v=20261008-[a-z0-9]+/);
   assert(js&&css,'Las dos páginas cargan Centro de información');
   assert(serviceWorker.includes(js[0])&&serviceWorker.includes(css[0]),'El PWA precarga los recursos vigentes');
 }
 const cacheVersion=serviceWorker.match(/reles-ayn-v(\d+)-[a-z0-9-]+/);
 assert(cacheVersion && Number(cacheVersion[1])>=191, 'Mantener caché PWA actualizado');
-assert(serviceWorker.includes('/information.js?v=20261008-sos194'));
+assert(serviceWorker.includes('/information.js?v=20261021-poll228'));
 assert(serviceWorker.includes('/information.css?v=20261008-cards191'));
 
 console.log('OK: tarjetas con solo Reportes emergencia y Muro informativo; avisos y sonido de emergencias preservados.');
+require('./information-light-poll.cjs');

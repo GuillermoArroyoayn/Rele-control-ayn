@@ -9,6 +9,8 @@
   const TYPES={report:'Reporte',notice:'Aviso',poll:'Encuesta',emergency:'Emergencia',sos:'Emergencia', 'sos-cancelled':'Emergencia cancelada'};
   let items=[],role='',deviceId='',seen=new Set(),dialogItem=null,opened=false,soundContext=null,loading=false;
   let previousFocused=null,initialized=false,firstLoad=true,activeView='new',activeInbox='wall';
+  // Tras una lectura completa, mantener la detección rápida de SOS usando una huella ligera.
+  let lastFullSnapshotAt=0,lastRevision=null,lastGroup='',lastSosReceiving=null;
   let detailOrigin='new',detailItem=null,detailGeneration=0,photoUrl=null;
   const soundEnabled=()=>localStorage.getItem(SOUND)!=='off';
   const eventTime=value=>{const n=Date.parse(value||'');return Number.isFinite(n)?n:0;};
@@ -361,12 +363,38 @@
     if(!pin||!id)return;
     loading=true;
     try{
-      const response=await fetch('/api/information',{headers:{'x-app-pin':pin,'x-device-id':id},cache:'no-store'});
-      if(!response.ok){if([401,403].includes(response.status)){items=[];paint();hide();}return;}
-      const result=await response.json();
-      if(!Array.isArray(result.items))return;
+      const headers={'x-app-pin':pin,'x-device-id':id};
+      // La bandeja completa se lee al inicio y al menos cada 60 segundos;
+      // entre medias el sondeo sigue a 5 segundos para nuevas alertas SOS.
+      const full=id!==deviceId||!lastFullSnapshotAt||Date.now()-lastFullSnapshotAt>=60000;
+      let response=await fetch(full?'/api/information':'/api/information?head=1',{headers,cache:'no-store'});
+      if(!response.ok){
+        lastFullSnapshotAt=0;
+        if([401,403].includes(response.status)){items=[];paint();hide();}
+        return;
+      }
+      let result=await response.json();
+      if(!full){
+        if(result.revision===lastRevision&&result.groupId===lastGroup&&result.role===role&&result.sosReceiving===lastSosReceiving){
+          paint(); // Actualizar vencimiento visual sin descargar nuevamente la bandeja.
+          return;
+        }
+        // Cambió el último evento, el rol, la comunidad o la recepción de SOS.
+        response=await fetch('/api/information',{headers,cache:'no-store'});
+        if(!response.ok){
+          lastFullSnapshotAt=0;
+          if([401,403].includes(response.status)){items=[];paint();hide();}
+          return;
+        }
+        result=await response.json();
+      }
+      if(!Array.isArray(result.items)){lastFullSnapshotAt=0;return;}
       if(deviceId!==id){deviceId=id;seen=readState();firstLoad=true;}
       role=result.role;items=result.items;
+      lastRevision=result.revision??null;
+      lastGroup=result.groupId||'';
+      lastSosReceiving=result.sosReceiving;
+      lastFullSnapshotAt=Date.now();
       // Al desactivar la recepción, retirar de inmediato la alerta SOS ajena abierta.
       if(result.sosReceiving===false&&opened&&dialogItem&&['sos','sos-cancelled'].includes(dialogItem.kind)&&!items.some(item=>item.id===dialogItem.id)){
         hide();window.AynSosSiren?.stop?.();
@@ -377,7 +405,7 @@
       paint();
       if(pending.length)maybeDisplay(pending);
       firstLoad=false;
-    }catch{}finally{loading=false;}
+    }catch{lastFullSnapshotAt=0;}finally{loading=false;}
   }
   function installHomeButtons(){
     // Se reutilizan los dos iconos existentes, sin agregar un tercero duplicado.

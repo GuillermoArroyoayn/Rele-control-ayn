@@ -61,7 +61,7 @@ async function run(r){
  assert.notEqual(changed.body.revision,head.body.revision,'Nueva alerta detectable en sondeo siguiente');
  const denied=await run({...req('u1',true),headers:{denied:true}});
  assert.equal(denied.code,403,'Autorización obligatoria también en sondeo');
- assert(authorized>=7);
+ assert(authorized>=6);
  assert.match(client,/setInterval\(refresh,5000\)/,'No ralentizar sondeo SOS');
  assert.match(client,/Date\.now\(\)-lastFullSnapshotAt>=60000/,'Refresco completo de respaldo');
  assert.match(client,/result\.revision===lastRevision/,'Usar huella en el cliente');

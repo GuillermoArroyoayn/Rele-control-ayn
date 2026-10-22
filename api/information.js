@@ -5,6 +5,7 @@ module.exports=async(req,res)=>{
   try{
     if(req.method!=='GET')throw A.error('Método no permitido.',405);
     const auth=await A.access(req);
+    if(req.query?.head==='1')return res.json(await I.head(auth));
     return res.json(await I.read(auth));
   }catch(error){return res.status(error.status||500).json({error:error.message||'No se pudo consultar la información.',accessStatus:error.accessStatus});}
 };

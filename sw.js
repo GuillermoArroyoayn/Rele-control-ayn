@@ -1,9 +1,9 @@
-const CACHE = "reles-ayn-v227-batch-installer20261018";
+const CACHE = "reles-ayn-v228-information-poll20261021";
 const ASSETS = [
   "/community.js?v=20261008-labels190",
   "/community.css?v=20261008-audience189",
   "/community-indicators.js?v=20261008-audience189",
-  "/information.js?v=20261008-sos194",
+  "/information.js?v=20261021-poll228",
   "/sos-siren.js?v=20261008-sos194",
   "/information.css?v=20261008-cards191",
   "/ain-streaming-provider.js?v=20261006-voice116",
